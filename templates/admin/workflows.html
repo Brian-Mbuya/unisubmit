@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('Workflow Management')}"></head>
+
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <h1 class="dashboard-title">
+                            <i class="bi bi-diagram-3 me-2"></i>
+                            Assignment Center
+                        </h1>
+                        <p class="dashboard-subtitle">
+                            Create departments, courses, and units, then connect lecturers to units and student projects from one admin screen.
+                        </p>
+                    </div>
+                    <div class="col-lg-4 text-lg-end">
+                        <a th:href="@{/dashboard}" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-arrow-left me-2"></i> Back to Admin Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <span th:text="${successMessage}">Success</span>
+            </div>
+
+            <div th:if="${assignmentErrorMessage}" class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <span th:text="${assignmentErrorMessage}">Assignment error</span>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-lg-4">
+                    <div class="content-card h-100">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-building me-2"></i>Create Department</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <form th:action="@{/admin/workflows/departments}" th:object="${departmentForm}" method="post">
+                                <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger">
+                                    <span th:each="error : ${#fields.globalErrors()}" th:text="${error}">Error</span>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="departmentCode">Code</label>
+                                    <input id="departmentCode" class="form-control" th:field="*{code}" placeholder="CS">
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('code')}" th:errors="*{code}">Code error</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="departmentName">Name</label>
+                                    <input id="departmentName" class="form-control" th:field="*{name}" placeholder="Computer Science">
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name error</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Create Department</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="content-card h-100">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-journal-bookmark me-2"></i>Create Course</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <form th:action="@{/admin/workflows/courses}" th:object="${courseForm}" method="post">
+                                <div class="mb-3">
+                                    <label class="form-label" for="courseDepartment">Department</label>
+                                    <select id="courseDepartment" class="form-select" th:field="*{departmentId}">
+                                        <option value="">Choose department</option>
+                                        <option th:each="department : ${departments}" th:value="${department.id}"
+                                                th:text="${department.name}">Department</option>
+                                    </select>
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('departmentId')}" th:errors="*{departmentId}">Department error</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="courseCode">Code</label>
+                                    <input id="courseCode" class="form-control" th:field="*{code}" placeholder="BCS">
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('code')}" th:errors="*{code}">Code error</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="courseName">Name</label>
+                                    <input id="courseName" class="form-control" th:field="*{name}" placeholder="Bachelor of Computer Science">
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name error</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Create Course</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="content-card h-100">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-book me-2"></i>Create Unit</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <form th:action="@{/admin/workflows/units}" th:object="${unitForm}" method="post">
+                                <div class="mb-3">
+                                    <label class="form-label" for="unitCourse">Course</label>
+                                    <select id="unitCourse" class="form-select" th:field="*{courseId}">
+                                        <option value="">Choose course</option>
+                                        <option th:each="course : ${courses}" th:value="${course.id}"
+                                                th:text="${course.name + ' (' + course.departmentName + ')'}">Course</option>
+                                    </select>
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('courseId')}" th:errors="*{courseId}">Course error</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="unitCode">Code</label>
+                                    <input id="unitCode" class="form-control" th:field="*{code}" placeholder="CSC 401">
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('code')}" th:errors="*{code}">Code error</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="unitName">Name</label>
+                                    <input id="unitName" class="form-control" th:field="*{name}" placeholder="Research Methods">
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">Name error</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Create Unit</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mb-4">
+                <div class="col-lg-5">
+                    <div class="content-card h-100">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-person-workspace me-2"></i>Assign Units to Lecturer</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div class="alert alert-info">
+                                Admin controls which lecturer receives coursework for each unit. One unit can point to one lecturer at a time.
+                            </div>
+                            <form th:action="@{/admin/workflows/lecturer-units}" th:object="${lecturerUnitAssignmentForm}" method="post">
+                                <div class="mb-3">
+                                    <label class="form-label" for="lecturerId">Lecturer</label>
+                                    <select id="lecturerId" class="form-select" th:field="*{lecturerId}">
+                                        <option value="">Choose lecturer</option>
+                                        <option th:each="lecturer : ${lecturers}" th:value="${lecturer.id}"
+                                                th:text="${lecturer.fullName + ' (' + lecturer.email + ')'}">Lecturer</option>
+                                    </select>
+                                    <div class="text-danger small mt-1" th:if="${#fields.hasErrors('lecturerId')}" th:errors="*{lecturerId}">Lecturer error</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label" for="unitIds">Units</label>
+                                    <select id="unitIds" class="form-select" th:field="*{unitIds}" multiple size="10">
+                                        <option th:each="unit : ${units}" th:value="${unit.id}"
+                                                th:text="${unit.code + ' - ' + unit.name + ' / ' + unit.courseName + ' / ' + (unit.lecturerName != null ? 'Current: ' + unit.lecturerName : 'Unassigned')}">Unit</option>
+                                    </select>
+                                    <div class="form-text">Hold Ctrl or Cmd to select more than one unit.</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Save Unit Assignments</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="content-card h-100">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-table me-2"></i>Current Unit Mapping</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div th:if="${units == null || units.isEmpty()}" class="empty-state">
+                                <i class="bi bi-inbox display-1 text-muted"></i>
+                                <h4 class="mt-3">No Units Yet</h4>
+                                <p class="text-muted">Create a department, a course, and a unit first.</p>
+                            </div>
+
+                            <div th:if="${units != null && !units.isEmpty()}" class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Unit</th>
+                                            <th>Course</th>
+                                            <th>Department</th>
+                                            <th>Assigned Lecturer</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="unit : ${units}">
+                                            <td>
+                                                <div class="fw-semibold" th:text="${unit.code}">CSC 401</div>
+                                                <div class="text-muted small" th:text="${unit.name}">Research Methods</div>
+                                            </td>
+                                            <td th:text="${unit.courseName}">Course</td>
+                                            <td th:text="${unit.departmentName}">Department</td>
+                                            <td th:text="${unit.lecturerName != null ? unit.lecturerName : 'Unassigned'}">Lecturer</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h2><i class="bi bi-link-45deg me-2"></i>Connect Lecturer to Student Project</h2>
+                </div>
+                <div class="content-card-body">
+                    <div class="alert alert-warning">
+                        Final-year project drafts should be assigned by admin before the student submits for review. That keeps every submission connected to the right lecturer.
+                    </div>
+
+                    <div th:if="${projectAssignments == null || projectAssignments.isEmpty()}" class="empty-state">
+                        <i class="bi bi-journal-x display-1 text-muted"></i>
+                        <h4 class="mt-3">No Student Projects Yet</h4>
+                        <p class="text-muted">Once students upload drafts, they will appear here for lecturer assignment.</p>
+                    </div>
+
+                    <div th:if="${projectAssignments != null && !projectAssignments.isEmpty()}" class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Student</th>
+                                    <th>Status</th>
+                                    <th>Current Lecturer</th>
+                                    <th>Assign / Reassign</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="projectSummary : ${projectAssignments}">
+                                    <td>
+                                        <div class="fw-semibold" th:text="${projectSummary.projectTitle()}">Project Title</div>
+                                        <div class="text-muted small" th:text="${'Project #' + projectSummary.projectId()}">Project ID</div>
+                                    </td>
+                                    <td th:text="${projectSummary.studentName() != null ? projectSummary.studentName() : 'Unknown student'}">Student</td>
+                                    <td>
+                                        <span class="badge bg-secondary" th:text="${projectSummary.projectStatus() != null ? projectSummary.projectStatus() : 'DRAFT'}">DRAFT</span>
+                                    </td>
+                                    <td th:text="${projectSummary.assignedLecturer() != null ? projectSummary.assignedLecturer() : 'Not assigned'}">Current Lecturer</td>
+                                    <td>
+                                        <form th:action="@{/admin/workflows/projects/{projectId}/lecturer(projectId=${projectSummary.projectId()})}"
+                                              method="post" class="d-flex gap-2 align-items-center">
+                                            <select name="lecturerId" class="form-select form-select-sm">
+                                                <option value="">Choose lecturer</option>
+                                                <option th:each="lecturer : ${lecturers}" th:value="${lecturer.id}"
+                                                        th:selected="${projectSummary.assignedLecturer() != null and projectSummary.assignedLecturer().equals(lecturer.fullName)}"
+                                                        th:text="${lecturer.fullName}">Lecturer</option>
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                Save
+                                            </button>
+                                        </form>
+                                        <div class="text-danger small mt-2"
+                                             th:if="${assignmentErrorProjectId != null and assignmentErrorProjectId == projectSummary.projectId()}"
+                                             th:text="${assignmentErrorMessage}">Assignment error</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

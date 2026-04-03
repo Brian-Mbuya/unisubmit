@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('Edit Draft')}"></head>
+
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="dashboard-title">
+                            <i class="bi bi-pencil-square me-2"></i>
+                            Edit Draft
+                        </h1>
+                        <p class="dashboard-subtitle">Update details before final submission</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a th:href="@{/student/projects/{id}(id=${projectId})}" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-arrow-left me-2"></i> Back to Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h2><i class="bi bi-journal-text me-2"></i>Edit Project</h2>
+                </div>
+                <div class="content-card-body">
+                    <form th:action="@{/student/projects/{id}(id=${projectId})}" th:object="${project}" method="post" enctype="multipart/form-data">
+                        <div class="row g-4">
+                            <div class="col-md-8">
+                                <label class="form-label" for="title">Project Title</label>
+                                <input type="text" id="title" class="form-control" th:field="*{title}" placeholder="Enter project title">
+                                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">Title error</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="academicYear">Academic Year</label>
+                                <input type="number" id="academicYear" class="form-control" th:field="*{academicYear}" placeholder="e.g., 2025" min="2000" max="2100">
+                                <div class="form-text">Leave blank to use the current year.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="unitId">Unit</label>
+                                <select id="unitId" class="form-select" th:field="*{unitId}">
+                                    <option value="">Choose a unit for this upload</option>
+                                    <option th:each="unit : ${availableUnits}" th:value="${unit.id}"
+                                            th:text="${unit.code + ' - ' + unit.name + ' / Lecturer: ' + unit.lecturerName}">Unit</option>
+                                </select>
+                                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('unitId')}" th:errors="*{unitId}">Unit error</div>
+                                <div class="form-text">Changing the unit updates the assigned lecturer automatically.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="abstractText">Abstract / Summary</label>
+                                <textarea id="abstractText" class="form-control" th:field="*{abstractText}" rows="6" placeholder="Briefly describe your project"></textarea>
+                                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('abstractText')}" th:errors="*{abstractText}">Abstract error</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="keywords">Keywords</label>
+                                <input type="text" id="keywords" class="form-control" th:field="*{keywords}" placeholder="AI, healthcare, machine learning">
+                                <div class="form-text">Separate keywords with commas.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="files">Add More Files (optional)</label>
+                                <input type="file" id="files" class="form-control" th:field="*{files}" multiple accept=".pdf,.docx,.zip">
+                                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('files')}" th:errors="*{files}">File error</div>
+                                <div class="form-text">Existing files are kept. Upload additional files if needed.</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-2"></i> Save Draft
+                            </button>
+                            <a th:href="@{/student/projects/{id}(id=${projectId})}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

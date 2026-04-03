@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  ============================================================================
+  IRIR — Login Page
+  Custom Spring Security login form with email/password authentication.
+  ============================================================================
+-->
+
+<head th:replace="~{fragments/layout :: head('Login')}"></head>
+
+<body class="auth-body">
+
+    <div class="auth-container">
+        <!-- Decorative background elements -->
+        <div class="auth-bg-shape shape-1"></div>
+        <div class="auth-bg-shape shape-2"></div>
+
+        <div class="auth-card">
+            <!-- Logo Section -->
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class="bi bi-journal-richtext"></i>
+                </div>
+                <h1 class="auth-title">Welcome to IRIR</h1>
+                <p class="auth-subtitle">Intelligent Research &amp; Innovation Repository</p>
+                <p class="text-muted small">Chuka University — Department of Computer Science</p>
+            </div>
+
+            <!-- Alert Messages -->
+            <div th:if="${param.error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Invalid email, staff ID, or password. Please try again.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <div th:if="${param.logout}" class="alert alert-info alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                You have been logged out successfully.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <div th:if="${param.expired}" class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="bi bi-clock-fill me-2"></i>
+                Your session has expired. Please log in again.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <span th:text="${successMessage}"></span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <!-- Login Form -->
+            <form th:action="@{/login}" method="post" class="auth-form" onsubmit="return syncLoginIdentifier()">
+                <input type="hidden" id="identifier" name="identifier">
+
+                <div class="mb-3">
+                    <label class="form-label d-block">Sign In As</label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="accountType" id="accountTypeStudent"
+                                value="standard" checked onchange="toggleAccountType()">
+                            <label class="form-check-label" for="accountTypeStudent">Student / Admin</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="accountType" id="accountTypeLecturer"
+                                value="lecturer" onchange="toggleAccountType()">
+                            <label class="form-check-label" for="accountTypeLecturer">Lecturer / Staff</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">
+                        <i class="bi bi-envelope me-1"></i> Email Address
+                    </label>
+                    <input type="email" class="form-control form-control-lg" id="email"
+                        placeholder="your.email@chuka.ac.ke" required autofocus>
+                    <div class="form-text">Students and admins sign in with email.</div>
+                </div>
+
+                <div class="mb-3 d-none" id="lecturerLoginSection">
+                    <label for="staffIdentifier" class="form-label">
+                        <i class="bi bi-person-badge me-1"></i> Staff ID / Employee Number
+                    </label>
+                    <input type="text" class="form-control form-control-lg" id="staffIdentifier"
+                        placeholder="Enter your staff ID or employee number">
+                    <div class="form-text">
+                        Reveal this section when signing in as a lecturer. Use the staff ID created by the admin.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">
+                        <i class="bi bi-lock me-1"></i> Password
+                    </label>
+                    <div class="input-group">
+                        <input type="password" class="form-control form-control-lg" id="password" name="password"
+                            placeholder="Enter your password" required>
+                        <button class="btn btn-outline-secondary" type="button"
+                            onclick="togglePassword('password', this)">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="rememberMe" name="remember-me">
+                        <label class="form-check-label small" for="rememberMe">Remember me</label>
+                    </div>
+                    <a th:href="@{/forgot-password}" class="auth-link small">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 auth-btn">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <p class="mb-2">
+                    Don't have an account?
+                    <a th:href="@{/register}" class="auth-link">Register as a Student</a>
+                </p>
+                <div class="mt-3 text-start">
+                    <button class="btn btn-link auth-link p-0 text-decoration-none" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#lecturerHelp" aria-expanded="false"
+                        aria-controls="lecturerHelp">
+                        Lecturer or staff member?
+                    </button>
+                    <div class="collapse mt-2" id="lecturerHelp">
+                        <div class="small text-muted border rounded p-3">
+                            Lecturer, supervisor, directorate, and extra admin accounts are created by the system
+                            administrator for cleaner role management. Once the admin adds you, use this same sign-in
+                            page to access your dashboard.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Toggle Script -->
+    <script>
+        function toggleAccountType() {
+            const lecturerSelected = document.getElementById('accountTypeLecturer').checked;
+            const lecturerSection = document.getElementById('lecturerLoginSection');
+            const staffIdentifier = document.getElementById('staffIdentifier');
+            lecturerSection.classList.toggle('d-none', !lecturerSelected);
+            staffIdentifier.required = lecturerSelected;
+        }
+
+        function syncLoginIdentifier() {
+            const lecturerSelected = document.getElementById('accountTypeLecturer').checked;
+            const email = document.getElementById('email').value.trim();
+            const staffIdentifier = document.getElementById('staffIdentifier').value.trim();
+            const identifierField = document.getElementById('identifier');
+
+            if (lecturerSelected) {
+                if (!staffIdentifier) {
+                    document.getElementById('staffIdentifier').focus();
+                    return false;
+                }
+                identifierField.value = staffIdentifier;
+                return true;
+            }
+
+            if (!email) {
+                document.getElementById('email').focus();
+                return false;
+            }
+
+            identifierField.value = email;
+            return true;
+        }
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
+
+        toggleAccountType();
+    </script>
+
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+
+</html>

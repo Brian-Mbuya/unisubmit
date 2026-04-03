@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('User Management')}"></head>
+
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="dashboard-title">
+                            <i class="bi bi-people-fill me-2"></i>
+                            User Management
+                        </h1>
+                        <p class="dashboard-subtitle">
+                            Create lecturer accounts, assign roles, and manage access from one place.
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <div class="d-flex justify-content-md-end gap-2">
+                            <a th:href="@{/admin/workflows}" class="btn btn-outline-info btn-lg">
+                                <i class="bi bi-diagram-3 me-2"></i> Assignment Center
+                            </a>
+                            <a th:href="@{/dashboard}" class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-arrow-left me-2"></i> Back to Admin Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <span th:text="${successMessage}">Success</span>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-person-plus me-2"></i>Create Staff Account</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div class="alert alert-info">
+                                Use this form for lecturers, supervisors, directorate staff, or extra admins.
+                                They will all use the same login page at <code>/login</code>.
+                            </div>
+
+                            <form th:action="@{/admin/users}" th:object="${newUser}" method="post">
+                                <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger">
+                                    <span th:each="error : ${#fields.globalErrors()}" th:text="${error}">Error</span>
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="firstName" class="form-label">First Name</label>
+                                        <input id="firstName" class="form-control" th:field="*{firstName}">
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}">First name error</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="lastName" class="form-label">Last Name</label>
+                                        <input id="lastName" class="form-control" th:field="*{lastName}">
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">Last name error</div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="email" class="form-label">Email</label>
+                                        <input id="email" class="form-control" th:field="*{email}" type="email">
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Email error</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="regNumber" class="form-label">Staff / Registration Number</label>
+                                        <input id="regNumber" class="form-control" th:field="*{regNumber}">
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('regNumber')}" th:errors="*{regNumber}">Reg number error</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="department" class="form-label">Department</label>
+                                        <input id="department" class="form-control" th:field="*{department}" placeholder="Computer Science">
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('department')}" th:errors="*{department}">Department error</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="password" class="form-label">Temporary Password</label>
+                                        <input id="password" class="form-control" th:field="*{password}" type="password">
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">Password error</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                        <input id="confirmPassword" class="form-control" th:field="*{confirmPassword}" type="password">
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}">Confirm password error</div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label d-block">Roles</label>
+                                        <div class="d-flex flex-wrap gap-3">
+                                            <div class="form-check" th:each="role : ${availableRoles}">
+                                                <input class="form-check-input" type="checkbox" name="roles"
+                                                    th:id="${'role-' + role.name()}" th:value="${role.name()}"
+                                                    th:checked="${newUser.roles != null and newUser.roles.contains(role)}">
+                                                <label class="form-check-label" th:for="${'role-' + role.name()}" th:text="${role.name()}">SUPERVISOR</label>
+                                            </div>
+                                        </div>
+                                        <div class="text-danger small mt-1" th:if="${#fields.hasErrors('roles')}" th:errors="*{roles}">Role error</div>
+                                    </div>
+                                </div>
+
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-person-plus me-2"></i>Create Account
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-table me-2"></i>Existing Users</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div th:if="${users == null || users.isEmpty()}" class="empty-state">
+                                <i class="bi bi-inbox display-1 text-muted"></i>
+                                <h4 class="mt-3">No Users Yet</h4>
+                                <p class="text-muted">Create your first lecturer or staff account from the form.</p>
+                            </div>
+
+                            <div th:if="${users != null && !users.isEmpty()}" class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>User</th>
+                                            <th>Department</th>
+                                            <th>Roles</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="managedUser : ${users}">
+                                            <td>
+                                                <div class="fw-semibold" th:text="${managedUser.fullName}">User Name</div>
+                                                <div class="text-muted small" th:text="${managedUser.email}">user@example.com</div>
+                                            </td>
+                                            <td th:text="${managedUser.department != null ? managedUser.department : '—'}">Department</td>
+                                            <td>
+                                                <form th:action="@{/admin/users/{id}/roles(id=${managedUser.id})}" method="post">
+                                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                                        <div class="form-check form-check-inline" th:each="role : ${availableRoles}">
+                                                            <input class="form-check-input" type="checkbox" name="roles"
+                                                                th:id="${'managed-' + managedUser.id + '-' + role.name()}"
+                                                                th:value="${role.name()}"
+                                                                th:checked="${managedUser.roles != null and managedUser.roles.contains(role)}">
+                                                            <label class="form-check-label small"
+                                                                th:for="${'managed-' + managedUser.id + '-' + role.name()}"
+                                                                th:text="${role.name()}">ROLE</label>
+                                                        </div>
+                                                    </div>
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                        <i class="bi bi-save me-1"></i> Save Roles
+                                                    </button>
+                                                </form>
+                                            </td>
+                                            <td>
+                                                <span class="badge" th:classappend="${managedUser.enabled} ? 'bg-success' : 'bg-danger'"
+                                                    th:text="${managedUser.enabled} ? 'Enabled' : 'Disabled'">Enabled</span>
+                                            </td>
+                                            <td>
+                                                <form th:action="@{/admin/users/{id}/status(id=${managedUser.id})}" method="post">
+                                                    <input type="hidden" name="enabled" th:value="${!managedUser.enabled}">
+                                                    <button type="submit" class="btn btn-sm"
+                                                        th:classappend="${managedUser.enabled} ? 'btn-outline-danger' : 'btn-outline-success'">
+                                                        <i class="bi me-1" th:classappend="${managedUser.enabled} ? 'bi-person-x' : 'bi-person-check'"></i>
+                                                        <span th:text="${managedUser.enabled} ? 'Disable' : 'Enable'">Toggle</span>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

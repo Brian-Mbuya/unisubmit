@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  ============================================================================
+  IRIR — Student Registration Page
+  New student account creation form with validation.
+  ============================================================================
+-->
+
+<head th:replace="~{fragments/layout :: head('Register')}"></head>
+
+<body class="auth-body">
+
+    <div class="auth-container">
+        <div class="auth-bg-shape shape-1"></div>
+        <div class="auth-bg-shape shape-2"></div>
+
+        <div class="auth-card auth-card-wide">
+            <!-- Logo Section -->
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+                <h1 class="auth-title">Create Account</h1>
+                <p class="auth-subtitle">Register as a 4th Year CS Student</p>
+            </div>
+
+            <!-- Registration Form -->
+            <form th:action="@{/register}" th:object="${user}" method="post" class="auth-form" novalidate>
+
+                <div class="row">
+                    <!-- First Name -->
+                    <div class="col-md-6 mb-3">
+                        <label for="firstName" class="form-label">
+                            <i class="bi bi-person me-1"></i> First Name
+                        </label>
+                        <input type="text" class="form-control form-control-lg"
+                            th:classappend="${#fields.hasErrors('firstName')} ? 'is-invalid'" id="firstName"
+                            th:field="*{firstName}" placeholder="Enter first name" required>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('firstName')}"
+                            th:errors="*{firstName}">First name error</div>
+                    </div>
+
+                    <!-- Last Name -->
+                    <div class="col-md-6 mb-3">
+                        <label for="lastName" class="form-label">
+                            <i class="bi bi-person me-1"></i> Last Name
+                        </label>
+                        <input type="text" class="form-control form-control-lg"
+                            th:classappend="${#fields.hasErrors('lastName')} ? 'is-invalid'" id="lastName"
+                            th:field="*{lastName}" placeholder="Enter last name" required>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}">
+                            Last name error</div>
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="mb-3">
+                    <label for="email" class="form-label">
+                        <i class="bi bi-envelope me-1"></i> Email Address
+                    </label>
+                    <input type="email" class="form-control form-control-lg"
+                        th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'" id="email" th:field="*{email}"
+                        placeholder="your.email@students.chuka.ac.ke" required>
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}">Email error
+                    </div>
+                </div>
+
+                <!-- Student ID -->
+                <div class="mb-3">
+                    <label for="studentId" class="form-label">
+                        <i class="bi bi-card-text me-1"></i> Student ID
+                    </label>
+                    <input type="text" class="form-control form-control-lg"
+                        th:classappend="${#fields.hasErrors('studentId')} ? 'is-invalid'" id="studentId"
+                        th:field="*{studentId}" placeholder="e.g., CS/401/001/2023">
+                    <div class="invalid-feedback" th:if="${#fields.hasErrors('studentId')}" th:errors="*{studentId}">
+                        Student ID error</div>
+                    <div class="form-text">Your university registration number</div>
+                </div>
+
+                <div class="row">
+                    <!-- Password -->
+                    <div class="col-md-6 mb-3">
+                        <label for="password" class="form-label">
+                            <i class="bi bi-lock me-1"></i> Password
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg"
+                                th:classappend="${#fields.hasErrors('password')} ? 'is-invalid'" id="password"
+                                th:field="*{password}" placeholder="Min. 8 characters" required>
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="togglePassword('password', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('password')}" th:errors="*{password}">
+                            Password error</div>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="col-md-6 mb-3">
+                        <label for="confirmPassword" class="form-label">
+                            <i class="bi bi-lock-fill me-1"></i> Confirm Password
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control form-control-lg"
+                                th:classappend="${#fields.hasErrors('confirmPassword')} ? 'is-invalid'"
+                                id="confirmPassword" th:field="*{confirmPassword}" placeholder="Re-enter password"
+                                required>
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="togglePassword('confirmPassword', this)">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('confirmPassword')}"
+                            th:errors="*{confirmPassword}">Confirm password error</div>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 auth-btn mt-2">
+                    <i class="bi bi-person-plus me-2"></i> Create Account
+                </button>
+            </form>
+
+            <!-- Login Link -->
+            <div class="auth-footer">
+                <p class="mb-1">
+                    Already have an account?
+                    <a th:href="@{/login}" class="auth-link">Sign In</a>
+                </p>
+                <p class="small text-muted mb-0">
+                    Lecturer or staff account? Your account is created by the administrator, so you only need to sign
+                    in once you have been added.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Toggle Script -->
+    <script>
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon = btn.querySelector('i');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.replace('bi-eye', 'bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.replace('bi-eye-slash', 'bi-eye');
+            }
+        }
+    </script>
+
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+
+</html>
