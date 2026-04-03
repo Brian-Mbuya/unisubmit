@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--
+  ============================================================================
+  IRIR — Lecturer Dashboard
+  Shows assigned projects and pending review queue.
+  ============================================================================
+-->
+
+<head th:replace="~{fragments/layout :: head('Lecturer Dashboard')}"></head>
+
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <!-- Welcome Header -->
+            <div class="dashboard-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="dashboard-title">
+                            <i class="bi bi-clipboard-check me-2"></i>
+                            Lecturer Dashboard
+                        </h1>
+                        <p class="dashboard-subtitle">
+                            Welcome, <span th:text="${user.fullName}">Lecturer</span> — Review assigned submissions,
+                            add remarks, and track each project's history without editing student files
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${message}" class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <span th:text="${message}">Feedback submitted successfully.</span>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card stat-card-primary">
+                        <div class="stat-icon"><i class="bi bi-folder2-open"></i></div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" th:text="${assignedProjects != null ? assignedProjects.size() : 0}">0
+                            </h3>
+                            <p class="stat-label">Assigned Submissions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card stat-card-warning">
+                        <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" th:text="${pendingReview != null ? pendingReview.size() : 0}">0</h3>
+                            <p class="stat-label">Pending Review</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card stat-card-success">
+                        <div class="stat-icon"><i class="bi bi-check2-all"></i></div>
+                        <div class="stat-info">
+                            <h3 class="stat-value">—</h3>
+                            <p class="stat-label">Reviews Completed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Review Queue -->
+            <div class="content-card mb-4">
+                <div class="content-card-header">
+                    <h2><i class="bi bi-hourglass-split me-2"></i>Pending Review Queue</h2>
+                </div>
+                <div class="content-card-body">
+                    <div th:if="${pendingReview == null || pendingReview.isEmpty()}" class="empty-state">
+                        <i class="bi bi-check-circle display-1 text-success"></i>
+                        <h4 class="mt-3">All Caught Up!</h4>
+                        <p class="text-muted">No assigned submissions are waiting for your review right now.</p>
+                    </div>
+
+                    <div th:if="${pendingReview != null && !pendingReview.isEmpty()}" class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Title</th>
+                                    <th>Student</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="project, iter : ${pendingReview}">
+                                    <td th:text="${iter.index + 1}">1</td>
+                                    <td class="fw-semibold" th:text="${project.title}">Project Title</td>
+                                    <td th:text="${project.submittedBy.fullName}">Student Name</td>
+                                    <td
+                                        th:text="${project.submittedAt != null ? #temporals.format(project.submittedAt, 'dd MMM yyyy') : '—'}">
+                                        —</td>
+                                    <td>
+                                        <a th:href="@{/supervisor/review/{id}(id=${project.id})}"
+                                            class="btn btn-sm btn-primary">
+                                            <i class="bi bi-pencil-square me-1"></i> Review Submission
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assigned Projects -->
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h2><i class="bi bi-people me-2"></i>Assigned Submission History</h2>
+                </div>
+                <div class="content-card-body">
+                    <div th:if="${assignedProjects == null || assignedProjects.isEmpty()}" class="empty-state">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <h4 class="mt-3">No Assigned Submissions</h4>
+                        <p class="text-muted">You have no student work assigned to your lecturer queue currently.</p>
+                    </div>
+
+                    <div th:if="${assignedProjects != null && !assignedProjects.isEmpty()}" class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Title</th>
+                                    <th>Student</th>
+                                    <th>Status</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="project, iter : ${assignedProjects}">
+                                    <td th:text="${iter.index + 1}">1</td>
+                                    <td class="fw-semibold" th:text="${project.title}">Project Title</td>
+                                    <td th:text="${project.submittedBy.fullName}">Student Name</td>
+                                    <td>
+                                        <span class="badge"
+                                            th:classappend="${project.status.name() == 'APPROVED'} ? 'bg-success' :
+                                                             (${project.status.name() == 'REJECTED'} ? 'bg-danger' : 'bg-info')"
+                                            th:text="${project.status}">Status</span>
+                                    </td>
+                                    <td
+                                        th:text="${project.submittedAt != null ? #temporals.format(project.submittedAt, 'dd MMM yyyy, HH:mm') : 'Draft only'}">
+                                        —</td>
+                                    <td>
+                                        <a th:href="@{/supervisor/review/{id}(id=${project.id})}"
+                                            class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye me-1"></i> Open Timeline
+                                        </a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+
+</html>

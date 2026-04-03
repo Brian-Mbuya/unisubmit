@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<!--
+  ============================================================================
+  IRIR — Admin Dashboard
+  System-wide user management, statistics, and system monitoring.
+  ============================================================================
+-->
+
+<head th:replace="~{fragments/layout :: head('Admin Dashboard')}"></head>
+
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <!-- Welcome Header -->
+            <div class="dashboard-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="dashboard-title">
+                            <i class="bi bi-gear me-2"></i>
+                            System Administration
+                        </h1>
+                        <p class="dashboard-subtitle">
+                            Manage users, roles, system logs, and backups
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Stats -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="stat-card stat-card-primary">
+                        <div class="stat-icon"><i class="bi bi-people"></i></div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" th:text="${totalUsers}">0</h3>
+                            <p class="stat-label">Total Users</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card stat-card-info">
+                        <div class="stat-icon"><i class="bi bi-mortarboard"></i></div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" th:text="${studentCount}">0</h3>
+                            <p class="stat-label">Students</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card stat-card-success">
+                        <div class="stat-icon"><i class="bi bi-person-workspace"></i></div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" th:text="${supervisorCount}">0</h3>
+                            <p class="stat-label">Supervisors</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="stat-card stat-card-warning">
+                        <div class="stat-icon"><i class="bi bi-journal-text"></i></div>
+                        <div class="stat-info">
+                            <h3 class="stat-value" th:text="${totalProjects}">0</h3>
+                            <p class="stat-label">Total Projects</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Quick Actions -->
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-people me-2"></i>User Management</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div class="d-grid gap-2">
+                                <a th:href="@{/admin/users}" class="btn btn-outline-primary btn-lg">
+                                    <i class="bi bi-people me-2"></i> Manage Users & Roles
+                                </a>
+                                <a th:href="@{/admin/users}" class="btn btn-outline-success btn-lg">
+                                    <i class="bi bi-person-plus me-2"></i> Create Lecturer Accounts
+                                </a>
+                                <a th:href="@{/admin/workflows}" class="btn btn-outline-info btn-lg">
+                                    <i class="bi bi-diagram-3 me-2"></i> Assign Lecturers & Units
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-tools me-2"></i>System Tools</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div class="d-grid gap-2">
+                                <a th:href="@{/dashboard}" class="btn btn-outline-info btn-lg">
+                                    <i class="bi bi-journal-text me-2"></i> Audit Logs Overview
+                                </a>
+                                <a th:href="@{/dashboard}" class="btn btn-outline-warning btn-lg">
+                                    <i class="bi bi-hdd me-2"></i> Backup Tools Coming Soon
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+
+</html>

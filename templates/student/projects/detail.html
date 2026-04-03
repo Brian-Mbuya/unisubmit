@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('Project Details')}"></head>
+
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="dashboard-title">
+                            <i class="bi bi-journal-text me-2"></i>
+                            <span th:text="${project.title}">Project Title</span>
+                        </h1>
+                        <p class="dashboard-subtitle">Project submission details and files</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a th:href="@{/student/projects}" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-arrow-left me-2"></i> Back to Projects
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <span th:text="${successMessage}">Success</span>
+            </div>
+            <div th:if="${errorMessage}" class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <span th:text="${errorMessage}">Error</span>
+            </div>
+            <div th:if="${project.status.name() == 'DRAFT'}" class="alert alert-warning">
+                <i class="bi bi-exclamation-circle me-2"></i>
+                <span th:if="${project.supervisor != null}">This project is still a draft. Submit it for review when you are ready.</span>
+                <span th:if="${project.supervisor == null}">This project is still a draft. Choose a unit with an assigned lecturer before you can submit it for review.</span>
+            </div>
+            <div th:if="${project.status.name() == 'SUBMITTED' || project.status.name() == 'UNDER_REVIEW'}" class="alert alert-info">
+                <i class="bi bi-send-check me-2"></i>
+                Submitted for review on
+                <span th:text="${project.submittedAt != null ? #temporals.format(project.submittedAt, 'dd MMM yyyy, HH:mm') : 'the recorded date'}">date</span>.
+            </div>
+
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="content-card mb-4">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-info-circle me-2"></i>Overview</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div class="d-flex flex-wrap gap-2 mb-3" th:if="${project.status.name() == 'DRAFT'}">
+                                <a th:href="@{/student/projects/{id}/edit(id=${project.id})}" class="btn btn-outline-primary">
+                                    <i class="bi bi-pencil me-1"></i> Edit Draft
+                                </a>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#submitModal"
+                                        th:disabled="${project.supervisor == null}">
+                                    <i class="bi bi-send me-1"></i> Submit for Review
+                                </button>
+                                <span class="text-muted small align-self-center" th:if="${project.supervisor == null}">
+                                    Choose a unit with an assigned lecturer to enable review submission.
+                                </span>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-muted">Status</div>
+                                <div class="col-md-8">
+                                    <span class="badge"
+                                          th:classappend="${project.status.name() == 'APPROVED'} ? 'bg-success' :
+                                                         (${project.status.name() == 'REJECTED'} ? 'bg-danger' :
+                                                         (${project.status.name() == 'FLAGGED'} ? 'bg-warning text-dark' :
+                                                         (${project.status.name() == 'SUBMITTED' || project.status.name() == 'UNDER_REVIEW'} ? 'bg-info' : 'bg-secondary')))"
+                                          th:text="${project.status}">Status</span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-muted">Submitted</div>
+                                <div class="col-md-8" th:text="${project.submittedAt != null ? #temporals.format(project.submittedAt, 'dd MMM yyyy, HH:mm') : 'Not submitted'}">Not submitted</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-muted">Unit</div>
+                                <div class="col-md-8"
+                                     th:text="${project.unit != null ? project.unit.code + ' - ' + project.unit.name : 'Not selected'}">—</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-muted">Supervisor</div>
+                                <div class="col-md-8" th:text="${project.supervisor != null ? project.supervisor.fullName : 'Not assigned'}">—</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-muted">Academic Year</div>
+                                <div class="col-md-8" th:text="${project.academicYear != null ? project.academicYear : '—'}">—</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-4 text-muted">Keywords</div>
+                                <div class="col-md-8">
+                                    <div class="d-flex flex-wrap gap-2" th:if="${project.keywords != null && !project.keywords.isEmpty()}">
+                                        <span class="badge bg-secondary" th:each="kw : ${project.keywords}" th:text="${kw}">keyword</span>
+                                    </div>
+                                    <span class="text-muted" th:if="${project.keywords == null || project.keywords.isEmpty()}">No keywords provided</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-muted mb-2">Abstract</div>
+                                <p class="mb-0" th:text="${project.abstractText != null && !project.abstractText.isBlank() ? project.abstractText : 'No abstract provided.'}">Abstract text</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-paperclip me-2"></i>Files</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div th:if="${project.files == null || project.files.isEmpty()}" class="text-muted">
+                                No files available.
+                            </div>
+                            <div th:if="${project.files != null && !project.files.isEmpty()}" class="table-responsive">
+                                <table class="table table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Filename</th>
+                                            <th>Type</th>
+                                            <th>Size</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr th:each="file, iter : ${project.files}">
+                                            <td th:text="${iter.index + 1}">1</td>
+                                            <td th:text="${file.fileName}">file.pdf</td>
+                                            <td th:text="${file.fileType != null ? file.fileType : '—'}">type</td>
+                                            <td th:text="${file.fileSize != null ? (file.fileSize / 1024) + ' KB' : '—'}">size</td>
+                                            <td>
+                                                <a th:href="@{/student/projects/{id}/files/{fileId}(id=${project.id}, fileId=${file.id})}"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-download me-1"></i> Download
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <div class="content-card">
+                        <div class="content-card-header">
+                            <h2><i class="bi bi-people me-2"></i>Collaborator Recommendations</h2>
+                        </div>
+                        <div class="content-card-body">
+                            <div th:if="${recommendations == null || recommendations.isEmpty()}" class="text-muted">
+                                No recommendations yet. Add more keywords to improve matching.
+                            </div>
+                            <div th:if="${recommendations != null && !recommendations.isEmpty()}" class="d-grid gap-3">
+                                <div class="p-3 rounded border" th:each="rec : ${recommendations}">
+                                    <div class="fw-semibold" th:text="${rec.title}">Project Title</div>
+                                    <div class="text-muted small mb-2" th:text="${rec.abstractText != null ? rec.abstractText : 'No abstract provided.'}">Abstract</div>
+                                    <div class="d-flex flex-wrap gap-1" th:if="${rec.keywords != null && !rec.keywords.isEmpty()}">
+                                        <span class="badge bg-secondary" th:each="kw : ${rec.keywords}" th:text="${kw}">keyword</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal fade" id="submitModal" tabindex="-1" aria-labelledby="submitModalLabel" aria-hidden="true"
+         th:if="${project.status.name() == 'DRAFT'}">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-light">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="submitModalLabel">Submit for Review</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <span th:if="${project.supervisor != null}">
+                        Submitting will send your project to <strong th:text="${project.supervisor.fullName}">Assigned Lecturer</strong> for review. You will not be able to edit after submission.
+                    </span>
+                    <span th:if="${project.supervisor == null}">
+                        Admin must assign your lecturer before you can submit this project for review.
+                    </span>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form th:action="@{/student/projects/{id}/submit(id=${project.id})}" method="post">
+                        <button type="submit" class="btn btn-primary" th:disabled="${project.supervisor == null}">
+                            <i class="bi bi-send me-1"></i> Confirm Submission
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

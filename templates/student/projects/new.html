@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('Upload Project')}"></head>
+
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="dashboard-title">
+                            <i class="bi bi-cloud-arrow-up me-2"></i>
+                            Upload Project
+                        </h1>
+                        <p class="dashboard-subtitle">Upload your files to IRIR as a draft before submitting for review</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a th:href="@{/student/projects}" class="btn btn-outline-primary btn-lg">
+                            <i class="bi bi-arrow-left me-2"></i> Back to Projects
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h2><i class="bi bi-journal-text me-2"></i>Project Details</h2>
+                </div>
+                <div class="content-card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Uploading saves a draft in IRIR only. Admin assigns the lecturer after the draft exists, and you submit for review from the project details page once that assignment is in place.
+                    </div>
+                    <form th:action="@{/student/projects}" th:object="${project}" method="post" enctype="multipart/form-data">
+                        <div class="row g-4">
+                            <div class="col-md-8">
+                                <label class="form-label" for="title">Project Title</label>
+                                <input type="text" id="title" class="form-control" th:field="*{title}" placeholder="Enter project title">
+                                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">Title error</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="academicYear">Academic Year</label>
+                                <input type="number" id="academicYear" class="form-control" th:field="*{academicYear}" placeholder="e.g., 2025" min="2000" max="2100">
+                                <div class="form-text">Leave blank to use the current year.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="unitId">Unit</label>
+                                <select id="unitId" class="form-select" th:field="*{unitId}">
+                                    <option value="">Choose a unit for this upload</option>
+                                    <option th:each="unit : ${availableUnits}" th:value="${unit.id}"
+                                            th:text="${unit.code + ' - ' + unit.name + ' / Lecturer: ' + unit.lecturerName}">Unit</option>
+                                </select>
+                                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('unitId')}" th:errors="*{unitId}">Unit error</div>
+                                <div class="form-text">Only units with an assigned lecturer appear here, so your upload reaches the right lecturer automatically.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="abstractText">Abstract / Summary</label>
+                                <textarea id="abstractText" class="form-control" th:field="*{abstractText}" rows="6" placeholder="Briefly describe your project"></textarea>
+                                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('abstractText')}" th:errors="*{abstractText}">Abstract error</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="keywords">Keywords</label>
+                                <input type="text" id="keywords" class="form-control" th:field="*{keywords}" placeholder="AI, healthcare, machine learning">
+                                <div class="form-text">Separate keywords with commas. These are used for collaborator recommendations.</div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="files">Project Files (PDF, DOCX, ZIP)</label>
+                                <input type="file" id="files" class="form-control" th:field="*{files}" multiple accept=".pdf,.docx,.zip">
+                                <div class="text-danger small mt-1" th:if="${#fields.hasErrors('files')}" th:errors="*{files}">File error</div>
+                                <div class="form-text">Maximum upload size is 50MB total.</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-cloud-arrow-up me-2"></i> Upload Draft
+                            </button>
+                            <a th:href="@{/student/projects}" class="btn btn-outline-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{fragments/layout :: head('Access Denied')}"></head>
+
+<body class="auth-body">
+    <div class="error-container">
+        <div class="error-code">403</div>
+        <h2 class="error-title">Access Denied</h2>
+        <p class="error-message"
+            th:text="${errorMessage != null ? errorMessage : 'You are not allowed to access this resource.'}">
+            You are not allowed to access this resource.
+        </p>
+        <a th:href="@{/dashboard}" class="btn btn-primary btn-lg mt-3">
+            <i class="bi bi-house me-2"></i> Back to Dashboard
+        </a>
+    </div>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+
+</html>

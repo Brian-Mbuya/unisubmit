@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head th:replace="~{fragments/layout :: head('My Projects')}"></head>
+
+<body>
+    <nav th:replace="~{fragments/layout :: navbar}"></nav>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <div class="dashboard-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h1 class="dashboard-title">
+                            <i class="bi bi-folder2-open me-2"></i>
+                            My Projects
+                        </h1>
+                        <p class="dashboard-subtitle">View and manage all your submissions</p>
+                    </div>
+                    <div class="col-md-4 text-md-end">
+                        <a th:href="@{/student/projects/new}" class="btn btn-primary btn-lg">
+                            <i class="bi bi-cloud-arrow-up me-2"></i> Upload Project
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${successMessage}" class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>
+                <span th:text="${successMessage}">Success</span>
+            </div>
+            <div th:if="${errorMessage}" class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <span th:text="${errorMessage}">Error</span>
+            </div>
+
+            <div class="content-card">
+                <div class="content-card-header">
+                    <h2><i class="bi bi-folder2-open me-2"></i>Project List</h2>
+                </div>
+                <div class="content-card-body">
+                    <div th:if="${projects == null || projects.isEmpty()}" class="empty-state">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <h4 class="mt-3">No Projects Yet</h4>
+                        <p class="text-muted">Upload your first research project to get started.</p>
+                        <a th:href="@{/student/projects/new}" class="btn btn-primary">
+                            <i class="bi bi-cloud-arrow-up me-2"></i> Upload Project
+                        </a>
+                    </div>
+
+                    <div th:if="${projects != null && !projects.isEmpty()}" class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Title</th>
+                                    <th>Status</th>
+                                    <th>Supervisor</th>
+                                    <th>Submitted</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="project, iter : ${projects}">
+                                    <td th:text="${iter.index + 1}">1</td>
+                                    <td>
+                                        <a th:href="@{/student/projects/{id}(id=${project.id})}"
+                                           class="fw-semibold text-decoration-none" th:text="${project.title}">
+                                            Project Title
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${project.status.name() == 'APPROVED'} ? 'bg-success' :
+                                                             (${project.status.name() == 'REJECTED'} ? 'bg-danger' :
+                                                             (${project.status.name() == 'FLAGGED'} ? 'bg-warning text-dark' :
+                                                             (${project.status.name() == 'SUBMITTED' || project.status.name() == 'UNDER_REVIEW'} ? 'bg-info' : 'bg-secondary')))"
+                                              th:text="${project.status}">Status</span>
+                                    </td>
+                                    <td th:text="${project.supervisor != null ? project.supervisor.fullName : 'Not assigned'}">—</td>
+                                    <td th:text="${project.submittedAt != null ? #temporals.format(project.submittedAt, 'dd MMM yyyy') : 'Not submitted'}">Not submitted</td>
+                                    <td>
+                                        <a th:href="@{/student/projects/{id}(id=${project.id})}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye me-1"></i> View
+                                        </a>
+                                        <a th:if="${project.status.name() == 'DRAFT'}"
+                                           th:href="@{/student/projects/{id}/edit(id=${project.id})}"
+                                           class="btn btn-sm btn-outline-secondary ms-2">
+                                            <i class="bi bi-pencil me-1"></i> Edit
+                                        </a>
+                                        <form th:if="${project.status.name() == 'DRAFT'}"
+                                              th:action="@{/student/projects/{id}/submit(id=${project.id})}"
+                                              method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-success ms-2"
+                                                    onclick="return confirm('Submit this project for review? You will not be able to edit after submission.');">
+                                                <i class="bi bi-send me-1"></i> Submit
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{fragments/layout :: footer}"></footer>
+    <th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
