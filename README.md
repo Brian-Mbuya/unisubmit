@@ -1,40 +1,51 @@
-# UniSubmit | University Submission & Innovation Repository
+ UniSubmit | University Submission & Innovation Repository
 
 ![Status](https://img.shields.io/badge/status-active--dev-0b7285?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-0b7285?style=for-the-badge)
 ![Java](https://img.shields.io/badge/Java-17-0b7285?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring](https://img.shields.io/badge/Spring_Boot-3.2.x-0b7285?style=for-the-badge&logo=springboot&logoColor=white)
+![Database](https://img.shields.io/badge/Database-MySQL-0b7285?style=for-the-badge&logo=mysql&logoColor=white)
 
 **UniSubmit** is a specialized digital repository and submission system designed for university departments to manage the entire lifecycle of student research projects. It streamlines project uploads, supervisor feedback, and final archival, ensuring academic integrity and fostering innovation.
 
-### 🚀 Vision & Purpose
-Initially built for project progress tracking and lecturer remarks, UniSubmit is expanding to support **fourth-year final projects**. It serves as:
-*   **A Research Hub:** Students can discover past projects to spark new ideas and avoid duplicating work.
-*   **An Integrity Shield:** Automated similarity reports prevent plagiarism by comparing new submissions against the repository's history.
-*   **A Feedback Portal:** Lecturers can monitor student progress and provide actionable remarks in real-time.
+![Dashboard Preview](screenshots/image1.jpeg)
 
 ---
 
-## 🚀 Vision & Purpose
+## ❓ Why UniSubmit?
 
-In many academic environments, final year projects are often lost in physical archives or scattered digital folders. **UniSubmit** centralizes this knowledge, allowing:
-*   **Students** to draw inspiration from past work and identify gaps in current research.
-*   **Departments** to maintain high academic standards through automated integrity checks.
-*   **Supervisors** to efficiently manage the review and approval lifecycle of student submissions.
+Academic research management is often fragmented, with critical final-year projects scattered across disconnected drives or physical archives. **UniSubmit** solves this by providing:
 
-Soon, **UniSubmit** will serve as the primary submission portal for **fourth-year final projects**, ensuring that every graduate's contribution is preserved and accessible to the next generation of innovators.
+*   **A Centralized Knowledge Hub**: Preserving every graduates' contribution in a secure, searchable environment.
+*   **A Continuous Feedback Loop**: Closing the gap between students and supervisors with real-time project tracking and feedback.
+*   **High Academic Integrity**: Identifying potential plagiarism early through automated similarity scanning.
+*   **Discovery for Freshmen**: Providing a library of past innovations to spark inspiration for future research.
+
+Soon, **UniSubmit** will serve as the primary submission portal for **fourth-year final projects**, specifically tailored for departmental defenses and final thesis submissions.
 
 ---
 
 ## ✨ Key Features
 
 ### 🛡️ Plagiarism Prevention & Integrity
-*   **Automated Similarity Reports:** Each submission is automatically analyzed against the existing repository using document extraction (PDF/DOCX) to identify potential overlaps.
-*   **Flagging System:** High similarity scores trigger automated flags for supervisor review, ensuring academic honesty.
+Each submission is automatically analyzed against the existing repository's database using advanced document extraction to ensure original work. High similarity scores trigger automated internal flags.
+
+![Submission Dialog](screenshots/Image8.jpeg)
 
 ### 🔍 Project Discovery & Innovation
-*   **Keyword Intelligence:** Projects are indexed with searchable keywords, helping students find relevant past research to build upon.
-*   **Public/Incubation Stages:** Projects that reach the "Incubation" stage are showcased for their innovation and potential for further development.
+Projects are indexed with searchable keywords, helping students find relevant past research to build upon. Projects that reach the "Incubation" stage are showcased for their innovation.
+
+![Project Details View](screenshots/image10.jpeg)
+
+### 📋 Seamless Workflow
+Students can easily manage their project lifecycle—from draft stages to final review.
+
+![Project Upload Form](screenshots/image%204.jpeg)
+
+### 🛡️ Administration & Oversight
+Dedicated administrative panels for managing users, tracking audit logs, and supervising department-wide research trends.
+
+![Admin Dashboard](screenshots/image5.jpeg)
 
 ---
 
@@ -80,15 +91,7 @@ This is the fastest way to preview the app without a full MySQL setup.
 *   **Persistence:** Spring Data JPA + Hibernate
 *   **Security:** Spring Security (RBAC & BCrypt)
 *   **Frontend:** Thymeleaf + Bootstrap 5
-*   **Analytics:** Apache Tika/PDFBox (Text extraction for similarity analysis)
-
----
-
-## 🗺️ Future Roadmap
-
-*   **Final Year Project Portal:** Dedicated workflows specifically tailored for fourth-year project defenses and final submissions.
-*   **Collaboration Hub:** Tools for students to request collaboration on existing "Incubation" projects.
-*   **Advanced AI Analysis:** Enhancing the similarity engine with semantic understanding beyond simple text matching.
+*   **Analytics:** Apache Tika/PDFBox (Similarity analysis)
 
 ---
 
@@ -99,4 +102,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 *Developed for Chuka University - Empowering Academic Innovation.*
-
