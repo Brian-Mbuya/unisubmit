@@ -28,6 +28,7 @@ public class SubmissionService {
     private final AIInsightService aiInsightService;
     private final NotificationService notificationService;
     private final ProjectGroupRepository groupRepository;
+    private final AuditService auditService;
 
     public SubmissionService(SubmissionRepository submissionRepository,
                              SubmissionVersionRepository versionRepository,
@@ -39,7 +40,8 @@ public class SubmissionService {
                              FileStorageService fileStorageService,
                              AIInsightService aiInsightService,
                              NotificationService notificationService,
-                             ProjectGroupRepository groupRepository) {
+                             ProjectGroupRepository groupRepository,
+                             AuditService auditService) {
         this.submissionRepository = submissionRepository;
         this.versionRepository = versionRepository;
         this.feedbackRepository = feedbackRepository;
@@ -51,6 +53,7 @@ public class SubmissionService {
         this.aiInsightService = aiInsightService;
         this.notificationService = notificationService;
         this.groupRepository = groupRepository;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -101,6 +104,8 @@ public class SubmissionService {
         }
 
         submission = submissionRepository.save(submission);
+        auditService.record(submission, AuditAction.SUBMISSION_CREATED,
+                "Project created", student);
         appendNewVersion(submission, file, student);
 
         // Trigger AI analysis asynchronously (non-blocking)
@@ -155,6 +160,9 @@ public class SubmissionService {
 
         submission.getVersions().add(version);
         versionRepository.save(version);
+
+        auditService.record(submission, AuditAction.VERSION_UPLOADED,
+                "Version " + version.getVersionNumber() + " uploaded", uploadedBy);
     }
 
     public List<Submission> getSubmissionsForStudent(User student) {
@@ -281,6 +289,11 @@ public class SubmissionService {
             }
             feedbackRepository.save(feedback);
 
+            auditService.record(submission, AuditAction.FEEDBACK_ADDED,
+                    "Feedback added by " + lecturer.getName()
+                            + (feedback.getGrade() != null ? " (score " + feedback.getGrade() + "/100)" : ""),
+                    lecturer);
+
             // Notify submission owner
             notificationService.createNotification(
                     submission.getStudent(),
@@ -297,6 +310,9 @@ public class SubmissionService {
         if (newStatus != null) {
             submission.setStatus(newStatus);
             submissionRepository.save(submission);
+
+            auditService.record(submission, AuditAction.STATUS_CHANGED,
+                    "Status changed to " + newStatus.name().replace('_', ' '), lecturer);
 
             notificationService.createNotification(
                     submission.getStudent(),
