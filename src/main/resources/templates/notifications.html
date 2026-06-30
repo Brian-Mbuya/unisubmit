@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <div class="page-head">
+            <div>
+                <h1>Notifications</h1>
+                <p class="subtitle">Stay up-to-date with feedback, status changes, and deadlines.</p>
+            </div>
+            <form th:action="@{/notifications/mark-read}" method="post" class="inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn btn-secondary">Mark all as read</button>
+            </form>
+        </div>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
+
+        <!-- Empty state -->
+        <div th:if="${#lists.isEmpty(notifications)}" class="empty-state">
+            <h3>No notifications yet</h3>
+            <p>You'll see alerts here when you receive feedback, a status change, or a deadline reminder.</p>
+        </div>
+
+        <!-- Notification list -->
+        <div th:if="${not #lists.isEmpty(notifications)}" class="card">
+            <div th:each="n : ${notifications}"
+                 th:class="'notification-item' + (${n.read} ? '' : ' unread')">
+                <div th:classappend="${n.type.name() == 'STATUS_CHANGE' ? 'status-change' : (n.type.name() == 'DEADLINE' ? 'deadline' : '')}"
+                     class="notification-icon">
+                    <span th:if="${n.type.name() == 'NEW_FEEDBACK'}">💬</span>
+                    <span th:if="${n.type.name() == 'STATUS_CHANGE'}">🔄</span>
+                    <span th:if="${n.type.name() == 'DEADLINE'}">⏰</span>
+                </div>
+                <div class="notification-body">
+                    <div class="notification-message" th:text="${n.message}">Notification text</div>
+                    <div class="notification-time"
+                         th:text="${#temporals.format(n.createdAt, 'dd MMM yyyy, HH:mm')}">Date</div>
+                </div>
+                <a th:if="${n.relatedSubmissionId != null}"
+                   th:href="@{'/student/submission/' + ${n.relatedSubmissionId}}"
+                   class="btn btn-secondary btn-sm">View</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

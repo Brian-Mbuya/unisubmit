@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <div class="page-head">
+            <div>
+                <div class="eyebrow">Lecturer review</div>
+                <h1 th:text="${submission.title}">Submission title</h1>
+                <p class="subtitle">
+                    By <span th:text="${submission.student.name}">Student</span>
+                    <span aria-hidden="true">/</span>
+                    <span th:text="${submission.unit.unitName}">Unit</span>
+                </p>
+            </div>
+            <div class="header-actions">
+                <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>
+                <a th:href="@{/lecturer/dashboard}" class="btn btn-secondary btn-sm">Back to queue</a>
+            </div>
+        </div>
+
+        <div class="split-layout review-workspace">
+            <section class="document-panel" aria-label="Submitted document">
+                <div class="document-panel-head">
+                    <div>
+                        <h2>Latest document</h2>
+                        <p class="text-muted text-sm" th:if="${not #lists.isEmpty(submission.versions)}"
+                           th:text="'Version ' + ${#lists.size(submission.versions)}">Version 1</p>
+                    </div>
+                    <a th:if="${not #lists.isEmpty(submission.versions)}"
+                       th:href="@{'/files/' + ${submission.versions[submission.versions.size() - 1].filePath}}"
+                       class="btn btn-secondary btn-sm">
+                        Open file
+                    </a>
+                </div>
+                <iframe th:if="${not #lists.isEmpty(submission.versions)}"
+                        class="doc-viewer"
+                        title="Latest uploaded document"
+                        th:src="@{'/files/' + ${submission.versions[submission.versions.size() - 1].filePath}}">
+                </iframe>
+                <div th:if="${#lists.isEmpty(submission.versions)}" class="empty-state document-empty">
+                    <h3>No document uploaded</h3>
+                    <p>The student has not uploaded a file for this submission yet.</p>
+                </div>
+            </section>
+
+            <aside class="panel-scroll review-side" aria-label="Review details">
+                <section class="card">
+                    <div class="card-head">
+                        <h2>Submission details</h2>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Student</span>
+                        <span th:text="${submission.student.name}">Name</span>
+                    </div>
+                    <div class="info-row" th:if="${submission.projectGroup != null}">
+                        <span class="label">Project Group</span>
+                        <strong th:text="${submission.projectGroup.name}">Group Name</strong>
+                    </div>
+                    <div class="info-row" th:if="${submission.projectGroup != null}">
+                        <span class="label">Group Members</span>
+                        <span>
+                            <span th:each="m, iter : ${submission.projectGroup.members}" 
+                                  th:text="${m.name} + ${iter.last ? '' : ', '}">Member</span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Unit</span>
+                        <span th:text="${submission.unit.unitName}">Unit</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Department</span>
+                        <span th:text="${submission.unit.department.name}">Department</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Submitted</span>
+                        <span th:text="${#temporals.format(submission.createdAt, 'dd MMM yyyy, HH:mm')}">Date</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Versions</span>
+                        <span th:text="${#lists.size(submission.versions)}">0</span>
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card-head">
+                        <h2>Classification Tags</h2>
+                    </div>
+                    <form th:action="@{'/lecturer/submission/' + ${submission.id} + '/tags'}" method="post" class="classification-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        
+                        <!-- Technologies -->
+                        <div class="form-group no-margin">
+                            <label class="form-label text-sm fw-600 text-muted">Technologies</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span th:each="t : ${submission.technologies}" class="badge badge-draft" th:text="${t.name}">Tag</span>
+                                <span th:if="${submission.technologies.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                            <select name="technologyIds" class="form-control form-control-sm tag-select-multiple" multiple>
+                                <option th:each="t : ${allTechnologies}" th:value="${t.id}" th:text="${t.name}" th:selected="${submission.technologies.contains(t)}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Research Areas -->
+                        <div class="form-group no-margin">
+                            <label class="form-label text-sm fw-600 text-muted">Research Areas</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span th:each="r : ${submission.researchAreas}" class="badge badge-draft" th:text="${r.name}">Tag</span>
+                                <span th:if="${submission.researchAreas.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                            <select name="researchAreaIds" class="form-control form-control-sm tag-select-multiple" multiple>
+                                <option th:each="r : ${allResearchAreas}" th:value="${r.id}" th:text="${r.name}" th:selected="${submission.researchAreas.contains(r)}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Frameworks -->
+                        <div class="form-group no-margin">
+                            <label class="form-label text-sm fw-600 text-muted">Frameworks</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span th:each="f : ${submission.frameworks}" class="badge badge-draft" th:text="${f.name}">Tag</span>
+                                <span th:if="${submission.frameworks.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                            <select name="frameworkIds" class="form-control form-control-sm tag-select-multiple" multiple>
+                                <option th:each="f : ${allFrameworks}" th:value="${f.id}" th:text="${f.name}" th:selected="${submission.frameworks.contains(f)}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Databases -->
+                        <div class="form-group no-margin">
+                            <label class="form-label text-sm fw-600 text-muted">Databases</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span th:each="d : ${submission.databases}" class="badge badge-draft" th:text="${d.name}">Tag</span>
+                                <span th:if="${submission.databases.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                            <select name="databaseIds" class="form-control form-control-sm tag-select-multiple" multiple>
+                                <option th:each="d : ${allDatabases}" th:value="${d.id}" th:text="${d.name}" th:selected="${submission.databases.contains(d)}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Programming Languages -->
+                        <div class="form-group no-margin">
+                            <label class="form-label text-sm fw-600 text-muted">Programming Languages</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span th:each="p : ${submission.programmingLanguages}" class="badge badge-draft" th:text="${p.name}">Tag</span>
+                                <span th:if="${submission.programmingLanguages.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                            <select name="programmingLanguageIds" class="form-control form-control-sm tag-select-multiple" multiple>
+                                <option th:each="p : ${allProgrammingLanguages}" th:value="${p.id}" th:text="${p.name}" th:selected="${submission.programmingLanguages.contains(p)}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Skills -->
+                        <div class="form-group no-margin">
+                            <label class="form-label text-sm fw-600 text-muted">Skills</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span th:each="s : ${submission.skills}" class="badge badge-draft" th:text="${s.name}">Tag</span>
+                                <span th:if="${submission.skills.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                            <select name="skillIds" class="form-control form-control-sm tag-select-multiple" multiple>
+                                <option th:each="s : ${allSkills}" th:value="${s.id}" th:text="${s.name}" th:selected="${submission.skills.contains(s)}"></option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-secondary btn-sm btn-block mt-2">Save Tags</button>
+                    </form>
+                </section>
+
+                <section class="card">
+                    <div class="card-head">
+                        <h2>AI insights</h2>
+                    </div>
+                    <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
+                </section>
+
+                <section class="card">
+                    <div class="card-head">
+                        <h2>Activity timeline</h2>
+                    </div>
+                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
+                </section>
+
+                <section class="card" th:if="${submission.status.name() != 'APPROVED'}">
+                    <div class="card-head">
+                        <h2>Review action</h2>
+                    </div>
+                    <form th:action="@{'/lecturer/submission/' + ${submission.id} + '/review'}" method="post" data-review-form>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="status" value="UNDER_REVIEW" data-review-status>
+
+                        <div class="form-group">
+                            <label class="form-label" for="reviewMessage">Remarks</label>
+                            <textarea name="message" id="reviewMessage" class="form-control form-control-tall" rows="4"
+                                      placeholder="Add feedback for the student."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="reviewGrade">
+                                Grade <span class="text-muted text-xs">(optional, 0–100)</span>
+                            </label>
+                            <input type="number" name="grade" id="reviewGrade" class="form-control review-grade-input"
+                                   min="0" max="100" placeholder="e.g. 75">
+                        </div>
+
+                        <div class="review-actions" role="group" aria-label="Choose review outcome">
+                            <button type="button" class="btn btn-review btn-selected" data-review-action="UNDER_REVIEW">
+                                Keep under review
+                            </button>
+                            <button type="button" class="btn btn-warning" data-review-action="REJECTED">
+                                Request changes
+                            </button>
+                            <button type="button" class="btn btn-accent" data-review-action="APPROVED">
+                                Approve
+                            </button>
+                        </div>
+
+                        <button type="submit" class="btn btn-block mt-4">Submit review</button>
+                    </form>
+                </section>
+
+                <section class="muted-panel approved-note" th:if="${submission.status.name() == 'APPROVED'}">
+                    <strong class="text-sm">Approved and locked</strong>
+                    <p class="text-muted text-sm">No further review action is available for this submission.</p>
+                </section>
+            </aside>
+        </div>
+    </div>
+</body>
+</html>

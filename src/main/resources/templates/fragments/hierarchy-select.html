@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--
+  Reusable cascading hierarchy selector: Faculty → Department → Unit → Year
+  Usage:
+    th:replace="~{fragments/hierarchy-select :: cascade(prefix='create', roles='STUDENT')}"
+
+  Parameters:
+    prefix  - unique HTML id prefix to avoid conflicts when used multiple times on a page
+    roles   - 'STUDENT' shows all 4 levels; 'LECTURER' stops at Department
+-->
+
+<div th:fragment="cascade(prefix, roles)" class="hierarchy-cascade" th:attr="data-prefix=${prefix}">
+
+    <!-- Faculty -->
+    <div class="form-group">
+        <label class="form-label" th:for="${prefix + '_facultyId'}">Faculty</label>
+        <select th:id="${prefix + '_facultyId'}" th:name="facultyId"
+                class="form-control cascade-faculty" required
+                th:attr="data-prefix=${prefix}">
+            <option value="" disabled selected>Select faculty…</option>
+            <option th:each="f : ${faculties}" th:value="${f.id}" th:text="${f.name}">Faculty</option>
+        </select>
+    </div>
+
+    <!-- Department (populated via AJAX) -->
+    <div class="form-group">
+        <label class="form-label" th:for="${prefix + '_departmentId'}">Department</label>
+        <select th:id="${prefix + '_departmentId'}" th:name="departmentId"
+                class="form-control cascade-department" disabled
+                th:attr="data-prefix=${prefix}">
+            <option value="">Select faculty first…</option>
+        </select>
+    </div>
+
+    <!-- Unit (populated via AJAX) — only for STUDENT role -->
+    <div th:if="${roles == 'STUDENT'}" class="form-group cascade-unit-row"
+         th:attr="data-prefix=${prefix}" style="display:none">
+        <label class="form-label" th:for="${prefix + '_unitId'}">Unit</label>
+        <select th:id="${prefix + '_unitId'}" th:name="unitId"
+                class="form-control cascade-unit" disabled
+                th:attr="data-prefix=${prefix}">
+            <option value="">Select department first…</option>
+        </select>
+    </div>
+
+    <!-- Year of Study — only for STUDENT role -->
+    <div th:if="${roles == 'STUDENT'}" class="form-group cascade-year-row"
+         th:attr="data-prefix=${prefix}" style="display:none">
+        <label class="form-label" th:for="${prefix + '_yearOfStudy'}">Year of study</label>
+        <select th:id="${prefix + '_yearOfStudy'}" th:name="yearOfStudy"
+                class="form-control" disabled
+                th:attr="data-prefix=${prefix}">
+            <option value="" disabled selected>Select year…</option>
+            <option value="1">Year 1</option>
+            <option value="2">Year 2</option>
+            <option value="3">Year 3</option>
+            <option value="4">Year 4</option>
+            <option value="5">Year 5</option>
+            <option value="6">Year 6</option>
+        </select>
+    </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div class="auth-wrap">
+        <div class="auth-card card">
+            <div class="auth-head">
+                <svg class="auth-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect width="24" height="24" rx="6" fill="var(--brand)"/>
+                    <path d="M12 6l4.5 4.5h-3v6h-3v-6h-3L12 6z" fill="#fff"/>
+                </svg>
+                <h1>Sign in to UniSubmit</h1>
+                <p class="text-muted text-sm">Use your Student ID, Staff ID, email, or admin username</p>
+            </div>
+
+            <div th:if="${param.error}" class="alert alert-error">
+                Invalid credentials — please check your ID or password and try again.
+            </div>
+            <div th:if="${param.suspended}" class="alert alert-error">
+                <strong>Account suspended.</strong>
+                <span th:text="${session.suspendedReason} ?: 'Please contact an administrator.'">Reason</span>
+            </div>
+            <div th:if="${param.logout}" class="alert alert-success">
+                You have been signed out successfully.
+            </div>
+            <div th:if="${param.registered}" class="alert alert-info">
+                Account created successfully. Sign in below.
+            </div>
+            <div th:if="${param.reset}" class="alert alert-success">
+                Password reset successful. You can now sign in with your new password.
+            </div>
+
+            <form th:action="@{/login}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label class="form-label" for="loginIdentifier">Student ID · Staff ID · Email · Username</label>
+                    <input type="text" name="username" id="loginIdentifier" class="form-control"
+                           placeholder="e.g. S12345, you@university.edu, or admin" required autofocus>
+                    <div class="field-hint">
+                        Students: email or Student ID &nbsp;·&nbsp; Lecturers: Staff ID &nbsp;·&nbsp; Admins: username
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="flex justify-between items-center">
+                        <label class="form-label" for="loginPassword">Password</label>
+                        <span class="text-xs text-muted">Forgot password? Contact your administrator.</span>
+                    </div>
+                    <input type="password" name="password" id="loginPassword" class="form-control" required>
+                </div>
+
+                <button type="submit" id="loginSubmitBtn" class="btn btn-block mt-2">Sign in</button>
+            </form>
+
+            <p class="auth-foot text-sm text-muted">
+                New student?
+                <a th:href="@{/register}">Create an account</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <div class="page-head">
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 th:text="${submission.title}">Project Title</h1>
+                    <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>
+                </div>
+                <p class="subtitle" th:text="${submission.unit.unitName + ' · ' + (submission.curriculum != null and submission.curriculum.programme != null ? submission.curriculum.programme.name : '—')}">Unit</p>
+            </div>
+            <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
+        </div>
+
+        <div class="detail-grid">
+            <div class="col">
+                <div class="card">
+                    <div class="card-head"><h2>Overview</h2></div>
+
+                    <div th:if="${submission.aiInsight != null and submission.aiInsight.summary != null}">
+                        <div class="eyebrow">Project summary</div>
+                        <p class="text-sm readable" th:text="${submission.aiInsight.summary}">Summary</p>
+                    </div>
+                    <div th:if="${submission.aiInsight == null or submission.aiInsight.summary == null}"
+                         class="empty-state text-sm ai-empty">
+                        AI analysis is not yet available for this project.
+                    </div>
+
+                    <div th:if="${submission.aiInsight != null and not #lists.isEmpty(submission.aiInsight.keywords)}" class="mt-4">
+                        <div class="eyebrow">Key topics</div>
+                        <div class="flex flex-wrap gap-2">
+                            <span th:each="kw : ${submission.aiInsight.keywords}" class="chip" th:text="${kw}">Keyword</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="card">
+                    <div class="card-head"><h2>Details</h2></div>
+                    <div class="info-row">
+                        <span class="label">Owner</span>
+                        <span class="fw-600" th:text="${submission.student.name}">Student Name</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Unit</span>
+                        <span th:text="${submission.unit.unitName}">Unit</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Status</span>
+                        <span th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><h2>Project file</h2></div>
+                    <div th:if="${canAccessFile and not #lists.isEmpty(submission.versions)}">
+                        <a th:href="@{'/files/' + ${submission.versions[submission.versions.size() - 1].filePath}}"
+                           class="btn btn-accent btn-block" target="_blank">Download latest version</a>
+                        <p th:if="${submission.status.name() != 'APPROVED'}" class="field-hint">
+                            Unlocked because you are an accepted collaborator on this project.
+                        </p>
+                    </div>
+                    <div th:if="${not canAccessFile}" class="empty-state text-sm ai-empty">
+                        Files unlock after the project is approved, or once you collaborate on it.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

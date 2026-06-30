@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div class="auth-wrap">
+        <div class="auth-card card">
+            <div class="auth-head">
+                <svg class="auth-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect width="24" height="24" rx="6" fill="var(--brand)"/>
+                    <path d="M12 6l4.5 4.5h-3v6h-3v-6h-3L12 6z" fill="#fff"/>
+                </svg>
+                <h1>Create your account</h1>
+                <p class="text-muted text-sm">Student self-registration — all fields required</p>
+            </div>
+
+            <div th:if="${error}" class="alert alert-error" th:text="${error}">Error</div>
+
+            <form th:action="@{/register}" method="post" id="registerForm" onsubmit="return validateRegisterForm()">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <!-- Full Name -->
+                <div class="form-group">
+                    <label class="form-label" for="regName">Full name <span class="text-danger">*</span></label>
+                    <input type="text" id="regName" name="name" class="form-control"
+                           th:value="${formName}" placeholder="e.g. Jane Smith" required autofocus>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label class="form-label" for="regEmail">Email address <span class="text-danger">*</span></label>
+                    <input type="email" id="regEmail" name="email" class="form-control"
+                           th:value="${formEmail}" placeholder="you@university.edu" required>
+                    <div class="field-hint">This will be your login identifier</div>
+                </div>
+
+                <!-- Student ID -->
+                <div class="form-group">
+                    <label class="form-label" for="regStudentId">Student ID <span class="text-danger">*</span></label>
+                    <input type="text" id="regStudentId" name="studentId" class="form-control"
+                           th:value="${formStudentId}" placeholder="e.g. S12345" required>
+                    <div class="field-hint">Your academic identifier assigned by your institution</div>
+                </div>
+
+                <!-- Faculty -->
+                <div class="form-group">
+                    <label class="form-label" for="regFaculty">Faculty <span class="text-danger">*</span></label>
+                    <select id="regFaculty" name="facultyId" class="form-control" required
+                            th:attr="data-selected=${formFacultyId}">
+                        <option value="" disabled selected>Select faculty…</option>
+                    </select>
+                    <div class="field-hint">Choose your faculty first, then your department will load</div>
+                </div>
+
+                <!-- Department -->
+                <div class="form-group">
+                    <label class="form-label" for="regDepartment">Department <span class="text-danger">*</span></label>
+                    <select id="regDepartment" name="departmentId" class="form-control" required
+                            th:attr="data-selected=${formDepartmentId}" disabled>
+                        <option value="" disabled selected>Select department…</option>
+                    </select>
+                </div>
+
+                <!-- Programme -->
+                <div class="form-group">
+                    <label class="form-label" for="regProgramme">Programme <span class="text-danger">*</span></label>
+                    <select id="regProgramme" name="courseId" class="form-control" required
+                            th:attr="data-selected=${formCourseId}" disabled>
+                        <option value="" disabled selected>Select programme…</option>
+                    </select>
+                </div>
+
+                <!-- Password -->
+                <div class="form-group">
+                    <label class="form-label" for="regPassword">Password <span class="text-danger">*</span></label>
+                    <input type="password" id="regPassword" name="password" class="form-control"
+                           placeholder="Minimum 6 characters" minlength="6" required>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="form-group">
+                    <label class="form-label" for="regConfirmPassword">Confirm password <span class="text-danger">*</span></label>
+                    <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control"
+                           placeholder="Re-enter your password" minlength="6" required>
+                    <div id="pwMatchHint" class="field-hint text-danger" style="display:none;">Passwords do not match.</div>
+                </div>
+
+                <button type="submit" id="registerSubmitBtn" class="btn btn-block mt-2">Create account</button>
+            </form>
+
+            <p class="auth-foot text-sm text-muted">
+                Already have an account?
+                <a th:href="@{/login}">Sign in</a>
+            </p>
+        </div>
+
+        <!-- Faculty → Department → Programme cascade -->
+        <script>
+        (function() {
+            'use strict';
+            const facultySelect = document.getElementById('regFaculty');
+            const deptSelect    = document.getElementById('regDepartment');
+            const progSelect    = document.getElementById('regProgramme');
+            const pwField       = document.getElementById('regPassword');
+            const confirmField  = document.getElementById('regConfirmPassword');
+            const hint          = document.getElementById('pwMatchHint');
+
+            // Password match validation
+            function checkPasswords() {
+                if (confirmField.value && pwField.value !== confirmField.value) {
+                    hint.style.display = 'block';
+                    confirmField.setCustomValidity('Passwords do not match');
+                } else {
+                    hint.style.display = 'none';
+                    confirmField.setCustomValidity('');
+                }
+            }
+            pwField.addEventListener('input', checkPasswords);
+            confirmField.addEventListener('input', checkPasswords);
+
+            window.validateRegisterForm = function() {
+                checkPasswords();
+                return confirmField.checkValidity();
+            };
+
+            // Faculty/Department/Programme cascade
+            const preFaculty = facultySelect.getAttribute('data-selected');
+            const preDept    = deptSelect.getAttribute('data-selected');
+            const preCourse  = progSelect.getAttribute('data-selected');
+
+            function resetSelect(select, placeholder) {
+                select.innerHTML = '<option value="" disabled selected>' + placeholder + '</option>';
+                select.disabled = true;
+            }
+
+            function loadDepartments(facultyId, preselect) {
+                resetSelect(deptSelect, 'Loading…');
+                resetSelect(progSelect, 'Select programme…');
+                fetch('/api/academic/departments?facultyId=' + facultyId)
+                    .then(res => res.json())
+                    .then(departments => {
+                        resetSelect(deptSelect, 'Select department…');
+                        departments.forEach(d => {
+                            const opt = document.createElement('option');
+                            opt.value = d.id;
+                            opt.textContent = d.name;
+                            if (preselect && String(preselect) === String(d.id)) opt.selected = true;
+                            deptSelect.appendChild(opt);
+                        });
+                        deptSelect.disabled = false;
+                        if (preselect) {
+                            loadProgrammes(preselect, preCourse);
+                        }
+                    })
+                    .catch(() => resetSelect(deptSelect, 'Error loading departments'));
+            }
+
+            function loadProgrammes(departmentId, preselect) {
+                resetSelect(progSelect, 'Loading…');
+                fetch('/api/academic/programmes?departmentId=' + departmentId)
+                    .then(res => res.json())
+                    .then(programmes => {
+                        resetSelect(progSelect, 'Select programme…');
+                        programmes.forEach(p => {
+                            const opt = document.createElement('option');
+                            opt.value = p.id;
+                            opt.textContent = p.name;
+                            if (preselect && String(preselect) === String(p.id)) opt.selected = true;
+                            progSelect.appendChild(opt);
+                        });
+                        progSelect.disabled = false;
+                    })
+                    .catch(() => resetSelect(progSelect, 'Error loading programmes'));
+            }
+
+            fetch('/api/academic/faculties')
+                .then(res => res.json())
+                .then(faculties => {
+                    faculties.forEach(f => {
+                        const opt = document.createElement('option');
+                        opt.value = f.id;
+                        opt.textContent = f.name;
+                        if (preFaculty && String(preFaculty) === String(f.id)) opt.selected = true;
+                        facultySelect.appendChild(opt);
+                    });
+                    if (preFaculty) loadDepartments(preFaculty, preDept);
+                })
+                .catch(() => {});
+
+            facultySelect.addEventListener('change', function() {
+                if (this.value) loadDepartments(this.value, null);
+            });
+
+            deptSelect.addEventListener('change', function() {
+                if (this.value) loadProgrammes(this.value, null);
+            });
+        })();
+        </script>
+    </div>
+</body>
+</html>

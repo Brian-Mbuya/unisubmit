@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='accounts')}">
+<body>
+<div>
+    <div class="page-head mb-6">
+        <div>
+            <div class="eyebrow">Admin console</div>
+            <h1>Accounts Management</h1>
+            <p class="subtitle">Manage system administrators, lecturer profiles, and student records.</p>
+        </div>
+        <button class="btn" onclick="openModal('createAccountModal')">+ Create Account</button>
+    </div>
+
+    <!-- Role Filter Tabs -->
+    <div class="filter-bar mb-6">
+        <label>Filter Accounts</label>
+        <a th:href="@{/admin/accounts}"
+           th:classappend="${selectedRole == 'ALL' ? 'active' : ''}" class="filter-btn">All</a>
+        <a th:href="@{/admin/accounts(role='STUDENT')}"
+           th:classappend="${selectedRole == 'STUDENT' ? 'active' : ''}" class="filter-btn">Students</a>
+        <a th:href="@{/admin/accounts(role='LECTURER')}"
+           th:classappend="${selectedRole == 'LECTURER' ? 'active' : ''}" class="filter-btn">Lecturers</a>
+        <a th:href="@{/admin/accounts(role='ADMIN')}"
+           th:classappend="${selectedRole == 'ADMIN' ? 'active' : ''}" class="filter-btn">Admins</a>
+    </div>
+
+    <div class="card card-pad-0">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email/Username</th>
+                        <th>Role</th>
+                        <th>ID / Details</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="u : ${users}"
+                        th:data-id="${u.id}"
+                        th:data-role="${u.role.name()}"
+                        th:data-name="${u.name}"
+                        th:data-username="${u.username}"
+                        
+                        th:data-student-profile-id="${u.studentProfile != null ? u.studentProfile.id : ''}"
+                        th:data-student-prog="${u.studentProfile != null && u.studentProfile.programme != null ? u.studentProfile.programme.id : ''}"
+                        th:data-student-year="${u.studentProfile != null && u.studentProfile.currentYear != null ? u.studentProfile.currentYear : ''}"
+                        th:data-student-sem="${u.studentProfile != null && u.studentProfile.currentSemester != null ? u.studentProfile.currentSemester : ''}"
+                        th:data-student-status="${u.studentProfile != null && u.studentProfile.academicStatus != null ? u.studentProfile.academicStatus : 'ACTIVE'}"
+                        
+                        th:data-lecturer-profile-id="${u.lecturerProfile != null ? u.lecturerProfile.id : ''}"
+                        th:data-lecturer-dept="${u.lecturerProfile != null && u.lecturerProfile.department != null ? u.lecturerProfile.department.id : ''}"
+                        th:data-lecturer-rank="${u.lecturerProfile != null && u.lecturerProfile.academicRank != null ? u.lecturerProfile.academicRank : ''}"
+                        th:data-lecturer-etype="${u.lecturerProfile != null && u.lecturerProfile.employmentType != null ? u.lecturerProfile.employmentType : ''}"
+                        th:data-lecturer-spec="${u.lecturerProfile != null && u.lecturerProfile.specialization != null ? u.lecturerProfile.specialization : ''}"
+                        th:data-lecturer-office="${u.lecturerProfile != null && u.lecturerProfile.office != null ? u.lecturerProfile.office : ''}"
+                        th:data-lecturer-phone="${u.lecturerProfile != null && u.lecturerProfile.phone != null ? u.lecturerProfile.phone : ''}">
+                        
+                        <td th:text="${u.name}">John Doe</td>
+                        <td th:text="${u.username}">user@example.com</td>
+                        <td>
+                            <span class="badge" th:classappend="${u.role.name() == 'ADMIN' ? 'badge-admin' : (u.role.name() == 'LECTURER' ? 'badge-lecturer' : 'badge-student')}" th:text="${u.role}">ROLE</span>
+                        </td>
+                        <td>
+                            <!-- Student specific details -->
+                            <div th:if="${u.role.name() == 'STUDENT' && u.studentProfile != null}">
+                                <code th:text="${u.studentProfile.admissionNumber}">S001</code>
+                                <span class="text-muted text-sm" th:text="' · ' + ${u.studentProfile.programme != null ? u.studentProfile.programme.name : 'No Programme'}">Programme</span>
+                                <span class="text-muted text-sm" th:text="' · Year ' + ${u.studentProfile.currentYear != null ? u.studentProfile.currentYear : '-'} + ' Sem ' + ${u.studentProfile.currentSemester != null ? u.studentProfile.currentSemester : '-'}">Year / Sem</span>
+                                <span class="status-badge" th:classappend="${u.studentProfile.academicStatus == 'ACTIVE' ? 'status-active' : 'status-inactive'}" th:text="${u.studentProfile.academicStatus ?: 'ACTIVE'}">ACTIVE</span>
+                            </div>
+                            
+                            <!-- Lecturer specific details -->
+                            <div th:if="${u.role.name() == 'LECTURER' && u.lecturerProfile != null}">
+                                <code th:text="${u.lecturerProfile.staffNumber}">L001</code>
+                                <span class="text-muted text-sm" th:text="' · ' + ${u.lecturerProfile.department != null ? u.lecturerProfile.department.name : 'No Dept'}">Department</span>
+                                <span class="text-muted text-sm" th:text="' · ' + ${u.lecturerProfile.academicRank ?: 'No Rank'}">Rank</span>
+                            </div>
+                            
+                            <!-- Admin details -->
+                            <div th:if="${u.role.name() == 'ADMIN'}">
+                                <span class="text-muted text-sm">— Full System Access —</span>
+                            </div>
+                        </td>
+                        <td class="text-right">
+                            <!-- Edit Button (triggers JS edit handler) -->
+                            <button th:if="${u.role.name() == 'STUDENT' || u.role.name() == 'LECTURER'}" class="btn btn-sm btn-secondary edit-account-btn">Edit</button>
+                            
+                            <!-- Delete Form -->
+                            <form th:action="@{/admin/accounts/{id}/delete(id=${u.id})}" method="post"
+                                  class="inline-form"
+                                  onsubmit="return confirm('Are you sure you want to permanently delete this account?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${users.empty}">
+                        <td colspan="5" class="text-center text-muted py-8">
+                            <div class="empty-state">
+                                <h3>No accounts found</h3>
+                                <p>Create a user account above to populate this table.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create Account Modal -->
+    <div id="createAccountModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'createAccountModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="m-0">Create User Account</h2>
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('createAccountModal')">✕</button>
+            </div>
+            <form th:action="@{/admin/accounts}" method="post" class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" required placeholder="e.g. John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control" required placeholder="e.g. user@univ.edu">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Role <span class="text-danger">*</span></label>
+                        <select name="role" class="form-control" required onchange="toggleCreateRoleFields(this.value)">
+                            <option value="STUDENT">Student</option>
+                            <option value="LECTURER">Lecturer</option>
+                            <option value="ADMIN">System Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password <span class="text-danger">*</span></label>
+                        <input type="password" name="password" class="form-control" required minlength="6">
+                    </div>
+                </div>
+
+                <!-- STUDENT Fields -->
+                <div id="createStudentFields">
+                    <hr class="my-4">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Student ID / Adm No. <span class="text-danger">*</span></label>
+                            <input id="createStudentId" type="text" name="studentId" class="form-control" placeholder="e.g. S12345">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Programme <span class="text-danger">*</span></label>
+                            <select name="studentCourseId" class="form-control">
+                                <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.name}"></option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Year of Study</label>
+                            <input type="number" name="currentYear" class="form-control" min="1" max="5" value="1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Semester</label>
+                            <input type="number" name="currentSemester" class="form-control" min="1" max="3" value="1">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LECTURER Fields -->
+                <div id="createLecturerFields" style="display:none;">
+                    <hr class="my-4">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Staff Number <span class="text-danger">*</span></label>
+                            <input id="createStaffId" type="text" name="staffNumber" class="form-control" placeholder="e.g. L9999">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Department</label>
+                            <select name="lecturerDepartmentId" class="form-control">
+                                <option value="">— Select Department —</option>
+                                <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}"></option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createAccountModal')">Cancel</button>
+                    <button type="submit" class="btn">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Student Profile Modal -->
+    <div id="editStudentModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'editStudentModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="m-0">Edit Student Profile</h2>
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('editStudentModal')">✕</button>
+            </div>
+            <form id="editStudentForm" method="post" class="modal-body">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label class="form-label">Programme</label>
+                    <select id="editStudentProg" name="courseId" class="form-control" required>
+                        <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.name}"></option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Year of Study</label>
+                        <input id="editStudentYear" type="number" name="currentYear" class="form-control" required min="1" max="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Semester</label>
+                        <input id="editStudentSemester" type="number" name="currentSemester" class="form-control" required min="1" max="3">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Academic Status</label>
+                    <select id="editStudentStatus" name="academicStatus" class="form-control" required>
+                        <option value="ACTIVE">Active</option>
+                        <option value="SUSPENDED">Suspended</option>
+                        <option value="DEFERRED">Deferred</option>
+                        <option value="GRADUATED">Graduated</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editStudentModal')">Cancel</button>
+                    <button type="submit" class="btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Lecturer Profile Modal -->
+    <div id="editLecModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'editLecModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="m-0">Edit Lecturer Profile</h2>
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('editLecModal')">✕</button>
+            </div>
+            <form id="editLecForm" method="post" class="modal-body">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Department</label>
+                        <select id="editLecDept" name="departmentId" class="form-control">
+                            <option value="">— No Department —</option>
+                            <option th:each="d : ${departments}" th:value="${d.id}" th:text="${d.name}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Academic Rank</label>
+                        <select id="editLecRank" name="academicRank" class="form-control">
+                            <option value="">— Select —</option>
+                            <option>Tutorial Fellow</option>
+                            <option>Lecturer</option>
+                            <option>Senior Lecturer</option>
+                            <option>Associate Professor</option>
+                            <option>Professor</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Employment Type</label>
+                        <select id="editLecType" name="employmentType" class="form-control">
+                            <option value="">— Select —</option>
+                            <option>Full-time</option>
+                            <option>Part-time</option>
+                            <option>Contract</option>
+                            <option>Visiting</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Specialization</label>
+                        <input id="editLecSpec" type="text" name="specialization" class="form-control" placeholder="e.g. Machine Learning">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Office</label>
+                        <input id="editLecOffice" type="text" name="office" class="form-control" placeholder="e.g. Block B, Room 204">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Phone</label>
+                        <input id="editLecPhone" type="text" name="phone" class="form-control" placeholder="e.g. +254700000000">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editLecModal')">Cancel</button>
+                    <button type="submit" class="btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(id) { document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
+        function closeModal(id) { document.getElementById(id).style.display='none'; document.body.style.overflow=''; }
+        function closeOnOverlay(e,id) { if(e.target.id===id) closeModal(id); }
+        
+        function toggleCreateRoleFields(role) {
+            const studentFields = document.getElementById('createStudentFields');
+            const lecturerFields = document.getElementById('createLecturerFields');
+            const studentIdInput = document.getElementById('createStudentId');
+            const staffIdInput = document.getElementById('createStaffId');
+ 
+            if (role === 'STUDENT') {
+                studentFields.style.display = 'block';
+                lecturerFields.style.display = 'none';
+                studentIdInput.required = true;
+                staffIdInput.required = false;
+            } else if (role === 'LECTURER') {
+                studentFields.style.display = 'none';
+                lecturerFields.style.display = 'block';
+                studentIdInput.required = false;
+                staffIdInput.required = true;
+            } else {
+                studentFields.style.display = 'none';
+                lecturerFields.style.display = 'none';
+                studentIdInput.required = false;
+                staffIdInput.required = false;
+            }
+        }
+        
+        // Initial setup for create modal
+        toggleCreateRoleFields('STUDENT');
+ 
+        function setVal(id, val) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (el.tagName === 'SELECT') {
+                for (let o of el.options) o.selected = (o.value === val || o.text === val);
+            } else { el.value = val || ''; }
+        }
+ 
+        document.querySelectorAll('.edit-account-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const row = this.closest('tr');
+                const role = row.dataset.role;
+                
+                if (role === 'STUDENT') {
+                    const profileId = row.dataset.studentProfileId;
+                    document.getElementById('editStudentForm').action = '/admin/accounts/student/' + profileId + '/update';
+                    setVal('editStudentProg',   row.dataset.studentProg);
+                    setVal('editStudentYear',   row.dataset.studentYear);
+                    setVal('editStudentSemester', row.dataset.studentSem);
+                    setVal('editStudentStatus', row.dataset.studentStatus);
+                    openModal('editStudentModal');
+                } else if (role === 'LECTURER') {
+                    const profileId = row.dataset.lecturerProfileId;
+                    document.getElementById('editLecForm').action = '/admin/accounts/lecturer/' + profileId + '/update';
+                    setVal('editLecDept',  row.dataset.lecturerDept);
+                    setVal('editLecRank',  row.dataset.lecturerRank);
+                    setVal('editLecType',  row.dataset.lecturerEtype);
+                    setVal('editLecSpec',  row.dataset.lecturerSpec);
+                    setVal('editLecOffice', row.dataset.lecturerOffice);
+                    setVal('editLecPhone',  row.dataset.lecturerPhone);
+                    openModal('editLecModal');
+                }
+            });
+        });
+ 
+        document.addEventListener('keydown', function(e) { 
+            if(e.key==='Escape') {
+                ['createAccountModal','editStudentModal','editLecModal'].forEach(closeModal);
+            } 
+        });
+    </script>
+</div>
+</body>
+</html>

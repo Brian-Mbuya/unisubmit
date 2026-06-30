@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <div class="page-head mb-6">
+            <div>
+                <div class="eyebrow">Student Portal</div>
+                <h1>Academic Alerts & Assignments</h1>
+                <p class="subtitle">Stay updated with the latest instructions and submissions due from your lecturers.</p>
+            </div>
+        </div>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
+
+        <!-- 1. Assignments Table Card (Inspired by Admin Console Assignments design) -->
+        <div class="card mb-6 card-pad-0">
+            <div class="card-head p-4">
+                <h3>Academic Assignments</h3>
+                <span class="badge badge-submitted" th:text="${#lists.size(assignments)} + ' pending'">0 pending</span>
+            </div>
+            
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Unit</th>
+                            <th>Assignment Title</th>
+                            <th>Lecturer</th>
+                            <th>Deadline</th>
+                            <th class="text-right">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="ann : ${assignments}">
+                            <td>
+                                <strong class="text-accent text-sm" th:text="${ann.unit.unitCode}">CS101</strong>
+                                <span class="text-muted text-xs block" style="display: block; font-size: 0.75rem;" th:text="${ann.unit.unitName}">Unit Name</span>
+                            </td>
+                            <td>
+                                <div class="fw-600 text-sm" th:text="${ann.title}">Assignment Title</div>
+                                <div class="text-muted text-xs mt-1" style="max-width: 450px; white-space: pre-wrap;" th:text="${ann.message}">Description</div>
+                            </td>
+                            <td th:text="${ann.lecturer.name}">Dr. Jane Doe</td>
+                            <td>
+                                <div th:if="${ann.deadline != null}" 
+                                     class="deadline-tag"
+                                     th:classappend="${#temporals.createNow().isAfter(ann.deadline) ? 'overdue' : ''}">
+                                    ⏳ <span th:text="${#temporals.format(ann.deadline, 'dd MMM yyyy, HH:mm')}">Date</span>
+                                </div>
+                                <span th:if="${ann.deadline == null}" class="text-muted text-xs italic">No deadline set</span>
+                            </td>
+                            <td class="text-right">
+                                <span th:if="${ann.deadline != null and #temporals.createNow().isAfter(ann.deadline)}" class="text-danger text-xs fw-600">Submissions closed</span>
+                                <a th:if="${ann.deadline == null || not #temporals.createNow().isAfter(ann.deadline)}"
+                                   th:href="@{/student/submission/new(unitId=${ann.unit.id})}" 
+                                   class="btn btn-sm">
+                                    Submit Work
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${assignments.empty}">
+                            <td colspan="5" class="text-center text-muted py-8">
+                                <div class="empty-state">
+                                    <h3>No pending assignments</h3>
+                                    <p>Any assignments posted by your unit lecturers will appear here.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 2. General Notices Card -->
+        <div class="card card-pad-0">
+            <div class="card-head p-4">
+                <h3>General Notices & Bulletins</h3>
+                <span class="badge badge-draft" th:text="${#lists.size(generalAnnouncements)} + ' notices'">0 notices</span>
+            </div>
+            
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 15%;">Unit</th>
+                            <th style="width: 55%;">Notice Detail</th>
+                            <th style="width: 15%;">Posted By</th>
+                            <th style="width: 15%;" class="text-right">Date Posted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="ann : ${generalAnnouncements}">
+                            <td>
+                                <strong class="text-accent text-sm" th:text="${ann.unit.unitCode}">CS101</strong>
+                            </td>
+                            <td>
+                                <div class="fw-600 text-sm" th:text="${ann.title}">Title</div>
+                                <p class="text-muted text-xs mt-1" style="max-width: 600px; white-space: pre-wrap;" th:text="${ann.message}">Message body</p>
+                            </td>
+                            <td th:text="${ann.lecturer.name}">Lecturer Name</td>
+                            <td class="text-right text-muted text-xs" th:text="${#temporals.format(ann.createdAt, 'dd MMM yyyy, HH:mm')}">Date</td>
+                        </tr>
+                        <tr th:if="${generalAnnouncements.empty}">
+                            <td colspan="4" class="text-center text-muted py-8">
+                                <div class="empty-state">
+                                    <h3>No general notices</h3>
+                                    <p>Information bulletins posted by your lecturers will appear here.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

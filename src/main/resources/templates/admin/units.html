@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='units')}">
+<body>
+<div>
+    <div class="page-head mb-6">
+        <div>
+            <div class="eyebrow">Admin console</div>
+            <h1>Units</h1>
+            <p class="subtitle">Manage courses and modules across faculties.</p>
+        </div>
+    </div>
+
+    <div class="card mb-6">
+        <div class="card-head">
+            <h2 class="m-0">Create New Unit</h2>
+        </div>
+        <form th:action="@{/admin/units}" method="post" class="grid grid-cols-2 gap-4">
+            <div class="form-group">
+                <label class="form-label">Unit Code <span class="text-danger">*</span></label>
+                <input type="text" name="code" class="form-control" required placeholder="e.g. CS101">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Unit Name <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control" required placeholder="e.g. Introduction to Programming">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Department <span class="text-danger">*</span></label>
+                <select name="departmentId" class="form-control" required>
+                    <option value="">— Select Department —</option>
+                    <option th:each="dept : ${departments}" 
+                            th:value="${dept.id}" 
+                            th:text="${dept.name} + ' (' + ${dept.faculty.name} + ')'"></option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Associated Programme (Optional)</label>
+                <select name="courseId" class="form-control">
+                    <option value="">— None (Link Later) —</option>
+                    <option th:each="course : ${courses}" 
+                            th:value="${course.id}" 
+                            th:text="${course.name}"></option>
+                </select>
+                <small class="field-hint">Links this unit to a curriculum mapping automatically.</small>
+            </div>
+
+            <div class="form-group col-span-full flex justify-end">
+                <button type="submit" class="btn">Create Unit</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card card-pad-0">
+        <div class="card-head p-4">
+            <h2 class="m-0">Existing Units</h2>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Linked Programmes</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="u : ${units}"
+                        th:data-id="${u.id}"
+                        th:data-code="${u.unitCode}"
+                        th:data-name="${u.unitName}">
+                        <td><code th:text="${u.unitCode}"></code></td>
+                        <td th:text="${u.unitName}"></td>
+                        <td th:text="${u.department != null ? u.department.name : 'N/A'}"></td>
+                        <td>
+                            <!-- Dynamic project projection using Thymeleaf to map linked curriculum programme names -->
+                            <span th:with="linkedProgs=${curricula.?[unit.id == __${u.id}__].![programme]}" 
+                                  class="flex flex-wrap gap-1">
+                                <span th:each="p : ${linkedProgs}" th:if="${p != null}" 
+                                      class="badge badge-submitted text-xs" 
+                                      th:text="${p.name}">BSC CS</span>
+                                <span th:if="${linkedProgs.empty}" class="text-muted text-sm">— Not mapped —</span>
+                            </span>
+                        </td>
+                        <td class="text-right">
+                            <button class="btn btn-sm btn-secondary link-prog-btn">Link Programme</button>
+                            <form th:action="@{/admin/units/{id}/delete(id=${u.id})}" method="post"
+                                  class="inline-form"
+                                  onsubmit="return confirm('Permanently delete this unit? All student submissions and curriculum records linked to this unit will be lost.');">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${units.empty}">
+                        <td colspan="5" class="text-center text-muted py-8">
+                            <div class="empty-state">
+                                <h3>No units found</h3>
+                                <p>Create a unit above to map it under a department and programme.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Link Unit to Programme Modal -->
+    <div id="linkProgModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'linkProgModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="m-0">Link Unit to Programme</h2>
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('linkProgModal')">✕</button>
+            </div>
+            <form id="linkProgForm" method="post" class="modal-body">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label class="form-label">Unit</label>
+                    <input id="linkProgUnitName" type="text" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Target Programme <span class="text-danger">*</span></label>
+                    <select name="courseId" class="form-control" required>
+                        <option value="">— Select Programme —</option>
+                        <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.name}"></option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Year of Study <span class="text-danger">*</span></label>
+                        <input type="number" name="yearOfStudy" class="form-control" required min="1" max="5" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Semester <span class="text-danger">*</span></label>
+                        <input type="number" name="semesterNumber" class="form-control" required min="1" max="3" value="1">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('linkProgModal')">Cancel</button>
+                    <button type="submit" class="btn">Link Unit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+    <script>
+        function openModal(id) { document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
+        function closeModal(id) { document.getElementById(id).style.display='none'; document.body.style.overflow=''; }
+        function closeOnOverlay(e,id) { if(e.target.id===id) closeModal(id); }
+        
+        document.querySelectorAll('.link-prog-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const row = this.closest('tr');
+                const id = row.dataset.id;
+                document.getElementById('linkProgForm').action = '/admin/units/' + id + '/link-programme';
+                document.getElementById('linkProgUnitName').value = row.dataset.code + ' - ' + row.dataset.name;
+                openModal('linkProgModal');
+            });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if(e.key==='Escape') { closeModal('linkProgModal'); }
+        });
+    </script>
+</div>
+</body>
+</html>

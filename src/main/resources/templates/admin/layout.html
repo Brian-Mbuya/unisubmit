@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security" th:fragment="html(content, activeMenu)">
+<head>
+    <meta charset="UTF-8">
+    <title>Administration - UniSubmit</title>
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <!-- Add Chart.js for dashboard charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+
+<div th:replace="~{fragments/navbar :: navbar}"></div>
+
+<div class="admin-layout">
+    <aside class="admin-sidebar">
+        <h3 class="mb-4 text-muted text-sm uppercase tracking-wider">Administration</h3>
+        <a th:href="@{/admin/dashboard}" th:classappend="${activeMenu == 'dashboard' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            <span>Dashboard</span>
+        </a>
+        <a th:href="@{/admin/faculties}" th:classappend="${activeMenu == 'faculties' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
+            <span>Faculties</span>
+        </a>
+        <a th:href="@{/admin/departments}" th:classappend="${activeMenu == 'departments' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+            <span>Departments</span>
+        </a>
+        <a th:href="@{/admin/programmes}" th:classappend="${activeMenu == 'programmes' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
+            <span>Programmes</span>
+        </a>
+        <a th:href="@{/admin/units}" th:classappend="${activeMenu == 'units' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            <span>Units</span>
+        </a>
+        <a th:href="@{/admin/assignments}" th:classappend="${activeMenu == 'assignments' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Lecturer Mappings</span>
+        </a>
+        <a th:href="@{/admin/accounts}" th:classappend="${activeMenu == 'accounts' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <span>Accounts</span>
+        </a>
+
+        <a th:href="@{/admin/tags}" th:classappend="${activeMenu == 'tags' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82zM7 7h.01"/></svg>
+            <span>Knowledge Tags</span>
+        </a>
+    </aside>
+
+    <main class="admin-content">
+        <!-- Toast notifications -->
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
+        
+        <!-- Main Content -->
+        <div th:replace="${content}"></div>
+    </main>
+</div>
+
+</body>
+</html>

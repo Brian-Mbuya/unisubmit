@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: unisubmit
+  datasource:
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:unisubmit}}
+    username: ${PGUSER:unisubmit}
+    password: ${PGPASSWORD:unisubmit}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_MAX_POOL_SIZE:5}
+      minimum-idle: ${DB_MIN_IDLE:1}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      # 'update' lets Hibernate create/extend every @Entity table (core + the
+      # new academic/group/notification tables). Reliable for local testing and
+      # non-destructive on an existing schema.
+      # To switch to Flyway-managed migrations later, set this to 'validate',
+      # flip spring.flyway.enabled to true, and ensure a V1__ baseline exists
+      # (plus the V2 enum fix already applied below).
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    # Disabled for now: V2 needs a V1__ baseline before it can run on a fresh DB,
+    # and the schema is currently managed by Hibernate (ddl-auto above).
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 1
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  ai:
+    openai:
+      base-url: ${OPENAI_BASE_URL:https://openrouter.ai/api/v1}
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:openai/gpt-4o-mini}
+
+server:
+  port: ${PORT:8080}
+
+app:
+  storage:
+    upload-dir: ${APP_UPLOAD_DIR:uploads}
+
+unisubmit:
+  grobid:
+    enabled: ${GROBID_ENABLED:false}
+    url: ${GROBID_URL:http://localhost:8070}
+  specter:
+    enabled: ${SPECTER_ENABLED:false}
+    url: ${SPECTER_URL:http://localhost:5001}
+  recommendation:
+    weight:
+      keyword: 0.5
+      title: 0.3
+      unit: 0.2
+      semantic: 0.3

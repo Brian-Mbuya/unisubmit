@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <div class="page-head">
+            <div>
+                <div class="eyebrow">Student dashboard</div>
+                <h1>Project Groups</h1>
+                <p class="subtitle">Create or join a group, then submit a project together.</p>
+            </div>
+            <!-- Create group form -->
+            <form th:action="@{/groups}" method="post" class="inline-form flex gap-2 items-center">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <input type="text" name="name" class="form-control group-name-input" placeholder="Group name…" required>
+                <button type="submit" class="btn">Create group</button>
+            </form>
+        </div>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
+
+        <!-- Empty state -->
+        <div th:if="${#lists.isEmpty(groups)}" class="empty-state">
+            <h3>No groups yet</h3>
+            <p>Create a group above to start collaborating on a project.</p>
+        </div>
+
+        <!-- Group cards -->
+        <div th:if="${not #lists.isEmpty(groups)}">
+            <div th:each="group : ${groups}" class="card mb-6">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
+                    <div>
+                        <h3 th:text="${group.name}" class="mb-2 text-lg">Group name</h3>
+                        <div class="text-xs text-muted">
+                            Leader: <strong th:text="${group.leader.name}">Leader</strong>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <a th:href="@{/student/submission/new(groupId=${group.id})}" class="btn btn-secondary btn-sm">Submit Project</a>
+                        <span class="badge badge-draft"
+                              th:text="${#lists.size(group.members)} + ' member(s)'">0 members</span>
+                    </div>
+                </div>
+
+                <!-- Member list -->
+                <div class="mt-4" th:if="${not #lists.isEmpty(group.members)}">
+                    <div class="text-xs text-subtle mb-2">Members</div>
+                    <div class="flex flex-wrap gap-2">
+                        <span th:each="member : ${group.members}"
+                              class="chip flex items-center gap-2 text-sm px-3 py-2">
+                            <span class="avatar avatar-sm" th:text="${#strings.substring(member.name,0,1)}">M</span>
+                            <span th:text="${member.name}">Member</span>
+                            <!-- Remove button — only leader or admin sees this for non-leaders -->
+                            <form th:if="${member.id != group.leader.id}"
+                                  th:action="@{'/groups/' + ${group.id} + '/members/' + ${member.id} + '/remove'}"
+                                  method="post" class="inline-form flex">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="text-danger hover:text-white remove-member-btn" title="Remove member">✕</button>
+                            </form>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Group Submissions -->
+                <div class="mt-6" th:if="${not #lists.isEmpty(group.submissions)}">
+                    <div class="text-xs text-subtle mb-2">Group Projects / Submissions</div>
+                    <div class="flex flex-col gap-2">
+                        <div th:each="sub : ${group.submissions}" class="muted-panel flex items-center justify-between py-2 px-3">
+                            <div>
+                                <a th:href="@{'/student/submission/' + ${sub.id}}" th:text="${sub.title}" class="fw-600">Project</a>
+                                <div class="text-xs text-muted" th:text="${sub.unit != null ? sub.unit.unitCode + ' · ' + sub.unit.unitName : 'N/A'}">CS101</div>
+                            </div>
+                            <div th:replace="~{fragments/components :: statusBadge(${sub.status.name()})}"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Group Activity -->
+                <div class="mt-6" th:if="${not #lists.isEmpty(group.activities)}">
+                    <div class="text-xs text-subtle mb-2">Recent Group Activity</div>
+                    <div class="group-timeline">
+                        <div th:each="act : ${group.activities}" class="text-sm relative">
+                            <div class="group-timeline-dot"></div>
+                            <div th:text="${act.description}">Activity description</div>
+                            <div class="text-xs text-muted" th:text="${#temporals.format(act.timestamp, 'dd MMM yyyy, HH:mm')}">Date</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add member: Smart Auto-Suggest Search -->
+                <div class="mt-6 relative" th:data-group-id="${group.id}">
+                    <label class="form-label text-xs text-muted mb-2">Add Member</label>
+                    <div class="relative">
+                        <input type="text" class="form-control member-search-input member-search-input-field"
+                               placeholder="Type student name or ID to search…" autocomplete="off">
+                        <div class="search-icon-inside">
+                            🔍
+                        </div>
+                    </div>
+                    
+                    <!-- Search Results Box -->
+                    <div class="member-search-results-box search-dropdown" style="display:none;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden global CSRF inputs to read via JS - MUST BE INSIDE THE MAIN DIV -->
+        <input type="hidden" id="globalCsrfName" th:value="${_csrf.parameterName}">
+        <input type="hidden" id="globalCsrfValue" th:value="${_csrf.token}">
+
+        <script>
+        (function() {
+            'use strict';
+            
+            const csrfNameEl = document.getElementById('globalCsrfName');
+            const csrfValueEl = document.getElementById('globalCsrfValue');
+            if (!csrfNameEl || !csrfValueEl) return;
+
+            const csrfName = csrfNameEl.value;
+            const csrfValue = csrfValueEl.value;
+
+            function debounce(fn, ms) {
+                let t;
+                return function() {
+                    const args = arguments, ctx = this;
+                    clearTimeout(t);
+                    t = setTimeout(() => fn.apply(ctx, args), ms);
+                };
+            }
+
+            document.querySelectorAll('.member-search-input').forEach(function(input) {
+                const container = input.closest('[data-group-id]');
+                const groupId = container.dataset.groupId;
+                const resultsBox = container.querySelector('.member-search-results-box');
+                
+                function closeResults() {
+                    resultsBox.style.display = 'none';
+                    resultsBox.innerHTML = '';
+                }
+
+                const performSearch = debounce(function() {
+                    const q = input.value.trim();
+                    if (q.length < 1) {
+                        closeResults();
+                        return;
+                    }
+
+                    fetch('/api/users/search?q=' + encodeURIComponent(q))
+                        .then(res => res.json())
+                        .then(students => {
+                            resultsBox.innerHTML = '';
+                            if (!students.length) {
+                                const empty = document.createElement('div');
+                                empty.className = 'search-empty';
+                                empty.textContent = 'No matching students found';
+                                resultsBox.appendChild(empty);
+                                resultsBox.style.display = 'block';
+                                return;
+                            }
+
+                            students.forEach(s => {
+                                const btn = document.createElement('button');
+                                btn.type = 'button';
+                                btn.className = 'search-item';
+                                
+                                const info = document.createElement('div');
+                                info.className = 'search-item-info';
+                                
+                                const name = document.createElement('span');
+                                name.className = 'search-item-name';
+                                name.textContent = s.name;
+                                
+                                const meta = document.createElement('span');
+                                meta.className = 'search-item-meta';
+                                meta.textContent = s.studentId ? 'ID: ' + s.studentId : 'Student';
+                                
+                                info.appendChild(name);
+                                info.appendChild(meta);
+                                
+                                const add = document.createElement('span');
+                                add.className = 'search-add-btn';
+                                add.textContent = 'Add +';
+                                
+                                btn.appendChild(info);
+                                btn.appendChild(add);
+
+                                // Add click handler to instantly submit
+                                btn.addEventListener('click', function() {
+                                    const addForm = document.createElement('form');
+                                    addForm.method = 'POST';
+                                    addForm.action = '/groups/' + groupId + '/members';
+                                    
+                                    const csrfInput = document.createElement('input');
+                                    csrfInput.type = 'hidden';
+                                    csrfInput.name = csrfName;
+                                    csrfInput.value = csrfValue;
+                                    addForm.appendChild(csrfInput);
+                                    
+                                    const memberInput = document.createElement('input');
+                                    memberInput.type = 'hidden';
+                                    memberInput.name = 'memberId';
+                                    memberInput.value = s.id;
+                                    addForm.appendChild(memberInput);
+                                    
+                                    document.body.appendChild(addForm);
+                                    addForm.submit();
+                                });
+
+                                resultsBox.appendChild(btn);
+                            });
+                            resultsBox.style.display = 'block';
+                        })
+                        .catch(() => closeResults());
+                }, 200);
+
+                input.addEventListener('input', performSearch);
+                input.addEventListener('focus', function() {
+                    if (input.value.trim().length > 0) {
+                        resultsBox.style.display = 'block';
+                    }
+                });
+
+                // Keypress listener for pressing Enter
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const firstItem = resultsBox.querySelector('.search-item');
+                        if (firstItem) {
+                            firstItem.click();
+                        }
+                    }
+                });
+
+                // Close results box when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!container.contains(e.target)) {
+                        closeResults();
+                    }
+                });
+            });
+        })();
+        </script>
+    </div>
+</body>
+</html>

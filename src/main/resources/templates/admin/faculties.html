@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='faculties')}">
+<body>
+<div>
+    <div class="page-head mb-6">
+        <div>
+            <div class="eyebrow">Admin console</div>
+            <h1>Faculties</h1>
+            <p class="subtitle">Manage academic faculties across the university.</p>
+        </div>
+        <button class="btn" onclick="openModal('createFacultyModal')">+ Create Faculty</button>
+    </div>
+
+    <div class="card card-pad-0">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Departments</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="f : ${faculties}"
+                        th:data-id="${f.id}"
+                        th:data-code="${f.code}"
+                        th:data-name="${f.name}">
+                        <td><code th:text="${f.code}"></code></td>
+                        <td th:text="${f.name}"></td>
+                        <td th:text="${f.departments.size()}"></td>
+                        <td class="text-right">
+                            <button class="btn btn-sm btn-secondary edit-faculty-btn">Edit</button>
+                            <form th:action="@{/admin/faculties/{id}/delete(id=${f.id})}" method="post"
+                                  class="inline-form"
+                                  onsubmit="return confirm('Delete this faculty? All departments inside will also be removed.');">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${faculties.empty}">
+                        <td colspan="4" class="text-center text-muted py-8">
+                            <div class="empty-state">
+                                <h3>No faculties yet</h3>
+                                <p>Create a faculty above to begin structuring academic data.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create Faculty Modal -->
+    <div id="createFacultyModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'createFacultyModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="m-0">Create Faculty</h2>
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('createFacultyModal')">✕</button>
+            </div>
+            <form th:action="@{/admin/faculties}" method="post" class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Faculty Code <span class="text-danger">*</span></label>
+                    <input type="text" name="code" class="form-control" required placeholder="e.g. ENG" maxlength="10">
+                    <small class="field-hint">Short uppercase code</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Faculty Name <span class="text-danger">*</span></label>
+                    <input type="text" name="name" class="form-control" required placeholder="e.g. Faculty of Engineering">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('createFacultyModal')">Cancel</button>
+                    <button type="submit" class="btn">Create Faculty</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Faculty Modal -->
+    <div id="editFacultyModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'editFacultyModal')">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="m-0">Edit Faculty</h2>
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('editFacultyModal')">✕</button>
+            </div>
+            <form id="editFacultyForm" method="post" class="modal-body">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label class="form-label">Faculty Code <span class="text-danger">*</span></label>
+                    <input id="editFacultyCode" type="text" name="code" class="form-control" required maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Faculty Name <span class="text-danger">*</span></label>
+                    <input id="editFacultyName" type="text" name="name" class="form-control" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editFacultyModal')">Cancel</button>
+                    <button type="submit" class="btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openModal(id) { document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
+        function closeModal(id) { document.getElementById(id).style.display='none'; document.body.style.overflow=''; }
+        function closeOnOverlay(e,id) { if(e.target.id===id) closeModal(id); }
+        document.querySelectorAll('.edit-faculty-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                const row = this.closest('tr');
+                document.getElementById('editFacultyForm').action = '/admin/faculties/' + row.dataset.id + '/update';
+                document.getElementById('editFacultyCode').value = row.dataset.code;
+                document.getElementById('editFacultyName').value = row.dataset.name;
+                openModal('editFacultyModal');
+            });
+        });
+        document.addEventListener('keydown', function(e) { if(e.key==='Escape'){ closeModal('createFacultyModal'); closeModal('editFacultyModal'); } });
+    </script>
+</div>
+</body>
+</html>

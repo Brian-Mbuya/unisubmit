@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div th:with="approved=${submissions.?[status.name() == 'APPROVED']},
+                  changes=${submissions.?[status.name() == 'REJECTED']},
+                  active=${submissions.?[status.name() == 'SUBMITTED' or status.name() == 'UNDER_REVIEW']}">
+
+        <div class="page-head">
+            <div>
+                <div class="eyebrow">Student dashboard</div>
+                <h1>Your projects</h1>
+                <p class="subtitle">Submit work, track reviews, and discover collaborators.</p>
+            </div>
+            <a th:href="@{/student/submission/new}" class="btn" id="newSubmissionBtn">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.25 7.25V1.75a.75.75 0 0 1 1.5 0v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5h-5.5a.75.75 0 0 1 0-1.5z"/></svg>
+                New submission
+            </a>
+        </div>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
+
+        <!-- Empty state -->
+        <div th:if="${#lists.isEmpty(submissions)}" class="empty-state">
+            <h3>No projects yet</h3>
+            <p>Create your first submission to start tracking versions, reviews, and AI insights.</p>
+            <a th:href="@{/student/submission/new}" class="btn mt-4">Create a submission</a>
+        </div>
+
+        <div th:if="${not #lists.isEmpty(submissions)}">
+
+            <!-- Status overview -->
+            <div class="stat-strip">
+                <div class="stat">
+                    <div class="stat-label">Total projects</div>
+                    <div class="stat-value" th:text="${#lists.size(submissions)}">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">In review</div>
+                    <div class="stat-value" th:text="${active.size()}">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Approved</div>
+                    <div class="stat-value is-accent" th:text="${approved.size()}">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Changes requested</div>
+                    <div class="stat-value is-warning" th:text="${changes.size()}">0</div>
+                </div>
+            </div>
+
+            <!-- Attention banner -->
+            <div th:if="${changes.size() > 0}" class="alert alert-info">
+                <strong th:text="${changes.size()}">1</strong>
+                project(s) need changes — upload a new version to move them forward.
+            </div>
+
+            <!-- Filter bar -->
+            <div class="filter-bar">
+                <label>Status</label>
+                <button class="filter-btn active" data-submission-filter="all">All</button>
+                <button class="filter-btn" data-submission-filter="draft">Draft</button>
+                <button class="filter-btn" data-submission-filter="proposal">Proposal</button>
+                <button class="filter-btn" data-submission-filter="submitted">Submitted</button>
+                <button class="filter-btn" data-submission-filter="under_review">Under review</button>
+                <button class="filter-btn" data-submission-filter="approved">Approved</button>
+                <button class="filter-btn" data-submission-filter="final">Final</button>
+                <button class="filter-btn" data-submission-filter="rejected">Changes requested</button>
+                <button class="filter-btn" data-submission-filter="archived">Archived</button>
+            </div>
+
+            <!-- Project list -->
+            <div id="submissionsList" class="row-list">
+                <div th:each="sub : ${submissions}" class="list-row submission-card"
+                     th:attr="data-status=${#strings.toLowerCase(sub.status.name())}">
+                    <div class="list-row-main">
+                        <a class="list-row-title" th:href="@{'/student/submission/' + ${sub.id}}" th:text="${sub.title}">Title</a>
+                        <span class="badge badge-draft ml-2" 
+                              th:if="${sub.projectGroup != null}" 
+                              th:text="'👥 ' + ${sub.projectGroup.name}">Group</span>
+                        <div class="meta-line">
+                            <span class="meta-item">
+                                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25z"/></svg>
+                                <span th:text="${sub.unit.unitName}">Unit</span>
+                            </span>
+                            <span class="meta-item text-subtle" th:text="${sub.unit.department.name + ' · ' + (sub.curriculum != null and sub.curriculum.programme != null ? sub.curriculum.programme.name : '—')}">Dept · Course</span>
+                            <span class="meta-item">
+                                <span th:if="${not #lists.isEmpty(sub.unit.lecturers)}" th:text="${sub.unit.lecturers[0].name}">Lecturer</span>
+                                <span th:if="${#lists.isEmpty(sub.unit.lecturers)}" class="text-warning">No lecturer assigned</span>
+                            </span>
+                            <span class="meta-item" th:text="${#lists.size(sub.versions) + (#lists.size(sub.versions) == 1 ? ' version' : ' versions')}">1 version</span>
+                            <span class="meta-item" th:if="${sub.aiInsight != null}">
+                                <span class="dot" th:classappend="'dot-' + ${#strings.toLowerCase(sub.aiInsight.status.name())}"></span>
+                                <span th:text="${sub.aiInsight.status.name() == 'COMPLETED' ? 'AI ready' : (sub.aiInsight.status.name() == 'FAILED' ? 'AI failed' : 'AI analysing')}">AI</span>
+                            </span>
+                            <!-- Deadline badge -->
+                            <span th:if="${sub.unit != null and sub.unit.submissionDeadline != null}"
+                                  th:with="daysLeft=${#temporals.between(#temporals.createNow(), sub.unit.submissionDeadline, 'DAYS')}"
+                                  class="deadline-tag"
+                                  th:classappend="${daysLeft < 0 ? 'overdue' : ''}"
+                                  th:text="${daysLeft < 0 ? 'OVERDUE' : ('Due in ' + daysLeft + 'd')}">Deadline</span>
+                        </div>
+                    </div>
+                    <div class="list-row-side">
+                        <div th:replace="~{fragments/components :: statusBadge(${sub.status.name()})}"></div>
+                        <span class="text-xs text-subtle" th:text="'Updated ' + ${#temporals.format(sub.updatedAt, 'dd MMM yyyy')}">Date</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter empty state -->
+            <div id="filterEmptyState" class="empty-state mt-4" hidden>
+                <h3>No projects match this filter</h3>
+                <p>Try a different status.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

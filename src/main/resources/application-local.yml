@@ -1,0 +1,47 @@
+# ============================================================================
+# application-local.yml — Local development profile (H2 in-memory)
+# Usage:  ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+#   or:   set SPRING_PROFILES_ACTIVE=local  then  ./mvnw spring-boot:run
+# ============================================================================
+
+spring:
+  datasource:
+    url: jdbc:h2:file:./unisubmit-db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  flyway:
+    enabled: false
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      # update: schema modifications are applied, existing tables and data are preserved
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+  # H2 web console — browse to http://localhost:8080/h2-console
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false
+  ai:
+    openai:
+      base-url: ${OPENAI_BASE_URL:https://openrouter.ai/api/v1}
+      api-key: ${OPENAI_API_KEY:NO_KEY}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:openai/gpt-4o-mini}
+
+app:
+  storage:
+    upload-dir: uploads-local
+
+server:
+  port: 8080

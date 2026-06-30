@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <div class="page-head">
+            <div>
+                <h1>New submission</h1>
+                <p class="subtitle">Start a new project. You can upload further versions later.</p>
+            </div>
+            <a th:href="@{/student/dashboard}" class="btn btn-secondary">Cancel</a>
+        </div>
+
+        <div th:if="${error}" class="alert alert-error" th:text="${error}">Error</div>
+
+        <div class="card form-card">
+            <form th:action="@{/student/submission}" method="post" enctype="multipart/form-data">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+                <div class="form-group">
+                    <label class="form-label" for="title">Project title</label>
+                    <input type="text" id="title" name="title" class="form-control" required
+                           placeholder="e.g. Real-time flood prediction using LSTM networks">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="unitId">Unit</label>
+                    <select id="unitId" name="unitId" class="form-control" required>
+                        <option value="" disabled th:selected="${selectedUnitId == null}">— Select Unit —</option>
+                        <option th:each="unit : ${units}" th:value="${unit.id}"
+                                th:text="${unit.unitCode + ' - ' + unit.unitName}"
+                                th:selected="${selectedUnitId != null and unit.id == selectedUnitId}"></option>
+                    </select>
+                    <div class="field-hint">
+                        <span th:if="${studentDepartmentName}" 
+                              th:text="'Showing units for your department: ' + ${studentDepartmentName} + '.'"></span>
+                        <span th:unless="${studentDepartmentName}">Showing all available university units.</span>
+                    </div>
+                </div>
+
+                <div class="form-group" th:if="${not #lists.isEmpty(groups)}">
+                    <label class="form-label" for="groupId">Project Group (Optional)</label>
+                    <select id="groupId" name="groupId" class="form-control">
+                        <option value="">— Individual Submission —</option>
+                        <option th:each="g : ${groups}" th:value="${g.id}" th:text="${g.name}"
+                                th:selected="${g.id == selectedGroupId}"></option>
+                    </select>
+                    <div class="field-hint">If this is a group project, select the group here.</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="file">Document</label>
+                    <input type="file" id="file" name="file" class="form-control" required accept=".pdf,.doc,.docx,.txt,.odt">
+                    <div class="field-hint">PDF, DOC, DOCX, TXT, or ODT — up to 50 MB.</div>
+                </div>
+
+                <button type="submit" class="btn btn-block mt-2">Create submission</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

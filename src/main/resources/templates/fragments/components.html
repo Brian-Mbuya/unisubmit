@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- Status badge                                                          -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div th:fragment="statusBadge(status)">
+        <span th:class="'badge badge-' + ${#strings.toLowerCase(status)}" th:text="${#strings.replace(status, '_', ' ')}">STATUS</span>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- Version & feedback timeline                                           -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div th:fragment="feedbackTimeline(versions)">
+
+        <div th:if="${#lists.isEmpty(versions)}" class="empty-state empty-state-compact">
+            No activity yet — waiting for the first upload.
+        </div>
+
+        <div class="timeline" th:if="${not #lists.isEmpty(versions)}">
+            <div th:each="version : ${versions}">
+
+                <!-- Version uploaded -->
+                <div class="timeline-item">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <strong>Version <span th:text="${version.versionNumber}">1</span></strong>
+                        <span class="text-xs text-subtle"
+                              th:text="${#temporals.format(version.uploadedAt, 'dd MMM yyyy, HH:mm')}">Time</span>
+                    </div>
+                    <div class="meta-line meta-line-tight">
+                        <a class="meta-item" th:href="@{'/files/' + ${version.filePath}}" target="_blank"
+                           th:text="${version.originalFileName}">File</a>
+                        <span class="meta-item text-subtle"
+                              th:text="${#numbers.formatDecimal(version.fileSize / 1024.0, 1, 1)} + ' KB'">0 KB</span>
+                        <span th:if="${version.uploadedBy != null}" class="meta-item text-xs text-muted"
+                              th:text="'Uploaded by: ' + ${version.uploadedBy.name}">Uploaded by User</span>
+                    </div>
+                </div>
+
+                <!-- Feedback on this version -->
+                <div th:each="feedback : ${version.feedbacks}" class="timeline-item">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <strong class="text-accent">Feedback</strong>
+                            <span th:if="${feedback.grade != null}"
+                                  class="badge badge-submitted"
+                                  th:text="'Score: ' + ${feedback.grade} + '/100'"
+                                  style="font-size:0.72rem; padding:0.15rem 0.5rem;">75/100</span>
+                        </div>
+                        <span class="text-xs text-subtle"
+                              th:text="${#temporals.format(feedback.timestamp, 'dd MMM yyyy, HH:mm')}">Time</span>
+                    </div>
+                    <div class="text-xs text-muted" th:text="'by ' + ${feedback.lecturer.name}">by Lecturer</div>
+                    <div class="message-box mt-2" th:text="${feedback.message}">Message</div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- AI insight panel — status-aware                                       -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div th:fragment="aiInsightPanel(insight)">
+
+        <div th:if="${insight == null}" class="empty-state text-sm ai-empty">
+            AI analysis has not started yet.
+        </div>
+
+        <div th:if="${insight != null}" class="ai-panel">
+            <div class="ai-panel-head">
+                <div>
+                    <div class="eyebrow">Academic assistant</div>
+                    <h3>AI workspace</h3>
+                </div>
+                <span th:class="'badge badge-' + ${#strings.toLowerCase(insight.status.name())}"
+                      th:text="${#strings.replace(insight.status.name(), '_', ' ')}">STATUS</span>
+            </div>
+
+            <!-- PENDING -->
+            <div th:if="${insight.status.name() == 'PENDING'}"
+                 class="muted-panel insight-polling ai-state ai-state-warning" th:attr="data-id=${insight.id}">
+                <div class="flex items-center gap-2">
+                    <div class="ai-spinner"></div>
+                    <div>
+                        <strong class="text-sm">Queued for analysis</strong>
+                        <p class="text-muted text-sm">Your document is in the processing queue.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROCESSING -->
+            <div th:if="${insight.status.name() == 'PROCESSING'}"
+                 class="muted-panel insight-polling ai-state ai-state-info" th:attr="data-id=${insight.id}">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="ai-spinner"></div>
+                    <strong class="text-sm">Analysing your document...</strong>
+                </div>
+                <div class="skeleton-wrapper mb-4">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-text"></div>
+                    <div class="skeleton skeleton-text" style="width: 80%;"></div>
+                    <div class="skeleton skeleton-text" style="width: 90%;"></div>
+                </div>
+                <div class="ai-steps">
+                    <div class="ai-step ai-step-active">Extracting document text</div>
+                    <div class="ai-step">Running Claude Haiku LLM</div>
+                    <div class="ai-step">Mapping knowledge model tags</div>
+                    <div class="ai-step">Precomputing recommendations</div>
+                </div>
+                <p class="text-muted text-sm mt-2">
+                    This usually takes a few seconds. The page updates automatically.
+                </p>
+            </div>
+
+            <!-- COMPLETED -->
+            <div th:if="${insight.status.name() == 'COMPLETED'}" class="ai-complete">
+                <!-- Tabs Navigation -->
+                <div class="ai-tabs">
+                    <button class="ai-tab-btn active" onclick="switchAiTab(event, 'tab-summary')">Summary</button>
+                    <button class="ai-tab-btn" th:if="${insight.problemStatement != null}" onclick="switchAiTab(event, 'tab-problem')">Problem</button>
+                    <button class="ai-tab-btn" th:if="${not #lists.isEmpty(insight.objectives)}" onclick="switchAiTab(event, 'tab-objectives')">Objectives</button>
+                </div>
+
+                <!-- Tab Contents -->
+                <!-- Summary Tab -->
+                <div id="tab-summary" class="ai-tab-content active">
+                    <div class="ai-content-box summary-box">
+                        <p class="ai-summary readable" th:text="${insight.summary}">Summary text...</p>
+                    </div>
+                </div>
+
+                <!-- Problem Tab -->
+                <div id="tab-problem" class="ai-tab-content" th:if="${insight.problemStatement != null}">
+                    <div class="ai-content-box problem-box">
+                        <p class="ai-summary readable" th:text="${insight.problemStatement}">Problem statement...</p>
+                    </div>
+                </div>
+
+                <!-- Objectives Tab -->
+                <div id="tab-objectives" class="ai-tab-content" th:if="${not #lists.isEmpty(insight.objectives)}">
+                    <div class="ai-content-box objectives-box">
+                        <div class="ai-obj-item" th:each="obj : ${insight.objectives}">
+                            <svg class="ai-obj-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span th:text="${obj}">Objective</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Keywords (Always Visible at bottom) -->
+                <div th:if="${not #lists.isEmpty(insight.keywords)}" class="ai-section mt-4 pt-4" style="border-top: 1px solid var(--border-muted); margin-top: 1.25rem; padding-top: 1rem;">
+                    <div class="eyebrow flex items-center gap-2" style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
+                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                        </svg>
+                        Keywords
+                    </div>
+                    <div class="topic-list">
+                        <span th:each="kw : ${insight.keywords}" class="chip" th:text="${kw}">keyword</span>
+                    </div>
+                </div>
+
+                <div class="extension-note">
+                    Richer scoring, rubric alignment, and citation checks can be added here when the backend exposes those fields.
+                </div>
+
+                <!-- Tab Switching Javascript -->
+                <script>
+                    function switchAiTab(event, tabId) {
+                        event.preventDefault();
+                        const container = event.currentTarget.closest('.ai-complete');
+                        if (!container) return;
+                        
+                        container.querySelectorAll('.ai-tab-btn').forEach(btn => btn.classList.remove('active'));
+                        event.currentTarget.classList.add('active');
+                        
+                        container.querySelectorAll('.ai-tab-content').forEach(content => content.classList.remove('active'));
+                        
+                        const target = container.querySelector('#' + tabId);
+                        if (target) {
+                            target.classList.add('active');
+                        }
+                    }
+                </script>
+            </div>
+
+            <!-- FAILED -->
+            <div th:if="${insight.status.name() == 'FAILED'}"
+                 class="muted-panel ai-state ai-state-danger">
+                <strong class="text-sm">Analysis failed</strong>
+                <p class="text-muted text-sm mt-2"
+                   th:text="${insight.errorMessage != null} ? ${insight.errorMessage} : 'The AI system could not process this document.'">
+                    Error message
+                </p>
+                <button class="btn btn-secondary btn-sm mt-2"
+                        th:attr="data-retry-id=${insight.id}" data-retry-analysis>
+                    Retry analysis
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- Similar projects / collaboration discovery                            -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div th:fragment="similarProjectsPanel(similarSubmissions, requestStatusesBySubmissionId)">
+
+        <div th:if="${#lists.isEmpty(similarSubmissions)}" class="empty-state text-sm ai-empty">
+            No similar work found yet. Recommendations improve as more projects are analysed.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(similarSubmissions)}" class="recommendation-list">
+            <div th:each="sim : ${similarSubmissions}" class="recommendation-card"
+                 th:with="reqStatus=${requestStatusesBySubmissionId[sim.submission.id]}">
+
+                <!-- Title + match -->
+                <div class="recommendation-head">
+                    <div class="list-row-main">
+                        <a class="list-row-title" th:href="@{'/projects/' + ${sim.submission.id}}"
+                           th:text="${sim.submission.title}">Title</a>
+                        <div class="text-xs text-muted mt-2" th:text="${sim.submission.unit.unitName}">Unit</div>
+                    </div>
+                    <div class="match-score">
+                        <span class="text-sm fw-600"
+                              th:text="${#numbers.formatDecimal(sim.scoreNormalized * 100, 1, 0)} + '%'">0%</span>
+                        <span class="chip" th:text="${sim.matchLabel}">Label</span>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <p class="text-sm mt-2 recommendation-summary" th:if="${sim.submission.aiInsight != null}"
+                   th:text="${sim.submission.aiInsight.summary}">Summary</p>
+
+                <!-- Shared topics (mutual interest) -->
+                <div th:if="${not #lists.isEmpty(sim.sharedKeywords)}" class="mt-2">
+                    <div class="text-xs text-subtle mb-2">Shared topics</div>
+                    <div class="topic-list">
+                        <span th:each="kw : ${sim.sharedKeywords}" class="chip chip-match" th:text="${kw}">topic</span>
+                    </div>
+                </div>
+
+                <!-- Owner -->
+                <div class="flex items-center gap-2 mt-4">
+                    <span class="avatar" th:text="${#strings.substring(sim.submission.student.name, 0, 1)}">J</span>
+                    <div>
+                        <div class="text-sm fw-600" th:text="${sim.submission.student.name}">Name</div>
+                        <div class="text-xs text-subtle" th:text="${sim.submission.student.studentId}">ID</div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-wrap gap-2 items-center mt-4">
+                    <a th:href="@{'/projects/' + ${sim.submission.id}}" class="btn btn-secondary btn-sm">View project</a>
+
+                    <form th:if="${reqStatus == null}" th:action="@{/student/collaboration-requests}"
+                          method="post" class="inline-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="submissionId" th:value="${sim.submission.id}">
+                        <input type="hidden" name="message"
+                               th:value="${'Hi ' + sim.submission.student.name + ', I found your project through UniSubmit because we share topics: ' + #strings.listJoin(sim.sharedKeywords, ', ') + '. I would love to collaborate.'}">
+                        <button type="submit" class="btn btn-accent btn-sm">Request to collaborate</button>
+                    </form>
+
+                    <span th:if="${reqStatus != null}" class="badge"
+                          th:classappend="${reqStatus.name() == 'PENDING'} ? ' badge-review' : (${reqStatus.name() == 'ACCEPTED'} ? ' badge-approved' : ' badge-rejected')"
+                          th:text="${'Request ' + #strings.toLowerCase(reqStatus.name())}">request</span>
+
+                    <a th:if="${sim.submission.status.name() == 'APPROVED' and not #lists.isEmpty(sim.submission.versions)}"
+                       th:href="@{'/files/' + ${sim.submission.versions[sim.submission.versions.size() - 1].filePath}}"
+                       class="btn btn-secondary btn-sm" target="_blank">Download</a>
+                    <span th:if="${sim.submission.status.name() != 'APPROVED'}" class="text-xs text-subtle">
+                        Files unlock after approval
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

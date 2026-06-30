@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='curricula')}">
+<body>
+<div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Curriculum Management</h2>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Add Unit to Course</h3>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/admin/curricula}" method="post" class="form-grid">
+                <div class="form-group">
+                    <label>Course (Programme)</label>
+                    <select name="courseId" class="form-control" required>
+                        <option value="">Select Course...</option>
+                        <option th:each="course : ${courses}" 
+                                th:value="${course.id}" 
+                                th:text="${course.name}"></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Unit</label>
+                    <select name="unitId" class="form-control" required>
+                        <option value="">Select Unit...</option>
+                        <option th:each="unit : ${units}" 
+                                th:value="${unit.id}" 
+                                th:text="${unit.unitCode + ' - ' + unit.unitName}"></option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Year of Study</label>
+                    <input type="number" name="yearOfStudy" class="form-control" required min="1" max="6">
+                </div>
+                <div class="form-group">
+                    <label>Semester Number</label>
+                    <input type="number" name="semesterNumber" class="form-control" required min="1" max="3">
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1">
+                    <button type="submit" class="btn btn-primary">Add to Curriculum</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Curriculum Structure</h3>
+        </div>
+        <div class="card-body" style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Course</th>
+                        <th>Unit</th>
+                        <th>Year</th>
+                        <th>Semester</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="curr : ${curricula}">
+                        <td th:text="${curr.id}">1</td>
+                        <td th:text="${curr.programme != null ? curr.programme.name : 'Unassigned'}">BSc Comp Sci</td>
+                        <td th:text="${curr.unit.unitCode + ' ' + curr.unit.unitName}">CS101 Intro</td>
+                        <td th:text="${curr.yearOfStudy}">1</td>
+                        <td th:text="${curr.semesterNumber}">1</td>
+                        <td>
+                            <form th:action="@{/admin/curricula/{id}/delete(id=${curr.id})}" method="post" style="display:inline;" onsubmit="return confirm('Are you sure?');">
+                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

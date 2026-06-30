@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <!-- Breadcrumb: Faculty → Department → Unit -->
+        <nav class="breadcrumb" aria-label="Academic location"
+             th:if="${submission.unit.department != null}">
+            <span th:if="${submission.unit.department.faculty != null}">
+                <a href="#" th:text="${submission.unit.department.faculty.name}">Faculty</a>
+            </span>
+            <span class="breadcrumb-sep" th:if="${submission.unit.department.faculty != null}">›</span>
+            <a href="#" th:text="${submission.unit.department.name}">Department</a>
+            <span class="breadcrumb-sep">›</span>
+            <span class="breadcrumb-current" th:text="${submission.unit.unitName}">Unit</span>
+        </nav>
+
+        <div class="page-head">
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 th:text="${submission.title}">Title</h1>
+                    <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>
+                </div>
+                <p class="subtitle" th:text="${submission.unit.unitName + ' · ' + submission.unit.department.name}">Unit</p>
+            </div>
+            <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back to projects</a>
+        </div>
+
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
+
+        <div class="detail-grid">
+            <!-- Main column -->
+            <div class="col">
+
+                <!-- AI insights -->
+                <div class="card">
+                    <div class="card-head">
+                        <h2>AI insights</h2>
+                        <span th:if="${submission.aiInsight != null}"
+                              th:class="'badge badge-' + ${#strings.toLowerCase(submission.aiInsight.status.name())}"
+                              th:text="${submission.aiInsight.status.name()}">STATUS</span>
+                    </div>
+                    <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
+                </div>
+
+                <!-- Upload new version (primary action, unless approved) -->
+                <div class="card" th:if="${submission.status.name() != 'APPROVED'}">
+                    <div class="card-head"><h2>Upload a new version</h2></div>
+                    <p class="text-sm text-muted mb-4">
+                        Each upload is tracked as a version and re-runs the AI analysis. Accepted file types: PDF, DOC, DOCX, TXT, ODT.
+                    </p>
+                    <form th:action="@{'/student/submission/' + ${submission.id} + '/version'}" method="post" enctype="multipart/form-data">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <div class="flex gap-2 items-center flex-wrap">
+                            <input type="file" name="file" class="form-control upload-input"
+                                   required accept=".pdf,.doc,.docx,.txt,.odt">
+                            <button type="submit" class="btn">Upload version</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card approved-panel" th:if="${submission.status.name() == 'APPROVED'}">
+                    <strong class="text-sm">This submission has been approved.</strong>
+                    <p class="text-muted text-sm no-margin">No further uploads are required.</p>
+                </div>
+
+                <!-- Version & feedback history -->
+                <div class="card">
+                    <div class="card-head">
+                        <h2>Version history</h2>
+                        <span class="text-xs text-subtle"
+                              th:text="${#lists.size(submission.versions)} + ' total'">0 total</span>
+                    </div>
+                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
+                </div>
+
+                <!-- Similar projects -->
+                <div class="card">
+                    <div class="card-head"><h2>Similar work & collaborators</h2></div>
+                    <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${requestStatusesBySubmissionId})}"></div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col">
+
+                <!-- Submission info -->
+                <div class="card">
+                    <div class="card-head"><h2>Details</h2></div>
+                    <div class="info-row">
+                        <span class="label">Department</span>
+                        <span th:text="${submission.unit.department.name + ' — ' + (submission.curriculum != null and submission.curriculum.programme != null ? submission.curriculum.programme.name : '—')}">Dept</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Lecturer</span>
+                        <span>
+                            <span th:if="${not #lists.isEmpty(submission.unit.lecturers)}"
+                                  th:text="${submission.unit.lecturers[0].name}">Lecturer</span>
+                            <span th:if="${#lists.isEmpty(submission.unit.lecturers)}" class="text-warning">Not yet assigned</span>
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Created</span>
+                        <span th:text="${#temporals.format(submission.createdAt, 'dd MMM yyyy, HH:mm')}">Date</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Last updated</span>
+                        <span th:text="${#temporals.format(submission.updatedAt, 'dd MMM yyyy, HH:mm')}">Date</span>
+                    </div>
+                </div>
+
+                <!-- Project Tags (Classification) -->
+                <div class="card">
+                    <div class="card-head"><h2>Project Tags</h2></div>
+                    <div class="classification-form">
+                        
+                        <!-- Technologies -->
+                        <div>
+                            <strong class="tag-section-label">Technologies</strong>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                <span th:each="t : ${submission.technologies}" class="badge badge-draft" th:text="${t.name}">Tag</span>
+                                <span th:if="${submission.technologies.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                        </div>
+
+                        <!-- Research Areas -->
+                        <div>
+                            <strong class="tag-section-label">Research Areas</strong>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                <span th:each="r : ${submission.researchAreas}" class="badge badge-draft" th:text="${r.name}">Tag</span>
+                                <span th:if="${submission.researchAreas.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                        </div>
+
+                        <!-- Frameworks -->
+                        <div>
+                            <strong class="tag-section-label">Frameworks</strong>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                <span th:each="f : ${submission.frameworks}" class="badge badge-draft" th:text="${f.name}">Tag</span>
+                                <span th:if="${submission.frameworks.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                        </div>
+
+                        <!-- Databases -->
+                        <div>
+                            <strong class="tag-section-label">Databases</strong>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                <span th:each="d : ${submission.databases}" class="badge badge-draft" th:text="${d.name}">Tag</span>
+                                <span th:if="${submission.databases.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                        </div>
+
+                        <!-- Programming Languages -->
+                        <div>
+                            <strong class="tag-section-label">Programming Languages</strong>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                <span th:each="p : ${submission.programmingLanguages}" class="badge badge-draft" th:text="${p.name}">Tag</span>
+                                <span th:if="${submission.programmingLanguages.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                        </div>
+
+                        <!-- Skills -->
+                        <div>
+                            <strong class="tag-section-label">Skills</strong>
+                            <div class="flex flex-wrap gap-2 mt-1">
+                                <span th:each="s : ${submission.skills}" class="badge badge-draft" th:text="${s.name}">Tag</span>
+                                <span th:if="${submission.skills.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

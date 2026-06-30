@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='dashboard')}">
+<body>
+<div>
+    <div class="page-head mb-6">
+        <div>
+            <div class="eyebrow">Admin console</div>
+            <h1>Administration Dashboard</h1>
+            <p class="subtitle">Welcome back. Here's a snapshot of the system.</p>
+        </div>
+    </div>
+
+    <!-- Stats Strip -->
+    <div class="stat-strip mb-8">
+        <div class="stat">
+            <div class="stat-label">Total Students</div>
+            <div class="stat-value" th:text="${statStudents}">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Total Lecturers</div>
+            <div class="stat-value" th:text="${statLecturers}">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Total Courses</div>
+            <div class="stat-value is-accent" th:text="${statCourses}">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Total Units</div>
+            <div class="stat-value is-accent" th:text="${statUnits}">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Faculties</div>
+            <div class="stat-value" th:text="${statFaculties}">0</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Departments</div>
+            <div class="stat-value" th:text="${statDepartments}">0</div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card mb-6">
+        <div class="card-head">
+            <h2>Quick Actions</h2>
+        </div>
+        <div class="quick-action-grid">
+            <a th:href="@{/admin/faculties}" class="quick-action-card">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21V12h6v9"/></svg>
+                <span>Manage Faculties</span>
+            </a>
+            <a th:href="@{/admin/departments}" class="quick-action-card">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                <span>Manage Departments</span>
+            </a>
+            <a th:href="@{/admin/programmes}" class="quick-action-card">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>Manage Programmes</span>
+            </a>
+             <a th:href="@{/admin/units}" class="quick-action-card">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+                <span>Manage Units</span>
+            </a>
+            <a th:href="@{/admin/accounts}" class="quick-action-card">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Accounts</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- System Info -->
+    <div class="grid grid-cols-2 gap-4">
+        <div class="card">
+            <div class="card-head"><h2>Academic Structure</h2></div>
+            <div class="p-4">
+                <div class="info-row">
+                    <span class="text-muted">Faculties</span>
+                    <a th:href="@{/admin/faculties}" th:text="${statFaculties}" class="text-accent fw-600">0</a>
+                </div>
+                <div class="info-row">
+                    <span class="text-muted">Departments</span>
+                    <a th:href="@{/admin/departments}" th:text="${statDepartments}" class="text-accent fw-600">0</a>
+                </div>
+                <div class="info-row">
+                    <span class="text-muted">Programmes</span>
+                    <a th:href="@{/admin/programmes}" th:text="${statCourses}" class="text-accent fw-600">0</a>
+                </div>
+                <div class="info-row">
+                    <span class="text-muted">Units</span>
+                    <a th:href="@{/admin/units}" th:text="${statUnits}" class="text-accent fw-600">0</a>
+                </div>
+                <div class="info-row">
+                    <span class="text-muted">Curriculum Items</span>
+                    <span th:text="${statCurricula}" class="text-accent fw-600">0</span>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-head"><h2>System Health</h2></div>
+            <div class="p-4">
+                <div class="info-row">
+                    <span class="text-muted">Application</span>
+                    <span class="text-accent fw-600">● Operational</span>
+                </div>
+                <div class="info-row">
+                    <span class="text-muted">Database</span>
+                    <span class="text-accent fw-600">● Connected</span>
+                </div>
+                <div class="info-row">
+                    <span class="text-muted">File Storage</span>
+                    <span class="text-accent fw-600">● Online</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

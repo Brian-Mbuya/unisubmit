@@ -1,0 +1,11 @@
+.git
+.idea
+.claude
+target
+uploads
+screenshots
+github-ready
+*.log
+.env
+.env.*
+!.env.example
