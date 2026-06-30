@@ -97,9 +97,9 @@ public class RecommendationService {
             .map(m -> {
                 Submission target = m.getSubmissionA().getId().equals(current.getId()) ? m.getSubmissionB() : m.getSubmissionA();
                 String label;
-                if (m.getSimilarityScore() >= 0.6) label = "🔥 Strong Match";
-                else if (m.getSimilarityScore() >= 0.3) label = "🧠 Related";
-                else label = "📘 Possible Match";
+                if (m.getSimilarityScore() >= 0.6) label = "Strong Match";
+                else if (m.getSimilarityScore() >= 0.3) label = "Related Work";
+                else label = "Possible Match";
                 
                 return new SimilarSubmission(target, label, m.getMatchedKeywords(), m.getSimilarityScore(), m.getReason());
             })
