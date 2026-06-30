@@ -75,9 +75,9 @@
                      th:attr="data-status=${#strings.toLowerCase(sub.status.name())}">
                     <div class="list-row-main">
                         <a class="list-row-title" th:href="@{'/student/submission/' + ${sub.id}}" th:text="${sub.title}">Title</a>
-                        <span class="badge badge-draft ml-2" 
-                              th:if="${sub.projectGroup != null}" 
-                              th:text="'👥 ' + ${sub.projectGroup.name}">Group</span>
+                        <span class="badge badge-draft ml-2"
+                              th:if="${sub.projectGroup != null}"
+                              th:text="${sub.projectGroup.name}">Group</span>
                         <div class="meta-line">
                             <span class="meta-item">
                                 <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25z"/></svg>
