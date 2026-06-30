@@ -1,10 +1,11 @@
 /* ============================================================================
-   UniSubmit — Design System  ·  "Scholarly" edition
+   UniSubmit — Design System  ·  "Scholarly Dark" edition
    ----------------------------------------------------------------------------
-   A calm, academic interface built for a university audience: warm paper
-   surfaces, a deep pine/teal institutional colour, restrained type, and quiet
-   depth. Deliberately NOT bright-white, and deliberately NOT the violet AI
-   gradient look. Every decision is a token so the platform can be re-themed
+   A calm, low-glare dark interface built for a university audience that lives
+   in dark mode: dull warm-charcoal surfaces (never pure black), soft off-white
+   text, and a pine/teal institutional colour lifted just enough to read on the
+   dark canvas. Easy on the eyes over long sessions; no bright white, no violet
+   AI gradient. Every decision is a token so the platform can be re-themed
    without touching templates.
 
    Class names are stable on purpose — templates and app.js reference .card,
@@ -14,53 +15,53 @@
 
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root {
-    /* ── Institutional brand — deep pine/teal ──────────────────────────── */
-    --primary: #0f5d59;
-    --primary-hover: #0b4744;
-    --primary-strong: #0b4744;
-    --brand: #0f5d59;
-    --brand-strong: #0b4744;
+    /* ── Institutional brand — pine/teal, lifted for dark surfaces ──────── */
+    --primary: #4fb5a3;          /* links, accents, focus — bright enough on dark */
+    --primary-hover: #62c4b2;
+    --primary-strong: #62c4b2;
+    --brand: #2f9182;            /* button fills (white text) */
+    --brand-strong: #277a6e;
 
-    /* Semantic roles */
-    --accent: #3f7d52;            /* sage — positive / confirm */
-    --accent-strong: #2f6340;
-    --success: #3f7d52;
-    --danger: #a23b2e;            /* muted brick */
-    --danger-strong: #82281f;
-    --warning: #9a6a14;           /* ochre */
+    /* Semantic roles — slightly brightened so they read on a dark canvas */
+    --accent: #6bbf86;           /* sage — positive / confirm */
+    --accent-strong: #57a972;
+    --success: #6bbf86;
+    --danger: #e07a6b;           /* muted brick */
+    --danger-strong: #c95f50;
+    --warning: #d6a657;          /* warm amber */
 
-    /* Surfaces — warm paper tones (never stark white) */
-    --bg: #f4f2ec;
-    --canvas: #f4f2ec;
-    --surface: #fffdf8;
-    --surface-solid: #fffdf8;
-    --surface-muted: #ece8dd;
-    --surface-2: #ece8dd;
-    --bg-elevated: #fffdf8;
+    /* Surfaces — dull, warm charcoal (never pure black, never bright) */
+    --bg: #191b1d;
+    --canvas: #191b1d;
+    --surface: #212529;
+    --surface-solid: #212529;
+    --surface-muted: #282c30;
+    --surface-2: #282c30;
+    --bg-elevated: #262a2e;
 
-    /* Text — warm ink */
-    --text: #232019;
-    --text-muted: #5c564b;
-    --text-subtle: #948c7c;
+    /* Text — soft warm off-white, low glare */
+    --text: #e6e3dc;
+    --text-muted: #a6a299;
+    --text-subtle: #797670;
     --text-on-brand: #ffffff;
 
     /* Lines */
-    --border: #ddd6c6;
-    --border-muted: #e8e2d5;
-    --border-strong: #c6bda9;
+    --border: #353a3e;
+    --border-muted: #2c3034;
+    --border-strong: #474d52;
 
-    /* Semantic tints — muted, paper-friendly */
-    --tint-blue-bg: #e6f0ef;    --tint-blue-fg: #0f5d59;   --tint-blue-bd: #bfdcd9;
-    --tint-green-bg: #e9f2ea;   --tint-green-fg: #2f6340;  --tint-green-bd: #c6dfcd;
-    --tint-amber-bg: #f8f0db;   --tint-amber-fg: #835611;  --tint-amber-bd: #e9d4a3;
-    --tint-red-bg: #f6e8e4;     --tint-red-fg: #8a2c22;    --tint-red-bd: #e5c2ba;
-    --tint-purple-bg: #ecebf2;  --tint-purple-fg: #4a4570; --tint-purple-bd: #d4d0e2;
-    --tint-gray-bg: #f0ede4;    --tint-gray-fg: #5c564b;   --tint-gray-bd: #ddd6c6;
+    /* Semantic tints — dim backgrounds, brighter foregrounds */
+    --tint-blue-bg: #1d2c2a;    --tint-blue-fg: #5cc3b2;   --tint-blue-bd: #2f4a46;
+    --tint-green-bg: #1f2b23;   --tint-green-fg: #80cf98;  --tint-green-bd: #314536;
+    --tint-amber-bg: #2b2718;   --tint-amber-fg: #dcb061;  --tint-amber-bd: #49401f;
+    --tint-red-bg: #2d1f1c;     --tint-red-fg: #ec8a7b;    --tint-red-bd: #482e29;
+    --tint-purple-bg: #24222d;  --tint-purple-fg: #aaa0d2; --tint-purple-bd: #393450;
+    --tint-gray-bg: #25292c;    --tint-gray-fg: #a6a299;   --tint-gray-bd: #353a3e;
 
-    /* Shadows — warm, low, restrained */
-    --shadow-soft: 0 1px 2px rgba(45, 37, 22, 0.05), 0 1px 3px rgba(45, 37, 22, 0.06);
-    --shadow-hover: 0 4px 14px rgba(45, 37, 22, 0.10);
-    --shadow-pop: 0 10px 30px rgba(45, 37, 22, 0.16);
+    /* Shadows — deep, for separation against the dark canvas */
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.30);
+    --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.45);
+    --shadow-pop: 0 12px 34px rgba(0, 0, 0, 0.55);
 
     /* Geometry */
     --radius-sm: 6px;
@@ -91,10 +92,10 @@ body {
     line-height: 1.55;
     color: var(--text);
     background-color: var(--canvas);
-    /* faint paper grain via layered radial tints — subtle, calming */
+    /* faint depth via layered radial glows — subtle, calming, low-glare */
     background-image:
-        radial-gradient(circle at 12% -10%, rgba(15, 93, 89, 0.05), transparent 42%),
-        radial-gradient(circle at 100% 0%, rgba(154, 106, 20, 0.04), transparent 38%);
+        radial-gradient(circle at 12% -10%, rgba(47, 145, 130, 0.07), transparent 42%),
+        radial-gradient(circle at 100% 0%, rgba(214, 166, 87, 0.045), transparent 38%);
     background-attachment: fixed;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
@@ -122,8 +123,8 @@ img, svg { display: block; max-width: 100%; }
     gap: 1rem;
     height: var(--header-h);
     padding: 0 1.5rem;
-    background: rgba(255, 253, 248, 0.88);
-    backdrop-filter: saturate(160%) blur(10px);
+    background: rgba(25, 27, 29, 0.82);
+    backdrop-filter: saturate(140%) blur(10px);
     border-bottom: 1px solid var(--border);
 }
 
@@ -145,7 +146,7 @@ img, svg { display: block; max-width: 100%; }
     height: 24px;
     border-radius: 7px;
     flex-shrink: 0;
-    box-shadow: 0 1px 2px rgba(11, 71, 68, 0.35);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* Primary nav (role-aware) */
@@ -331,21 +332,21 @@ a:hover { color: var(--primary-strong); text-decoration: underline; }
     text-decoration: none;
     cursor: pointer;
     white-space: nowrap;
-    box-shadow: 0 1px 2px rgba(11, 71, 68, 0.18);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.30);
     transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease, transform 0.06s ease;
 }
 .btn:hover { background: var(--brand-strong); color: #fff; text-decoration: none; box-shadow: var(--shadow-hover); }
 .btn:active { transform: translateY(1px); }
-.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(15, 93, 89, 0.30); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(79, 181, 163, 0.32); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
 
 /* Positive / confirm */
-.btn-accent { background: var(--accent); color: #fff; box-shadow: 0 1px 2px rgba(47, 99, 64, 0.18); }
-.btn-accent:hover { background: var(--accent-strong); color: #fff; }
+.btn-accent { background: var(--accent); color: #14241a; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }
+.btn-accent:hover { background: var(--accent-strong); color: #14241a; }
 
 /* Destructive */
-.btn-danger { background: var(--danger); color: #fff; box-shadow: 0 1px 2px rgba(130, 40, 31, 0.18); }
-.btn-danger:hover { background: var(--danger-strong); color: #fff; }
+.btn-danger { background: var(--danger); color: #2a120d; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.30); }
+.btn-danger:hover { background: var(--danger-strong); color: #2a120d; }
 
 /* Neutral / secondary — paper with border */
 .btn-draft,
@@ -373,7 +374,7 @@ a:hover { color: var(--primary-strong); text-decoration: underline; }
     border-color: var(--tint-amber-bd);
     box-shadow: none;
 }
-.btn-warning:hover { background: #f2e6c4; color: var(--tint-amber-fg); }
+.btn-warning:hover { background: #36301b; color: var(--tint-amber-fg); }
 
 .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.78rem; }
 .btn-block { width: 100%; }
@@ -407,11 +408,11 @@ a:hover { color: var(--primary-strong); text-decoration: underline; }
 .form-control:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(15, 93, 89, 0.14);
+    box-shadow: 0 0 0 3px rgba(79, 181, 163, 0.18);
 }
 select.form-control {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%235c564b' d='M4.5 6l3.5 3.5L11.5 6z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%23a6a299' d='M4.5 6l3.5 3.5L11.5 6z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.6rem center;
     padding-right: 2rem;
@@ -784,7 +785,7 @@ tbody tr:hover { background: var(--surface-muted); }
 }
 .filter-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(15, 93, 89, 0.25);
+    box-shadow: 0 0 0 3px rgba(79, 181, 163, 0.28);
 }
 
 /* ── Activity feed ───────────────────────────────────────────────────────── */
@@ -918,7 +919,7 @@ tbody tr:hover { background: var(--surface-muted); }
     border-radius: var(--radius);
     background: var(--tint-red-bg);
 }
-.row-warning td { background: rgba(154, 106, 20, 0.07); }
+.row-warning td { background: rgba(214, 166, 87, 0.08); }
 
 /* ── Stat strip ──────────────────────────────────────────────────────────── */
 .stat--warn { border-color: var(--tint-amber-bd); }
@@ -1301,7 +1302,7 @@ tbody tr:hover { background: var(--surface-muted); }
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(35, 32, 25, 0.55);
+    background: rgba(0, 0, 0, 0.62);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1698,7 +1699,7 @@ textarea.form-control-sm {
     border: 1px solid var(--primary);
     padding: 0.25rem 0.5rem;
     border-radius: var(--radius-sm);
-    background: rgba(15, 93, 89, 0.07);
+    background: rgba(79, 181, 163, 0.12);
     transition: all 0.15s ease;
 }
 .search-item:hover .search-add-btn {
@@ -1713,7 +1714,7 @@ textarea.form-control-sm {
 }
 
 .auth-mark svg {
-    filter: drop-shadow(0 2px 6px rgba(15, 93, 89, 0.28));
+    filter: drop-shadow(0 2px 6px rgba(79, 181, 163, 0.32));
 }
 
 /* Skeleton Loading styles */
