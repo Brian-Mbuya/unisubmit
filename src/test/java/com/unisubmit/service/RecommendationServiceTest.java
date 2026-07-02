@@ -99,18 +99,20 @@ class RecommendationServiceTest {
         assertEquals(0.5, saved.getTechnologyScore(), 1e-9);
         assertEquals(1.0, saved.getResearchAreaScore(), 1e-9);
 
+        // No embeddings on either side → the semantic weight is excluded from
+        // the denominator (adaptive normalisation), not counted as a zero.
         double expectedWeighted = 0.5 * weights.getKeyword()
                 + 0.5 * weights.getTitle()
                 + 1.0 * weights.getUnit()
-                + 0.0 * weights.getSemantic()
                 + 0.5 * weights.getTechnology()
                 + 1.0 * weights.getResearchArea();
-        assertEquals(expectedWeighted / weights.totalWeight(), saved.getSimilarityScore(), 1e-9);
+        double effectiveWeight = weights.totalWeight() - weights.getSemantic();
+        assertEquals(expectedWeighted / effectiveWeight, saved.getSimilarityScore(), 1e-9);
         assertTrue(saved.getSimilarityScore() <= 1.0, "normalised score must stay in 0..1");
     }
 
     @Test
-    void perfectOverlapOnEverySignalScoresExactlyOne() {
+    void identicalSubmissionsScoreOneHundredPercent() {
         Submission current = submission(1L, owner, "Smart Farming",
                 Set.of("Python"), Set.of("IoT"), List.of("farming"));
         Submission candidate = submission(2L, otherStudent, "Smart Farming",
@@ -118,10 +120,9 @@ class RecommendationServiceTest {
 
         SubmissionSimilarity saved = runPrecompute(current, candidate);
 
-        // Every signal except semantic is 1.0; semantic weight contributes 0.
-        double expected = (weights.getKeyword() + weights.getTitle() + weights.getUnit()
-                + weights.getTechnology() + weights.getResearchArea()) / weights.totalWeight();
-        assertEquals(expected, saved.getSimilarityScore(), 1e-9);
+        // Every evaluable signal is 1.0 and the un-evaluable semantic signal is
+        // excluded — two identical documents must read as a 100% match.
+        assertEquals(1.0, saved.getSimilarityScore(), 1e-9);
     }
 
     @Test
