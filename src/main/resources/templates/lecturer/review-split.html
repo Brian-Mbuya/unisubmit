@@ -22,28 +22,66 @@
         <div th:if="${param.error}" class="alert alert-error mt-2" th:text="${param.error}">Error</div>
 
         <div class="split-layout review-workspace">
-            <section class="document-panel" aria-label="Submitted document">
-                <div class="document-panel-head">
-                    <div>
-                        <h2>Latest document</h2>
-                        <p class="text-muted text-sm" th:if="${not #lists.isEmpty(submission.versions)}"
-                           th:text="'Version ' + ${#lists.size(submission.versions)}">Version 1</p>
+            <section class="document-panel" aria-label="Submitted document"
+                     th:with="latest=${#lists.isEmpty(submission.versions) ? null : submission.versions[submission.versions.size() - 1]}">
+
+                <div th:if="${latest != null}" class="doc-preview"
+                     th:with="fileUrl=@{'/files/' + ${latest.filePath}},
+                              isPdf=${latest.fileType == 'application/pdf'},
+                              isText=${latest.fileType == 'text/plain'}">
+                    <!-- Toolbar: file identity + actions -->
+                    <div class="doc-preview-toolbar">
+                        <div class="doc-preview-fileinfo">
+                            <span class="doc-file-badge"
+                                  th:text="${isPdf ? 'PDF' : (isText ? 'TXT' : 'DOC')}">PDF</span>
+                            <span class="doc-file-name" th:text="${latest.originalFileName}">document.pdf</span>
+                            <span class="text-xs text-subtle"
+                                  th:text="'v' + ${latest.versionNumber} + ' · ' + ${#numbers.formatDecimal(latest.fileSize / 1024.0, 1, 1)} + ' KB'">v1</span>
+                        </div>
+                        <div class="doc-preview-actions">
+                            <a th:href="${fileUrl}" target="_blank" class="btn btn-secondary btn-sm">Open in tab</a>
+                            <a th:href="${fileUrl}" download class="btn btn-secondary btn-sm">Download</a>
+                        </div>
                     </div>
-                    <a th:if="${not #lists.isEmpty(submission.versions)}"
-                       th:href="@{'/files/' + ${submission.versions[submission.versions.size() - 1].filePath}}"
-                       class="btn btn-secondary btn-sm">
-                        Open file
-                    </a>
+
+                    <!-- PDF: native browser viewer -->
+                    <iframe th:if="${isPdf}"
+                            class="doc-viewer"
+                            title="Latest uploaded document"
+                            th:src="${fileUrl}">
+                    </iframe>
+
+                    <!-- Plain text: fetched and typeset like a document, not a raw dump -->
+                    <div th:if="${isText}" class="doc-text-preview" th:attr="data-doc-text-src=${fileUrl}">
+                        <span class="text-muted text-sm">Loading document…</span>
+                    </div>
+
+                    <!-- Word / other formats the browser cannot render inline -->
+                    <div th:if="${!isPdf and !isText}" class="doc-preview-fallback">
+                        <h3 th:text="${latest.originalFileName}">document.docx</h3>
+                        <p class="text-sm mt-2 mb-4">This format has no inline browser preview — open or download it to review.</p>
+                        <a th:href="${fileUrl}" target="_blank" class="btn">Open document</a>
+                    </div>
                 </div>
-                <iframe th:if="${not #lists.isEmpty(submission.versions)}"
-                        class="doc-viewer"
-                        title="Latest uploaded document"
-                        th:src="@{'/files/' + ${submission.versions[submission.versions.size() - 1].filePath}}">
-                </iframe>
-                <div th:if="${#lists.isEmpty(submission.versions)}" class="empty-state document-empty">
+
+                <div th:if="${latest == null}" class="empty-state document-empty">
                     <h3>No document uploaded</h3>
                     <p>The student has not uploaded a file for this submission yet.</p>
                 </div>
+
+                <script>
+                    // Typeset .txt submissions instead of the browser's raw text dump
+                    document.addEventListener('DOMContentLoaded', function () {
+                        document.querySelectorAll('[data-doc-text-src]').forEach(function (box) {
+                            fetch(box.getAttribute('data-doc-text-src'))
+                                .then(function (res) { return res.ok ? res.text() : Promise.reject(res.status); })
+                                .then(function (text) { box.textContent = text; })
+                                .catch(function () {
+                                    box.innerHTML = '<span class="text-muted text-sm">Could not load the document preview — use "Open in tab" instead.</span>';
+                                });
+                        });
+                    });
+                </script>
             </section>
 
             <aside class="panel-scroll review-side" aria-label="Review details">
@@ -154,84 +192,6 @@
                     <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
                 </section>
 
-                <!-- Tags tucked away — optional curation, not part of the core flow -->
-                <section class="card">
-                    <details>
-                    <summary class="text-sm fw-600">Classification tags
-                        <span class="text-xs text-subtle fw-600">— optional, improves matching</span>
-                    </summary>
-                    <p class="field-hint mb-2 mt-2">
-                        Technologies and research areas drive the recommendation engine —
-                        keeping them accurate improves matching for every student.
-                    </p>
-                    <form th:action="@{'/lecturer/submission/' + ${submission.id} + '/tags'}" method="post" class="classification-form">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <!-- Empty sentinels: keep both editable params always present, so an
-                             empty selection clears the category instead of meaning "no change". -->
-                        <input type="hidden" name="technologyIds" value="">
-                        <input type="hidden" name="researchAreaIds" value="">
-
-                        <!-- Technologies (editable — recommendation signal) -->
-                        <div class="form-group no-margin">
-                            <label class="form-label text-sm fw-600 text-muted">Technologies</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <span th:each="t : ${submission.technologies}" class="chip chip-match" th:text="${t.name}">Tag</span>
-                                <span th:if="${submission.technologies.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                            <select name="technologyIds" class="form-control form-control-sm tag-select-multiple" multiple>
-                                <option th:each="t : ${allTechnologies}" th:value="${t.id}" th:text="${t.name}" th:selected="${submission.technologies.contains(t)}"></option>
-                            </select>
-                        </div>
-
-                        <!-- Research Areas (editable — recommendation signal) -->
-                        <div class="form-group no-margin">
-                            <label class="form-label text-sm fw-600 text-muted">Research Areas</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <span th:each="r : ${submission.researchAreas}" class="chip chip-gold" th:text="${r.name}">Tag</span>
-                                <span th:if="${submission.researchAreas.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                            <select name="researchAreaIds" class="form-control form-control-sm tag-select-multiple" multiple>
-                                <option th:each="r : ${allResearchAreas}" th:value="${r.id}" th:text="${r.name}" th:selected="${submission.researchAreas.contains(r)}"></option>
-                            </select>
-                        </div>
-
-                        <button type="submit" class="btn btn-secondary btn-sm btn-block mt-2">Save Tags</button>
-                    </form>
-
-                    <!-- AI-populated detail tags (read-only) -->
-                    <details class="mt-4"
-                             th:if="${not submission.frameworks.empty or not submission.databases.empty
-                                      or not submission.programmingLanguages.empty or not submission.skills.empty}">
-                        <summary class="text-sm text-muted">Detected details (AI-populated, read-only)</summary>
-                        <div class="mt-2">
-                            <div th:if="${not submission.frameworks.empty}" class="mb-2">
-                                <strong class="tag-section-label">Frameworks</strong>
-                                <div class="flex flex-wrap gap-2 mt-1">
-                                    <span th:each="f : ${submission.frameworks}" class="chip" th:text="${f.name}">Tag</span>
-                                </div>
-                            </div>
-                            <div th:if="${not submission.databases.empty}" class="mb-2">
-                                <strong class="tag-section-label">Databases</strong>
-                                <div class="flex flex-wrap gap-2 mt-1">
-                                    <span th:each="d : ${submission.databases}" class="chip" th:text="${d.name}">Tag</span>
-                                </div>
-                            </div>
-                            <div th:if="${not submission.programmingLanguages.empty}" class="mb-2">
-                                <strong class="tag-section-label">Programming languages</strong>
-                                <div class="flex flex-wrap gap-2 mt-1">
-                                    <span th:each="p : ${submission.programmingLanguages}" class="chip" th:text="${p.name}">Tag</span>
-                                </div>
-                            </div>
-                            <div th:if="${not submission.skills.empty}" class="mb-2">
-                                <strong class="tag-section-label">Skills</strong>
-                                <div class="flex flex-wrap gap-2 mt-1">
-                                    <span th:each="s : ${submission.skills}" class="chip" th:text="${s.name}">Tag</span>
-                                </div>
-                            </div>
-                        </div>
-                    </details>
-                    </details>
-                </section>
             </aside>
         </div>
     </div>

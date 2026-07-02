@@ -14,6 +14,9 @@
 
 /* ── Design tokens ───────────────────────────────────────────────────────── */
 :root {
+    /* Native form controls (date pickers, selects, scrollbars) render dark */
+    color-scheme: dark;
+
     /* ── Institutional brand — jade laurel with a brass companion ────────── */
     --primary: #5fbfab;          /* links, accents, focus — bright enough on dark */
     --primary-hover: #74cdbb;
@@ -744,21 +747,94 @@ tbody tr:hover { background: var(--surface-muted); }
 }
 .card-head h2 { margin-bottom: 0; }
 
-/* ── Split layout (lecturer review) ──────────────────────────────────────── */
+/* ── Split layout (lecturer review) ──────────────────────────────────────────
+   One natural page scroll — no nested scrollbars. The document panel sticks
+   to the viewport while the review column flows past it. */
 .split-layout {
     display: grid;
     grid-template-columns: 1.05fr 0.95fr;
     gap: 1.5rem;
-    height: calc(100vh - var(--header-h) - 6rem);
-    min-height: 560px;
+    align-items: start;
 }
-.panel-scroll { overflow-y: auto; padding-right: 0.5rem; }
+.panel-scroll { overflow: visible; }
+.document-panel {
+    position: sticky;
+    top: calc(var(--header-h) + 1rem);
+}
 .doc-viewer {
     width: 100%;
-    height: 100%;
+    height: calc(100vh - var(--header-h) - 10.5rem);
+    min-height: 420px;
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius) var(--radius);
+    border-top: none;
+    background: var(--surface-muted);
+    display: block;
+}
+
+/* Modern document preview chrome */
+.doc-preview {
     border: 1px solid var(--border);
     border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-soft);
+    background: var(--surface);
+}
+.doc-preview-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.9rem;
     background: var(--surface-muted);
+    border-bottom: 1px solid var(--border);
+}
+.doc-preview-fileinfo {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+.doc-preview-fileinfo .doc-file-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.doc-file-badge {
+    flex-shrink: 0;
+    padding: 0.12rem 0.5rem;
+    border-radius: var(--radius-pill);
+    background: var(--tint-blue-bg);
+    border: 1px solid var(--tint-blue-bd);
+    color: var(--tint-blue-fg);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.doc-preview-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+
+/* Styled text rendering for .txt files (instead of the browser's raw dump) */
+.doc-text-preview {
+    height: calc(100vh - var(--header-h) - 10.5rem);
+    min-height: 420px;
+    overflow-y: auto;
+    padding: 1.6rem 1.9rem;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.9rem;
+    line-height: 1.75;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: var(--font-sans);
+}
+.doc-preview-fallback {
+    padding: 3.5rem 1.5rem;
+    text-align: center;
+    color: var(--text-muted);
 }
 
 /* ── Empty states ────────────────────────────────────────────────────────── */
@@ -1228,8 +1304,9 @@ tbody tr:hover { background: var(--surface-muted); }
     .split-layout,
     .review-actions { grid-template-columns: 1fr; }
 
-    .split-layout { height: auto; }
-    .doc-viewer { min-height: 480px; }
+    .document-panel { position: static; }
+    .doc-viewer,
+    .doc-text-preview { height: 60vh; min-height: 380px; }
 
     .container { padding: 1.25rem 1rem 3rem; }
     .table-toolbar,
@@ -1466,9 +1543,13 @@ tbody tr:hover { background: var(--surface-muted); }
     background: var(--primary);
 }
 
+/* Add-member search: wrapper constrains width so the icon hugs the input */
+.member-search-wrap {
+    position: relative;
+    max-width: 380px;
+}
 .member-search-input-field {
     width: 100%;
-    max-width: 360px;
     padding-right: 2.5rem;
 }
 .search-icon-inside {
@@ -1852,9 +1933,8 @@ textarea.form-control-sm {
     flex-shrink: 0;
 }
 
-/* Make native datetime picker calendar icon visible in dark mode */
+/* color-scheme: dark (in :root) makes the native calendar icon light already */
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
     cursor: pointer;
 }
 

@@ -44,14 +44,15 @@
                         <div class="grid gap-2" style="grid-template-columns: 1fr 1.2fr;">
                             <div class="form-group">
                                 <label class="form-label" for="typeSelect">Type</label>
-                                <select id="typeSelect" name="type" class="form-control" onchange="document.getElementById('deadlineInput').disabled = (this.value !== 'ASSIGNMENT');">
+                                <select id="typeSelect" name="type" class="form-control">
                                     <option value="ANNOUNCEMENT">Announcement</option>
                                     <option value="ASSIGNMENT">Assignment</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label class="form-label" for="deadlineInput">Assignment Deadline (Optional)</label>
-                                <input type="datetime-local" id="deadlineInput" name="deadline" disabled class="form-control">
+                                <input type="datetime-local" id="deadlineInput" name="deadline" class="form-control">
+                                <div class="field-hint">Click the calendar icon to pick a date — setting one marks this notice as an assignment.</div>
                             </div>
                         </div>
 
@@ -119,9 +120,15 @@
                 var typeSelect = document.getElementById('typeSelect');
                 var deadlineInput = document.getElementById('deadlineInput');
                 if (typeSelect && deadlineInput) {
-                    deadlineInput.disabled = (typeSelect.value !== 'ASSIGNMENT');
+                    // The deadline field is always editable; picking a date
+                    // automatically flips the notice type to Assignment.
+                    deadlineInput.addEventListener('change', function() {
+                        if (this.value) {
+                            typeSelect.value = 'ASSIGNMENT';
+                        }
+                    });
+                    // Switching back to a plain announcement clears the deadline.
                     typeSelect.addEventListener('change', function() {
-                        deadlineInput.disabled = (this.value !== 'ASSIGNMENT');
                         if (this.value !== 'ASSIGNMENT') {
                             deadlineInput.value = '';
                         }

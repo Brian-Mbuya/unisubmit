@@ -116,13 +116,25 @@ public class RecommendationService {
             double technologyScore = jaccard(currentTechs.keySet(), candTechs.keySet());
             double researchAreaScore = jaccard(currentAreas.keySet(), candAreas.keySet());
 
+            // Adaptive normalisation: a signal that CANNOT fire for this pair
+            // (no embeddings stored, no extracted keywords) is excluded from the
+            // denominator instead of silently dragging every score down.
+            // Without this, two identical documents could never exceed ~84%
+            // whenever the SPECTER sidecar is off.
+            boolean semanticEvaluable = current.getEmbedding() != null && candidate.getEmbedding() != null;
+            boolean keywordEvaluable = !currentKeywords.isEmpty() && !candidateKeywords.isEmpty();
+            double effectiveWeight = weights.getTitle() + weights.getUnit()
+                    + weights.getTechnology() + weights.getResearchArea()
+                    + (keywordEvaluable ? weights.getKeyword() : 0.0)
+                    + (semanticEvaluable ? weights.getSemantic() : 0.0);
+
             double weightedSum = (keywordScore * weights.getKeyword())
                     + (titleScore * weights.getTitle())
                     + (unitScore * weights.getUnit())
                     + (semanticScore * weights.getSemantic())
                     + (technologyScore * weights.getTechnology())
                     + (researchAreaScore * weights.getResearchArea());
-            double finalScore = weightedSum / weights.totalWeight();
+            double finalScore = effectiveWeight > 0 ? weightedSum / effectiveWeight : 0.0;
 
             if (finalScore >= 0.05 || sameUnitFlag || !sharedTechs.isEmpty()) {
                 String reason = determineReason(keywordScore, titleScore, sameUnitFlag, sameCourse,

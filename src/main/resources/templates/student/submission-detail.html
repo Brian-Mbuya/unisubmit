@@ -64,16 +64,6 @@
                     <p class="text-muted text-sm no-margin">No further uploads are required.</p>
                 </div>
 
-                <!-- Version & feedback history -->
-                <div class="card">
-                    <div class="card-head">
-                        <h2>Version history</h2>
-                        <span class="text-xs text-subtle"
-                              th:text="${#lists.size(submission.versions)} + ' total'">0 total</span>
-                    </div>
-                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
-                </div>
-
                 <!-- Similar projects -->
                 <div class="card">
                     <div class="card-head"><h2>Similar work & collaborators</h2></div>
@@ -150,6 +140,16 @@
                     </div>
                 </div>
 
+                <!-- Version & feedback history -->
+                <div class="card">
+                    <div class="card-head">
+                        <h2>Version history</h2>
+                        <span class="text-xs text-subtle"
+                              th:text="${#lists.size(submission.versions)} + ' total'">0 total</span>
+                    </div>
+                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
+                </div>
+
                 <!-- Recommended reviewers (Phase 5 — lecturer matching) -->
                 <div class="card">
                     <div class="card-head">
@@ -157,17 +157,6 @@
                     </div>
                     <p class="field-hint mb-2">Lecturers who have reviewed work sharing your technologies and research areas — computed from review history, no AI involved.</p>
                     <div th:replace="~{fragments/components :: lecturerMatchesPanel(${lecturerMatches})}"></div>
-                </div>
-
-                <!-- Focus areas — only the two tag families that drive matching -->
-                <div class="card"
-                     th:if="${not submission.researchAreas.empty or not submission.technologies.empty}">
-                    <div class="card-head"><h2>Focus areas</h2></div>
-                    <div class="flex flex-wrap gap-2">
-                        <span th:each="r : ${submission.researchAreas}" class="chip chip-gold" th:text="${r.name}">Area</span>
-                        <span th:each="t : ${submission.technologies}" class="chip chip-match" th:text="${t.name}">Tech</span>
-                    </div>
-                    <p class="field-hint mt-2">Detected by AI analysis and refined by your lecturer — these drive the "Similar work" matches.</p>
                 </div>
             </div>
         </div>

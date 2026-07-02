@@ -67,6 +67,10 @@ public class LecturerController {
                                      @AuthenticationPrincipal CustomUserDetails userDetails) {
         User lecturer = userDetails.getUser();
         com.unisubmit.domain.AnnouncementType finalType = (type != null) ? type : com.unisubmit.domain.AnnouncementType.ANNOUNCEMENT;
+        // A deadline only makes sense on an assignment — trust the date over the dropdown.
+        if (deadline != null) {
+            finalType = com.unisubmit.domain.AnnouncementType.ASSIGNMENT;
+        }
         announcementService.createAnnouncement(lecturer, unitId, title, message, finalType, deadline);
         return "redirect:/lecturer/announcements?success=Announcement posted";
     }
@@ -130,8 +134,6 @@ public class LecturerController {
                                  @PathVariable Long id, Model model) {
         Submission submission = submissionService.getSubmissionForLecturer(id, userDetails.getUser());
         model.addAttribute("submission", submission);
-        model.addAttribute("allTechnologies", tagService.getAllTechnologies());
-        model.addAttribute("allResearchAreas", tagService.getAllResearchAreas());
         // Lecturer-side transparency: same similar-work panel the student sees,
         // read-only, so overlapping submissions surface during review.
         model.addAttribute("similarSubmissions",
