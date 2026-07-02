@@ -25,6 +25,19 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     @Query("SELECT s FROM Submission s WHERE s.projectGroup.id IN :groupIds")
     List<Submission> findByProjectGroupIdIn(@Param("groupIds") Collection<Long> groupIds);
 
+    /**
+     * Loads a recommendation candidate pool with its scoring-relevant
+     * associations fetch-joined in one query, instead of ~3 lazy loads per
+     * candidate inside RecommendationService.precomputeForSubmission.
+     * (Safe to fetch-join both collections: they are Sets, not bags.)
+     */
+    @Query("SELECT DISTINCT s FROM Submission s " +
+           "LEFT JOIN FETCH s.aiInsight " +
+           "LEFT JOIN FETCH s.technologies " +
+           "LEFT JOIN FETCH s.researchAreas " +
+           "WHERE s.id IN :ids")
+    List<Submission> findWithRecommendationDataByIdIn(@Param("ids") Collection<Long> ids);
+
     @Query("SELECT s FROM Submission s JOIN s.technologies t WHERE t.id = :techId")
     List<Submission> findByTechnologyId(@Param("techId") Long techId);
 

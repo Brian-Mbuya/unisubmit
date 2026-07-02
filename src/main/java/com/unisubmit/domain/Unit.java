@@ -40,4 +40,16 @@ public class Unit {
 
     @Transient
     private java.util.List<User> lecturers = new java.util.ArrayList<>();
+
+    /**
+     * Whole days remaining until the submission deadline (negative when overdue).
+     * Computed here because Thymeleaf's #temporals has no between() utility.
+     */
+    @Transient
+    public Long getDaysToDeadline() {
+        if (submissionDeadline == null) {
+            return null;
+        }
+        return java.time.temporal.ChronoUnit.DAYS.between(LocalDateTime.now(), submissionDeadline);
+    }
 }

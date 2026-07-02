@@ -34,7 +34,7 @@
                                 <div>
                                     <div class="text-sm fw-600" th:text="${request.sender.name}">Sender</div>
                                     <div class="text-xs text-subtle"
-                                         th:text="${request.sender.studentId != null ? request.sender.studentId : request.sender.username}">ID</div>
+                                         th:text="${request.sender.studentProfile != null ? request.sender.studentProfile.admissionNumber : request.sender.username}">ID</div>
                                 </div>
                             </div>
                             <span class="badge"
@@ -82,7 +82,7 @@
                                 <div>
                                     <div class="text-sm fw-600" th:text="${request.recipient.name}">Recipient</div>
                                     <div class="text-xs text-subtle"
-                                         th:text="${request.recipient.studentId != null ? request.recipient.studentId : request.recipient.username}">ID</div>
+                                         th:text="${request.recipient.studentProfile != null ? request.recipient.studentProfile.admissionNumber : request.recipient.username}">ID</div>
                                 </div>
                             </div>
                             <span class="badge"

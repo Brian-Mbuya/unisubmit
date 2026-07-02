@@ -69,6 +69,20 @@ public class GlobalExceptionHandler {
         return "redirect:" + getReferer(request, "/");
     }
 
+    /**
+     * ResponseStatusException must keep its HTTP status. Without this handler
+     * the catch-all below would swallow it and answer REST/file requests with
+     * an HTML redirect — breaking the document viewer's 404/403 responses and
+     * any fetch() caller expecting a status code.
+     */
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public org.springframework.http.ResponseEntity<String> handleResponseStatus(
+            org.springframework.web.server.ResponseStatusException ex) {
+        return org.springframework.http.ResponseEntity
+                .status(ex.getStatusCode())
+                .body(ex.getReason() != null ? ex.getReason() : "");
+    }
+
     /** Catch-all for unexpected errors — logs full stack trace */
     @ExceptionHandler(Exception.class)
     public String handleGeneral(Exception ex,

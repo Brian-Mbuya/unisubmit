@@ -17,6 +17,7 @@ public class KnowledgeTagService {
     private final ProgrammingLanguageRepository programmingLanguageRepository;
     private final SkillRepository skillRepository;
     private final SubmissionRepository submissionRepository;
+    private final RecommendationService recommendationService;
 
     public KnowledgeTagService(TechnologyRepository technologyRepository,
                                ResearchAreaRepository researchAreaRepository,
@@ -24,7 +25,8 @@ public class KnowledgeTagService {
                                DatabaseRepository databaseRepository,
                                ProgrammingLanguageRepository programmingLanguageRepository,
                                SkillRepository skillRepository,
-                               SubmissionRepository submissionRepository) {
+                               SubmissionRepository submissionRepository,
+                               RecommendationService recommendationService) {
         this.technologyRepository = technologyRepository;
         this.researchAreaRepository = researchAreaRepository;
         this.frameworkRepository = frameworkRepository;
@@ -32,6 +34,7 @@ public class KnowledgeTagService {
         this.programmingLanguageRepository = programmingLanguageRepository;
         this.skillRepository = skillRepository;
         this.submissionRepository = submissionRepository;
+        this.recommendationService = recommendationService;
     }
 
     // ── Find Or Create ───────────────────────────────────────────────────────
@@ -302,6 +305,12 @@ public class KnowledgeTagService {
         skillRepository.delete(source);
     }
 
+    /**
+     * Null list = leave that category unchanged; empty list = clear it.
+     * The review form only submits the two recommendation-relevant categories
+     * (technologies, research areas), so the AI-populated detail tags survive
+     * lecturer edits untouched.
+     */
     @Transactional
     public void updateSubmissionTags(Long submissionId,
                                      List<Long> technologyIds,
@@ -310,39 +319,61 @@ public class KnowledgeTagService {
                                      List<Long> databaseIds,
                                      List<Long> programmingLanguageIds,
                                      List<Long> skillIds) {
+        // The form ships an empty-string sentinel so "nothing selected" still
+        // submits the parameter — it binds as a null element, which must not
+        // reach findAllById.
+        technologyIds = dropNulls(technologyIds);
+        researchAreaIds = dropNulls(researchAreaIds);
+        frameworkIds = dropNulls(frameworkIds);
+        databaseIds = dropNulls(databaseIds);
+        programmingLanguageIds = dropNulls(programmingLanguageIds);
+        skillIds = dropNulls(skillIds);
+
         Submission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new RuntimeException("Submission not found: " + submissionId));
 
-        submission.getTechnologies().clear();
         if (technologyIds != null) {
+            submission.getTechnologies().clear();
             submission.getTechnologies().addAll(technologyRepository.findAllById(technologyIds));
         }
 
-        submission.getResearchAreas().clear();
         if (researchAreaIds != null) {
+            submission.getResearchAreas().clear();
             submission.getResearchAreas().addAll(researchAreaRepository.findAllById(researchAreaIds));
         }
 
-        submission.getFrameworks().clear();
         if (frameworkIds != null) {
+            submission.getFrameworks().clear();
             submission.getFrameworks().addAll(frameworkRepository.findAllById(frameworkIds));
         }
 
-        submission.getDatabases().clear();
         if (databaseIds != null) {
+            submission.getDatabases().clear();
             submission.getDatabases().addAll(databaseRepository.findAllById(databaseIds));
         }
 
-        submission.getProgrammingLanguages().clear();
         if (programmingLanguageIds != null) {
+            submission.getProgrammingLanguages().clear();
             submission.getProgrammingLanguages().addAll(programmingLanguageRepository.findAllById(programmingLanguageIds));
         }
 
-        submission.getSkills().clear();
         if (skillIds != null) {
+            submission.getSkills().clear();
             submission.getSkills().addAll(skillRepository.findAllById(skillIds));
         }
 
         submissionRepository.save(submission);
+
+        // Tag edits change the structured Technology/ResearchArea overlap, so the
+        // persisted similarity scores must be refreshed immediately.
+        recommendationService.precomputeForSubmission(submission);
+    }
+
+    /** Keeps the null-vs-empty distinction but strips null elements. */
+    private static List<Long> dropNulls(List<Long> ids) {
+        if (ids == null) {
+            return null;
+        }
+        return ids.stream().filter(java.util.Objects::nonNull).toList();
     }
 }

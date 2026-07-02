@@ -94,11 +94,11 @@
                                 <span th:text="${sub.aiInsight.status.name() == 'COMPLETED' ? 'AI ready' : (sub.aiInsight.status.name() == 'FAILED' ? 'AI failed' : 'AI analysing')}">AI</span>
                             </span>
                             <!-- Deadline badge -->
-                            <span th:if="${sub.unit != null and sub.unit.submissionDeadline != null}"
-                                  th:with="daysLeft=${#temporals.between(#temporals.createNow(), sub.unit.submissionDeadline, 'DAYS')}"
+                            <span th:if="${sub.unit != null and sub.unit.daysToDeadline != null}"
+                                  th:with="daysLeft=${sub.unit.daysToDeadline}"
                                   class="deadline-tag"
                                   th:classappend="${daysLeft < 0 ? 'overdue' : ''}"
-                                  th:text="${daysLeft < 0 ? 'OVERDUE' : ('Due in ' + daysLeft + 'd')}">Deadline</span>
+                                  th:text="${daysLeft < 0 ? 'OVERDUE' : (daysLeft == 0 ? 'Due today' : 'Due in ' + daysLeft + 'd')}">Deadline</span>
                         </div>
                     </div>
                     <div class="list-row-side">

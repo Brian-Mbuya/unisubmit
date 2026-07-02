@@ -20,18 +20,30 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final LecturerProfileRepository lecturerProfileRepository;
+    private final LoginAttemptService loginAttemptService;
 
     public CustomUserDetailsService(UserRepository userRepository,
                                     StudentProfileRepository studentProfileRepository,
-                                    LecturerProfileRepository lecturerProfileRepository) {
+                                    LecturerProfileRepository lecturerProfileRepository,
+                                    LoginAttemptService loginAttemptService) {
         this.userRepository = userRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.lecturerProfileRepository = lecturerProfileRepository;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @Override
     public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
         String normalized = identifier == null ? "" : identifier.trim();
+
+        // Brute-force throttle: reject before touching the database when this
+        // username+IP pair is locked out (5 failures → 15 min).
+        String attemptKey = LoginAttemptService.key(normalized, LoginAttemptListener.currentClientIp());
+        if (loginAttemptService.isBlocked(attemptKey)) {
+            throw new TooManyLoginAttemptsException(
+                    "Too many failed login attempts. Try again in "
+                            + loginAttemptService.minutesRemaining(attemptKey) + " minute(s).");
+        }
 
         // Prefer username first so self-registered accounts are not shadowed by
         // seeded/demo IDs that happen to share the same identifier string.

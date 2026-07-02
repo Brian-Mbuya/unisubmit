@@ -23,7 +23,13 @@
                         <h2>Post Announcement / Assignment</h2>
                     </div>
                     
-                    <form th:action="@{/lecturer/announcements}" method="post" class="mt-3 flex flex-col gap-4">
+                    <div th:if="${#lists.isEmpty(units)}" class="empty-state empty-state-compact">
+                        <h3>No teaching units assigned</h3>
+                        <p class="text-sm">You need an active teaching assignment before you can post notices.
+                           Ask an administrator to assign you to a unit in the admin console.</p>
+                    </div>
+
+                    <form th:if="${not #lists.isEmpty(units)}" th:action="@{/lecturer/announcements}" method="post" class="mt-3 flex flex-col gap-4">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         
                         <div class="form-group">
@@ -80,8 +86,8 @@
                         <div class="flex justify-between items-center w-full flex-wrap gap-2">
                             <div>
                                 <strong class="text-accent text-sm" th:text="${ann.unit.unitCode}">Unit</strong>
-                                <span class="badge ml-2" 
-                                      th:classappend="${ann.type.name() == 'ASSIGNMENT' ? 'badge-under-review' : 'badge-draft'}" 
+                                <span class="badge ml-2"
+                                      th:classappend="${ann.type.name() == 'ASSIGNMENT' ? 'badge-under_review' : 'badge-draft'}"
                                       th:text="${ann.type.name()}">Type</span>
                             </div>
                             <div class="flex items-center gap-2">

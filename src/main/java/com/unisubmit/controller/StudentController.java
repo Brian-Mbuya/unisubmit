@@ -27,6 +27,7 @@ public class StudentController {
     private final SubmissionService submissionService;
     private final UnitService unitService;
     private final RecommendationService recommendationService;
+    private final com.unisubmit.service.LecturerRecommendationService lecturerRecommendationService;
     private final CollaborationRequestService collaborationRequestService;
     private final AcademicHierarchyService academicHierarchyService;
     private final com.unisubmit.service.ProjectGroupService groupService;
@@ -35,6 +36,7 @@ public class StudentController {
     public StudentController(SubmissionService submissionService,
                              UnitService unitService,
                              RecommendationService recommendationService,
+                             com.unisubmit.service.LecturerRecommendationService lecturerRecommendationService,
                              CollaborationRequestService collaborationRequestService,
                              AcademicHierarchyService academicHierarchyService,
                              com.unisubmit.service.ProjectGroupService groupService,
@@ -42,6 +44,7 @@ public class StudentController {
         this.submissionService = submissionService;
         this.unitService = unitService;
         this.recommendationService = recommendationService;
+        this.lecturerRecommendationService = lecturerRecommendationService;
         this.collaborationRequestService = collaborationRequestService;
         this.academicHierarchyService = academicHierarchyService;
         this.groupService = groupService;
@@ -121,9 +124,12 @@ public class StudentController {
         Submission submission = submissionService.getSubmissionForStudent(id, userDetails.getUser());
         model.addAttribute("submission", submission);
 
-        List<SimilarSubmission> similar = recommendationService.findSimilarSubmissions(submission);
+        List<SimilarSubmission> similar =
+                recommendationService.findSimilarSubmissions(submission, userDetails.getUser());
 
         model.addAttribute("similarSubmissions", similar);
+        model.addAttribute("lecturerMatches",
+                lecturerRecommendationService.recommendLecturersFor(submission));
         model.addAttribute("requestStatusesBySubmissionId",
                 collaborationRequestService.getRequestStatusesForSender(
                         userDetails.getUser(),

@@ -48,6 +48,13 @@ public class ProjectController {
                 .orElseThrow(() -> new RuntimeException("Project not found"));
 
         User currentUser = userDetails != null ? userDetails.getUser() : null;
+
+        // Discovery-level visibility: private drafts must not be viewable by peers
+        if (!submissionAccessService.canDiscoverSubmission(currentUser, submission)) {
+            throw new com.unisubmit.exception.UnauthorizedException(
+                    "You do not have access to this project.");
+        }
+
         boolean canManageRelations = currentUser != null
                 && (currentUser.getRole() == Role.LECTURER || currentUser.getRole() == Role.ADMIN);
 

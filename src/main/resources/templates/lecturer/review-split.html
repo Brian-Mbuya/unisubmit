@@ -84,103 +84,7 @@
                     </div>
                 </section>
 
-                <section class="card">
-                    <div class="card-head">
-                        <h2>Classification Tags</h2>
-                    </div>
-                    <form th:action="@{'/lecturer/submission/' + ${submission.id} + '/tags'}" method="post" class="classification-form">
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        
-                        <!-- Technologies -->
-                        <div class="form-group no-margin">
-                            <label class="form-label text-sm fw-600 text-muted">Technologies</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <span th:each="t : ${submission.technologies}" class="badge badge-draft" th:text="${t.name}">Tag</span>
-                                <span th:if="${submission.technologies.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                            <select name="technologyIds" class="form-control form-control-sm tag-select-multiple" multiple>
-                                <option th:each="t : ${allTechnologies}" th:value="${t.id}" th:text="${t.name}" th:selected="${submission.technologies.contains(t)}"></option>
-                            </select>
-                        </div>
-
-                        <!-- Research Areas -->
-                        <div class="form-group no-margin">
-                            <label class="form-label text-sm fw-600 text-muted">Research Areas</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <span th:each="r : ${submission.researchAreas}" class="badge badge-draft" th:text="${r.name}">Tag</span>
-                                <span th:if="${submission.researchAreas.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                            <select name="researchAreaIds" class="form-control form-control-sm tag-select-multiple" multiple>
-                                <option th:each="r : ${allResearchAreas}" th:value="${r.id}" th:text="${r.name}" th:selected="${submission.researchAreas.contains(r)}"></option>
-                            </select>
-                        </div>
-
-                        <!-- Frameworks -->
-                        <div class="form-group no-margin">
-                            <label class="form-label text-sm fw-600 text-muted">Frameworks</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <span th:each="f : ${submission.frameworks}" class="badge badge-draft" th:text="${f.name}">Tag</span>
-                                <span th:if="${submission.frameworks.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                            <select name="frameworkIds" class="form-control form-control-sm tag-select-multiple" multiple>
-                                <option th:each="f : ${allFrameworks}" th:value="${f.id}" th:text="${f.name}" th:selected="${submission.frameworks.contains(f)}"></option>
-                            </select>
-                        </div>
-
-                        <!-- Databases -->
-                        <div class="form-group no-margin">
-                            <label class="form-label text-sm fw-600 text-muted">Databases</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <span th:each="d : ${submission.databases}" class="badge badge-draft" th:text="${d.name}">Tag</span>
-                                <span th:if="${submission.databases.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                            <select name="databaseIds" class="form-control form-control-sm tag-select-multiple" multiple>
-                                <option th:each="d : ${allDatabases}" th:value="${d.id}" th:text="${d.name}" th:selected="${submission.databases.contains(d)}"></option>
-                            </select>
-                        </div>
-
-                        <!-- Programming Languages -->
-                        <div class="form-group no-margin">
-                            <label class="form-label text-sm fw-600 text-muted">Programming Languages</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <span th:each="p : ${submission.programmingLanguages}" class="badge badge-draft" th:text="${p.name}">Tag</span>
-                                <span th:if="${submission.programmingLanguages.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                            <select name="programmingLanguageIds" class="form-control form-control-sm tag-select-multiple" multiple>
-                                <option th:each="p : ${allProgrammingLanguages}" th:value="${p.id}" th:text="${p.name}" th:selected="${submission.programmingLanguages.contains(p)}"></option>
-                            </select>
-                        </div>
-
-                        <!-- Skills -->
-                        <div class="form-group no-margin">
-                            <label class="form-label text-sm fw-600 text-muted">Skills</label>
-                            <div class="flex flex-wrap gap-2 mb-2">
-                                <span th:each="s : ${submission.skills}" class="badge badge-draft" th:text="${s.name}">Tag</span>
-                                <span th:if="${submission.skills.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                            <select name="skillIds" class="form-control form-control-sm tag-select-multiple" multiple>
-                                <option th:each="s : ${allSkills}" th:value="${s.id}" th:text="${s.name}" th:selected="${submission.skills.contains(s)}"></option>
-                            </select>
-                        </div>
-
-                        <button type="submit" class="btn btn-secondary btn-sm btn-block mt-2">Save Tags</button>
-                    </form>
-                </section>
-
-                <section class="card">
-                    <div class="card-head">
-                        <h2>AI insights</h2>
-                    </div>
-                    <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
-                </section>
-
-                <section class="card">
-                    <div class="card-head">
-                        <h2>Activity timeline</h2>
-                    </div>
-                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
-                </section>
-
+                <!-- Primary task first: the review decision -->
                 <section class="card" th:if="${submission.status.name() != 'APPROVED'}">
                     <div class="card-head">
                         <h2>Review action</h2>
@@ -222,6 +126,111 @@
                 <section class="muted-panel approved-note" th:if="${submission.status.name() == 'APPROVED'}">
                     <strong class="text-sm">Approved and locked</strong>
                     <p class="text-muted text-sm">No further review action is available for this submission.</p>
+                </section>
+
+                <section class="card">
+                    <div class="card-head">
+                        <h2>AI insights</h2>
+                    </div>
+                    <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
+                </section>
+
+                <!-- Overlapping submissions (Phase 5 — lecturer-side transparency) -->
+                <section class="card">
+                    <div class="card-head">
+                        <h2>Similar work</h2>
+                    </div>
+                    <p class="field-hint mb-2">
+                        Other submissions with overlapping topics, technologies or research areas —
+                        useful for spotting duplicated or related work during review.
+                    </p>
+                    <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${null}, true)}"></div>
+                </section>
+
+                <section class="card">
+                    <div class="card-head">
+                        <h2>Activity timeline</h2>
+                    </div>
+                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
+                </section>
+
+                <!-- Tags tucked away — optional curation, not part of the core flow -->
+                <section class="card">
+                    <details>
+                    <summary class="text-sm fw-600">Classification tags
+                        <span class="text-xs text-subtle fw-600">— optional, improves matching</span>
+                    </summary>
+                    <p class="field-hint mb-2 mt-2">
+                        Technologies and research areas drive the recommendation engine —
+                        keeping them accurate improves matching for every student.
+                    </p>
+                    <form th:action="@{'/lecturer/submission/' + ${submission.id} + '/tags'}" method="post" class="classification-form">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <!-- Empty sentinels: keep both editable params always present, so an
+                             empty selection clears the category instead of meaning "no change". -->
+                        <input type="hidden" name="technologyIds" value="">
+                        <input type="hidden" name="researchAreaIds" value="">
+
+                        <!-- Technologies (editable — recommendation signal) -->
+                        <div class="form-group no-margin">
+                            <label class="form-label text-sm fw-600 text-muted">Technologies</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span th:each="t : ${submission.technologies}" class="chip chip-match" th:text="${t.name}">Tag</span>
+                                <span th:if="${submission.technologies.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                            <select name="technologyIds" class="form-control form-control-sm tag-select-multiple" multiple>
+                                <option th:each="t : ${allTechnologies}" th:value="${t.id}" th:text="${t.name}" th:selected="${submission.technologies.contains(t)}"></option>
+                            </select>
+                        </div>
+
+                        <!-- Research Areas (editable — recommendation signal) -->
+                        <div class="form-group no-margin">
+                            <label class="form-label text-sm fw-600 text-muted">Research Areas</label>
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <span th:each="r : ${submission.researchAreas}" class="chip chip-gold" th:text="${r.name}">Tag</span>
+                                <span th:if="${submission.researchAreas.empty}" class="text-muted text-xs italic">None</span>
+                            </div>
+                            <select name="researchAreaIds" class="form-control form-control-sm tag-select-multiple" multiple>
+                                <option th:each="r : ${allResearchAreas}" th:value="${r.id}" th:text="${r.name}" th:selected="${submission.researchAreas.contains(r)}"></option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-secondary btn-sm btn-block mt-2">Save Tags</button>
+                    </form>
+
+                    <!-- AI-populated detail tags (read-only) -->
+                    <details class="mt-4"
+                             th:if="${not submission.frameworks.empty or not submission.databases.empty
+                                      or not submission.programmingLanguages.empty or not submission.skills.empty}">
+                        <summary class="text-sm text-muted">Detected details (AI-populated, read-only)</summary>
+                        <div class="mt-2">
+                            <div th:if="${not submission.frameworks.empty}" class="mb-2">
+                                <strong class="tag-section-label">Frameworks</strong>
+                                <div class="flex flex-wrap gap-2 mt-1">
+                                    <span th:each="f : ${submission.frameworks}" class="chip" th:text="${f.name}">Tag</span>
+                                </div>
+                            </div>
+                            <div th:if="${not submission.databases.empty}" class="mb-2">
+                                <strong class="tag-section-label">Databases</strong>
+                                <div class="flex flex-wrap gap-2 mt-1">
+                                    <span th:each="d : ${submission.databases}" class="chip" th:text="${d.name}">Tag</span>
+                                </div>
+                            </div>
+                            <div th:if="${not submission.programmingLanguages.empty}" class="mb-2">
+                                <strong class="tag-section-label">Programming languages</strong>
+                                <div class="flex flex-wrap gap-2 mt-1">
+                                    <span th:each="p : ${submission.programmingLanguages}" class="chip" th:text="${p.name}">Tag</span>
+                                </div>
+                            </div>
+                            <div th:if="${not submission.skills.empty}" class="mb-2">
+                                <strong class="tag-section-label">Skills</strong>
+                                <div class="flex flex-wrap gap-2 mt-1">
+                                    <span th:each="s : ${submission.skills}" class="chip" th:text="${s.name}">Tag</span>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                    </details>
                 </section>
             </aside>
         </div>

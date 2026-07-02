@@ -71,7 +71,7 @@ public class FileStorageService {
         boolean extensionAllowed = ALLOWED_EXTENSIONS.stream().anyMatch(lowerName::endsWith);
         if (!extensionAllowed) {
             throw new IllegalArgumentException(
-                    "File extension not allowed. Accepted: .pdf, .doc, .docx, .txt, .odt, .zip");
+                    "File extension not allowed. Accepted: .pdf, .doc, .docx, .txt, .odt");
         }
 
         try {

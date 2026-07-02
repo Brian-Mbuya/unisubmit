@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -77,6 +76,10 @@ public class AIInsightProcessingService {
 
     @Value("${spring.ai.openai.chat.options.model:openai/gpt-4o-mini}")
     private String model;
+
+    /** Upper bound for one full pipeline run — GROBID + LLM regularly exceeds 30s. */
+    @Value("${unisubmit.ai.timeout-seconds:120}")
+    private long timeoutSeconds;
 
     public AIInsightProcessingService(AIInsightRepository aiInsightRepository,
                                       RecommendationService recommendationService,
@@ -213,31 +216,48 @@ public class AIInsightProcessingService {
         return mapper.readValue(content, LlmResult.class);
     }
 
-    @Transactional
+    /**
+     * Deliberately NOT {@code @Transactional}: holding one outer transaction
+     * (and its DB connection) open while blocking on the pipeline future caused
+     * connection starvation and let the outer entity save race the inner
+     * committed state. Instead: mark PROCESSING in a short standalone tx, run
+     * the pipeline (which manages its own tx), then record failure in another
+     * short tx if needed.
+     */
     @org.springframework.scheduling.annotation.Async
     public void performAnalysisAsync(Long insightId) {
-        AIInsight insight = aiInsightRepository.findById(insightId).orElse(null);
-        if (insight == null) {
+        final Path filePath;
+        try {
+            filePath = transactionTemplate.execute(status -> {
+                AIInsight insight = aiInsightRepository.findById(insightId).orElse(null);
+                if (insight == null) {
+                    return null;
+                }
+                insight.setStatus(AIInsightStatus.PROCESSING);
+                aiInsightRepository.save(insight);
+
+                Submission submission = insight.getSubmission();
+                if (submission.getVersions().isEmpty()) {
+                    throw new IllegalStateException("Submission has no file versions to analyse.");
+                }
+                String fileName = submission.getVersions()
+                        .get(submission.getVersions().size() - 1)
+                        .getFilePath();
+                Path resolved = uploadRoot.resolve(fileName);
+                if (!resolved.toFile().exists()) {
+                    throw new IllegalStateException("Uploaded file could not be found on storage.");
+                }
+                return resolved;
+            });
+        } catch (Exception ex) {
+            markFailed(insightId, ex);
+            return;
+        }
+        if (filePath == null) {
             return;
         }
 
-        insight.setStatus(AIInsightStatus.PROCESSING);
-        aiInsightRepository.save(insight);
-
         try {
-            Submission submission = insight.getSubmission();
-            if (submission.getVersions().isEmpty()) {
-                throw new IllegalStateException("Submission has no file versions to analyse.");
-            }
-
-            String fileName = submission.getVersions()
-                    .get(submission.getVersions().size() - 1)
-                    .getFilePath();
-            Path filePath = uploadRoot.resolve(fileName);
-            if (!filePath.toFile().exists()) {
-                throw new IllegalStateException("Uploaded file could not be found on storage.");
-            }
-
             // Run the text extraction and summary generation in a timeout-bounded execution block
             java.util.concurrent.CompletableFuture<Void> future = java.util.concurrent.CompletableFuture.runAsync(() -> {
                 transactionTemplate.execute(status -> {
@@ -305,23 +325,28 @@ public class AIInsightProcessingService {
                             result = callOpenAi(promptInputText);
                         } catch (Exception ex) {
                             log.warn("OpenAI/OpenRouter LLM analysis failed. Using fallback local heuristic analysis. Reason: {}", ex.getMessage());
+                            // Fallback keeps only what was genuinely derived from the
+                            // document (TF keywords + extractive summary). Structured
+                            // fields stay empty — fabricated tags would pollute the
+                            // knowledge model and recommendation signals.
                             result = new LlmResult();
-                            result.summary = extractSummary(rawText != null ? rawText : promptInputText, keywords, 3);
+                            result.summary = "(Automated fallback — AI analysis unavailable.) "
+                                    + extractSummary(rawText != null ? rawText : promptInputText, keywords, 3);
                             result.keywords = keywords;
-                            result.objectives = List.of(
-                                "Design and implement the proposed system model.",
-                                "Evaluate the performance, scalability, and usability of the application."
-                            );
-                            result.problemStatement = "The manual processes and lack of specialized automation currently limit efficiency in this academic domain.";
-                            result.technologies = List.of("Spring Boot", "Java", "H2 Database");
-                            result.researchAreas = List.of("Software Engineering");
+                            result.objectives = List.of();
+                            result.problemStatement = null;
+                            // null (not empty) = leave any existing submission tags untouched
+                            result.technologies = null;
+                            result.researchAreas = null;
                         }
 
-                        // Deduplicate lists before saving/mapping
+                        // Deduplicate lists before saving/mapping (null = skip tag mapping)
                         result.keywords = dedupeCaseInsensitive(result.keywords, 10);
                         result.objectives = dedupeCaseInsensitive(result.objectives, 6);
-                        result.technologies = dedupeCaseInsensitive(result.technologies, Integer.MAX_VALUE);
-                        result.researchAreas = dedupeCaseInsensitive(result.researchAreas, Integer.MAX_VALUE);
+                        result.technologies = result.technologies == null ? null
+                                : dedupeCaseInsensitive(result.technologies, Integer.MAX_VALUE);
+                        result.researchAreas = result.researchAreas == null ? null
+                                : dedupeCaseInsensitive(result.researchAreas, Integer.MAX_VALUE);
 
                         // Save structured results on insight
                         txInsight.setSummary(result.summary);
@@ -410,21 +435,35 @@ public class AIInsightProcessingService {
             });
 
             try {
-                // Limit maximum processing duration to 30 seconds
-                future.get(30, java.util.concurrent.TimeUnit.SECONDS);
+                future.get(timeoutSeconds, java.util.concurrent.TimeUnit.SECONDS);
             } catch (java.util.concurrent.TimeoutException ex) {
                 future.cancel(true);
-                throw new java.util.concurrent.TimeoutException("AI analysis execution timed out after 30 seconds.");
+                throw new java.util.concurrent.TimeoutException(
+                        "AI analysis execution timed out after " + timeoutSeconds + " seconds.");
             }
         } catch (Exception ex) {
-            log.warn("AI analysis FAILED for insight {}: {}", insightId, ex.getMessage());
-            insight.setStatus(AIInsightStatus.FAILED);
-            String msg = ex.getMessage() != null ? ex.getMessage() : "Unknown error";
-            if (ex instanceof java.util.concurrent.ExecutionException && ex.getCause() != null) {
-                msg = ex.getCause().getMessage();
-            }
-            insight.setErrorMessage(msg.length() > 1000 ? msg.substring(0, 1000) : msg);
-            aiInsightRepository.save(insight);
+            markFailed(insightId, ex);
+        }
+    }
+
+    /** Records FAILED + error message in its own short transaction. */
+    private void markFailed(Long insightId, Exception ex) {
+        log.warn("AI analysis FAILED for insight {}: {}", insightId, ex.getMessage());
+        String raw = ex.getMessage() != null ? ex.getMessage() : "Unknown error";
+        if (ex instanceof java.util.concurrent.ExecutionException && ex.getCause() != null
+                && ex.getCause().getMessage() != null) {
+            raw = ex.getCause().getMessage();
+        }
+        final String msg = raw.length() > 1000 ? raw.substring(0, 1000) : raw;
+        try {
+            transactionTemplate.executeWithoutResult(status ->
+                    aiInsightRepository.findById(insightId).ifPresent(insight -> {
+                        insight.setStatus(AIInsightStatus.FAILED);
+                        insight.setErrorMessage(msg);
+                        aiInsightRepository.save(insight);
+                    }));
+        } catch (Exception persistEx) {
+            log.error("Could not persist FAILED state for insight {}: {}", insightId, persistEx.getMessage());
         }
     }
 

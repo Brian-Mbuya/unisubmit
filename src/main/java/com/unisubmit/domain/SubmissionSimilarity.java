@@ -35,6 +35,40 @@ public class SubmissionSimilarity {
     @Column(name = "keyword")
     private List<String> matchedKeywords;
 
+    /** Technology tag names shared by both submissions (structured knowledge-model overlap). */
+    @ElementCollection
+    @CollectionTable(name = "similarity_technologies", joinColumns = @JoinColumn(name = "similarity_id"))
+    @Column(name = "technology")
+    private List<String> matchedTechnologies;
+
+    /** ResearchArea tag names shared by both submissions. */
+    @ElementCollection
+    @CollectionTable(name = "similarity_research_areas", joinColumns = @JoinColumn(name = "similarity_id"))
+    @Column(name = "research_area")
+    private List<String> matchedResearchAreas;
+
+    // ── Per-signal breakdown (each 0..1) so the UI can explain "why this match" ──
+    @Column(name = "keyword_score")
+    private Double keywordScore;
+
+    @Column(name = "title_score")
+    private Double titleScore;
+
+    @Column(name = "unit_score")
+    private Double unitScore;
+
+    @Column(name = "semantic_score")
+    private Double semanticScore;
+
+    @Column(name = "technology_score")
+    private Double technologyScore;
+
+    @Column(name = "research_area_score")
+    private Double researchAreaScore;
+
+    @Column(name = "same_unit")
+    private Boolean sameUnit;
+
     @Column(nullable = false, length = 500)
     private String reason;
 

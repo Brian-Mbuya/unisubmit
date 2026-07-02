@@ -17,7 +17,9 @@
         <div class="card mb-6 card-pad-0">
             <div class="card-head p-4">
                 <h3>Academic Assignments</h3>
-                <span class="badge badge-submitted" th:text="${#lists.size(assignments)} + ' pending'">0 pending</span>
+                <span class="badge badge-submitted"
+                      th:with="open=${assignments.?[deadline == null or #temporals.createNow().isBefore(deadline)]}"
+                      th:text="${#lists.size(open)} + ' open'">0 open</span>
             </div>
             
             <div class="table-wrap">

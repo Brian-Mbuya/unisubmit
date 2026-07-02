@@ -85,6 +85,14 @@ public class CollaborationRequestService {
         request.setStatus(CollaborationRequestStatus.DECLINED);
     }
 
+    /**
+     * Lightweight count for the header badge — a single COUNT query instead of
+     * materialising the whole inbox view on every page load.
+     */
+    public long countPendingIncoming(User user) {
+        return collaborationRequestRepository.countByRecipientAndStatus(user, CollaborationRequestStatus.PENDING);
+    }
+
     public CollaborationInboxView getInbox(User user) {
         List<CollaborationRequest> incoming = collaborationRequestRepository.findByRecipientOrderByCreatedAtDesc(user);
         List<CollaborationRequest> outgoing = collaborationRequestRepository.findBySenderOrderByCreatedAtDesc(user);

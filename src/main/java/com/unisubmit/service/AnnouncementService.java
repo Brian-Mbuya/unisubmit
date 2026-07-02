@@ -21,6 +21,7 @@ public class AnnouncementService {
     private final UserRepository userRepository;
     private final UnitRepository unitRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final SubmissionRepository submissionRepository;
 
     public AnnouncementService(AnnouncementRepository announcementRepository,
                                EnrollmentRepository enrollmentRepository,
@@ -28,7 +29,8 @@ public class AnnouncementService {
                                NotificationService notificationService,
                                UserRepository userRepository,
                                UnitRepository unitRepository,
-                               StudentProfileRepository studentProfileRepository) {
+                               StudentProfileRepository studentProfileRepository,
+                               SubmissionRepository submissionRepository) {
         this.announcementRepository = announcementRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.curriculumRepository = curriculumRepository;
@@ -36,6 +38,7 @@ public class AnnouncementService {
         this.userRepository = userRepository;
         this.unitRepository = unitRepository;
         this.studentProfileRepository = studentProfileRepository;
+        this.submissionRepository = submissionRepository;
     }
 
     @Transactional
@@ -56,15 +59,20 @@ public class AnnouncementService {
         announcement.setDeadline(deadline);
         Announcement saved = announcementRepository.save(announcement);
 
-        if (type == AnnouncementType.ASSIGNMENT && deadline != null) {
-            unit.setSubmissionDeadline(deadline);
-            unitRepository.save(unit);
+        if (type == AnnouncementType.ASSIGNMENT) {
+            refreshUnitDeadline(unit, null);
         }
 
         // Notify enrolled students
-        String noticeText = (type == AnnouncementType.ASSIGNMENT) ?
-                "New assignment in [" + unit.getUnitName() + "]: " + title + " (Deadline: " + deadline + ")" :
-                "New announcement in [" + unit.getUnitName() + "]: " + title;
+        String noticeText;
+        if (type == AnnouncementType.ASSIGNMENT) {
+            String deadlineText = deadline != null
+                    ? " (Due: " + deadline.format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm")) + ")"
+                    : "";
+            noticeText = "New assignment in [" + unit.getUnitName() + "]: " + title + deadlineText;
+        } else {
+            noticeText = "New announcement in [" + unit.getUnitName() + "]: " + title;
+        }
         Set<Long> notifiedUserIds = new HashSet<>();
         for (Curriculum curriculum : curricula) {
             // A. Explicit enrollments
@@ -109,28 +117,40 @@ public class AnnouncementService {
 
     public List<Announcement> getAnnouncementsForStudent(Long userId) {
         User user = userRepository.findById(userId).orElse(null);
-        if (user == null || user.getStudentProfile() == null) {
+        if (user == null) {
             return List.of();
         }
 
         List<Long> unitIds = new ArrayList<>();
 
-        // 1. Get units from explicit enrollments
-        List<Enrollment> enrollments = enrollmentRepository.findByStudentId(user.getStudentProfile().getId());
-        for (Enrollment e : enrollments) {
-            if ("ENROLLED".equalsIgnoreCase(e.getStatus()) && e.getCurriculum() != null && e.getCurriculum().getUnit() != null) {
-                unitIds.add(e.getCurriculum().getUnit().getId());
+        if (user.getStudentProfile() != null) {
+            // 1. Units from explicit enrollments
+            List<Enrollment> enrollments = enrollmentRepository.findByStudentId(user.getStudentProfile().getId());
+            for (Enrollment e : enrollments) {
+                if ("ENROLLED".equalsIgnoreCase(e.getStatus()) && e.getCurriculum() != null && e.getCurriculum().getUnit() != null) {
+                    unitIds.add(e.getCurriculum().getUnit().getId());
+                }
+            }
+
+            // 2. Units from academic programme curriculum
+            if (user.getStudentProfile().getProgramme() != null) {
+                Long progId = user.getStudentProfile().getProgramme().getId();
+                List<Curriculum> curricula = curriculumRepository.findByProgrammeId(progId);
+                for (Curriculum c : curricula) {
+                    if (c.getUnit() != null) {
+                        unitIds.add(c.getUnit().getId());
+                    }
+                }
             }
         }
 
-        // 2. Get units from academic programme curriculum
-        if (user.getStudentProfile().getProgramme() != null) {
-            Long progId = user.getStudentProfile().getProgramme().getId();
-            List<Curriculum> curricula = curriculumRepository.findByProgrammeId(progId);
-            for (Curriculum c : curricula) {
-                if (c.getUnit() != null) {
-                    unitIds.add(c.getUnit().getId());
-                }
+        // 3. Units the student has actually submitted work to — covers students
+        //    without an enrollment row or programme mapping (previously these
+        //    students saw an empty announcements page even though they were
+        //    being notified about the unit's assignments).
+        for (Submission s : submissionRepository.findByStudent(user)) {
+            if (s.getCurriculum() != null && s.getCurriculum().getUnit() != null) {
+                unitIds.add(s.getCurriculum().getUnit().getId());
             }
         }
 
@@ -160,14 +180,35 @@ public class AnnouncementService {
             throw new IllegalArgumentException("You are not authorized to delete this announcement.");
         }
 
-        if (announcement.getType() == AnnouncementType.ASSIGNMENT) {
-            Unit unit = announcement.getUnit();
-            if (unit != null) {
-                unit.setSubmissionDeadline(null);
-                unitRepository.save(unit);
-            }
-        }
+        Unit unit = announcement.getType() == AnnouncementType.ASSIGNMENT ? announcement.getUnit() : null;
 
         announcementRepository.delete(announcement);
+
+        if (unit != null) {
+            refreshUnitDeadline(unit, announcementId);
+        }
+    }
+
+    /**
+     * Recomputes {@code unit.submissionDeadline} as the nearest FUTURE deadline
+     * among the unit's remaining ASSIGNMENT announcements. Multiple assignments
+     * on one unit no longer clobber each other's deadline, and deleting one
+     * assignment falls back to the next-nearest instead of wiping the field.
+     *
+     * @param excludeAnnouncementId announcement being deleted in this
+     *                              transaction (still visible to queries), or null
+     */
+    private void refreshUnitDeadline(Unit unit, Long excludeAnnouncementId) {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        java.time.LocalDateTime nearest = announcementRepository
+                .findByUnitIdOrderByCreatedAtDesc(unit.getId()).stream()
+                .filter(a -> a.getType() == AnnouncementType.ASSIGNMENT)
+                .filter(a -> excludeAnnouncementId == null || !a.getId().equals(excludeAnnouncementId))
+                .map(Announcement::getDeadline)
+                .filter(d -> d != null && d.isAfter(now))
+                .min(java.time.LocalDateTime::compareTo)
+                .orElse(null);
+        unit.setSubmissionDeadline(nearest);
+        unitRepository.save(unit);
     }
 }

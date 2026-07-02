@@ -204,7 +204,9 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- Similar projects / collaboration discovery                            -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
-    <div th:fragment="similarProjectsPanel(similarSubmissions, requestStatusesBySubmissionId)">
+    <!-- readOnly=true renders a discovery-only view (no collaborate actions) —
+         used on the lecturer review page to surface overlapping submissions.   -->
+    <div th:fragment="similarProjectsPanel(similarSubmissions, requestStatusesBySubmissionId, readOnly)">
 
         <div th:if="${#lists.isEmpty(similarSubmissions)}" class="empty-state text-sm ai-empty">
             No similar work found yet. Recommendations improve as more projects are analysed.
@@ -212,7 +214,7 @@
 
         <div th:if="${not #lists.isEmpty(similarSubmissions)}" class="recommendation-list">
             <div th:each="sim : ${similarSubmissions}" class="recommendation-card"
-                 th:with="reqStatus=${requestStatusesBySubmissionId[sim.submission.id]}">
+                 th:with="reqStatus=${requestStatusesBySubmissionId != null ? requestStatusesBySubmissionId[sim.submission.id] : null}">
 
                 <!-- Title + match -->
                 <div class="recommendation-head">
@@ -221,31 +223,79 @@
                            th:text="${sim.submission.title}">Title</a>
                         <div class="text-xs text-muted mt-2" th:text="${sim.submission.unit.unitName}">Unit</div>
                     </div>
-                    <div class="match-score">
-                        <span class="text-sm fw-600"
-                              th:text="${#numbers.formatDecimal(sim.scoreNormalized * 100, 1, 0)} + '%'">0%</span>
-                        <span class="chip" th:text="${sim.matchLabel}">Label</span>
-                    </div>
+                    <span class="match-pill"
+                          th:classappend="${sim.matchLabel == 'Strong match'} ? 'match-pill-strong' : (${sim.matchLabel == 'Related work'} ? 'match-pill-related' : 'match-pill-weak')">
+                        <span th:text="${#numbers.formatDecimal(sim.scoreNormalized * 100, 1, 0)} + '%'">0%</span>
+                        <span th:text="${sim.matchLabel}">Label</span>
+                    </span>
+                </div>
+
+                <!-- Computed reason -->
+                <div class="match-reason" th:if="${sim.reason != null}">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path d="M8 1.5a5.5 5.5 0 0 0-3.09 10.05c.34.24.59.62.59 1.05v.4h5v-.4c0-.43.25-.81.59-1.05A5.5 5.5 0 0 0 8 1.5zM6 14.5A1.5 1.5 0 0 0 7.5 16h1a1.5 1.5 0 0 0 1.5-1.5v-.5h-4v.5z"/>
+                    </svg>
+                    <span th:text="${sim.reason}">Reason</span>
                 </div>
 
                 <!-- Summary -->
                 <p class="text-sm mt-2 recommendation-summary" th:if="${sim.submission.aiInsight != null}"
                    th:text="${sim.submission.aiInsight.summary}">Summary</p>
 
-                <!-- Shared topics (mutual interest) -->
-                <div th:if="${not #lists.isEmpty(sim.sharedKeywords)}" class="mt-2">
-                    <div class="text-xs text-subtle mb-2">Shared topics</div>
+                <!-- Shared structured tags + free-text topics -->
+                <div th:if="${not #lists.isEmpty(sim.sharedTechnologies) or not #lists.isEmpty(sim.sharedResearchAreas) or not #lists.isEmpty(sim.sharedKeywords)}" class="mt-2">
                     <div class="topic-list">
-                        <span th:each="kw : ${sim.sharedKeywords}" class="chip chip-match" th:text="${kw}">topic</span>
+                        <span th:each="area : ${sim.sharedResearchAreas}" class="chip chip-gold" th:text="${area}">area</span>
+                        <span th:each="tech : ${sim.sharedTechnologies}" class="chip chip-match" th:text="${tech}">tech</span>
+                        <span th:each="kw : ${sim.sharedKeywords}" class="chip" th:text="${kw}">topic</span>
                     </div>
                 </div>
+
+                <!-- Why this match — transparent per-signal breakdown -->
+                <details class="match-breakdown">
+                    <summary>Why this match</summary>
+                    <div class="match-breakdown-body">
+                        <div class="signal-row">
+                            <span class="signal-label">Research areas</span>
+                            <span class="signal-track"><span class="signal-fill is-gold" th:style="'width:' + ${sim.researchAreaScore * 100} + '%'"></span></span>
+                            <span class="signal-value" th:text="${#numbers.formatDecimal(sim.researchAreaScore * 100, 1, 0)} + '%'">0%</span>
+                        </div>
+                        <div class="signal-row">
+                            <span class="signal-label">Technologies</span>
+                            <span class="signal-track"><span class="signal-fill is-gold" th:style="'width:' + ${sim.technologyScore * 100} + '%'"></span></span>
+                            <span class="signal-value" th:text="${#numbers.formatDecimal(sim.technologyScore * 100, 1, 0)} + '%'">0%</span>
+                        </div>
+                        <div class="signal-row">
+                            <span class="signal-label">Keywords</span>
+                            <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.keywordScore * 100} + '%'"></span></span>
+                            <span class="signal-value" th:text="${#numbers.formatDecimal(sim.keywordScore * 100, 1, 0)} + '%'">0%</span>
+                        </div>
+                        <div class="signal-row">
+                            <span class="signal-label">Title similarity</span>
+                            <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.titleScore * 100} + '%'"></span></span>
+                            <span class="signal-value" th:text="${#numbers.formatDecimal(sim.titleScore * 100, 1, 0)} + '%'">0%</span>
+                        </div>
+                        <div class="signal-row">
+                            <span class="signal-label">Semantic (AI)</span>
+                            <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.semanticScore * 100} + '%'"></span></span>
+                            <span class="signal-value" th:text="${#numbers.formatDecimal(sim.semanticScore * 100, 1, 0)} + '%'">0%</span>
+                        </div>
+                        <div class="signal-row">
+                            <span class="signal-label">Same unit</span>
+                            <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.unitScore * 100} + '%'"></span></span>
+                            <span class="signal-value" th:text="${sim.sameUnit} ? 'Yes' : (${sim.unitScore > 0} ? 'Dept' : 'No')">No</span>
+                        </div>
+                        <p class="signal-note">Weighted blend of all six signals — configurable in application.yml.</p>
+                    </div>
+                </details>
 
                 <!-- Owner -->
                 <div class="flex items-center gap-2 mt-4">
                     <span class="avatar" th:text="${#strings.substring(sim.submission.student.name, 0, 1)}">J</span>
                     <div>
                         <div class="text-sm fw-600" th:text="${sim.submission.student.name}">Name</div>
-                        <div class="text-xs text-subtle" th:text="${sim.submission.student.studentId}">ID</div>
+                        <div class="text-xs text-subtle"
+                             th:text="${sim.submission.student.studentProfile != null ? sim.submission.student.studentProfile.admissionNumber : sim.submission.student.username}">ID</div>
                     </div>
                 </div>
 
@@ -253,7 +303,7 @@
                 <div class="flex flex-wrap gap-2 items-center mt-4">
                     <a th:href="@{'/projects/' + ${sim.submission.id}}" class="btn btn-secondary btn-sm">View project</a>
 
-                    <form th:if="${reqStatus == null}" th:action="@{/student/collaboration-requests}"
+                    <form th:if="${!readOnly and reqStatus == null}" th:action="@{/student/collaboration-requests}"
                           method="post" class="inline-form">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                         <input type="hidden" name="submissionId" th:value="${sim.submission.id}">
@@ -262,16 +312,44 @@
                         <button type="submit" class="btn btn-accent btn-sm">Request to collaborate</button>
                     </form>
 
-                    <span th:if="${reqStatus != null}" class="badge"
+                    <span th:if="${!readOnly and reqStatus != null}" class="badge"
                           th:classappend="${reqStatus.name() == 'PENDING'} ? ' badge-review' : (${reqStatus.name() == 'ACCEPTED'} ? ' badge-approved' : ' badge-rejected')"
                           th:text="${'Request ' + #strings.toLowerCase(reqStatus.name())}">request</span>
 
                     <a th:if="${sim.submission.status.name() == 'APPROVED' and not #lists.isEmpty(sim.submission.versions)}"
                        th:href="@{'/files/' + ${sim.submission.versions[sim.submission.versions.size() - 1].filePath}}"
                        class="btn btn-secondary btn-sm" target="_blank">Download</a>
-                    <span th:if="${sim.submission.status.name() != 'APPROVED'}" class="text-xs text-subtle">
+                    <span th:if="${!readOnly and sim.submission.status.name() != 'APPROVED'}" class="text-xs text-subtle">
                         Files unlock after approval
                     </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- Lecturer recommendations (Phase 5 — pure aggregation, no LLM)         -->
+    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <div th:fragment="lecturerMatchesPanel(lecturerMatches)">
+
+        <div th:if="${#lists.isEmpty(lecturerMatches)}" class="empty-state empty-state-compact text-sm">
+            No reviewer suggestions yet — matches appear once lecturers have
+            reviewed projects that share your technologies or research areas.
+        </div>
+
+        <div th:if="${not #lists.isEmpty(lecturerMatches)}" class="lecturer-match-list">
+            <div th:each="lm : ${lecturerMatches}" class="lecturer-match">
+                <span class="avatar" th:text="${#strings.substring(lm.lecturer.name, 0, 1)}">L</span>
+                <div class="lecturer-match-main">
+                    <div class="lecturer-match-name" th:text="${lm.lecturer.name}">Lecturer</div>
+                    <div class="lecturer-match-meta">
+                        <span th:text="${lm.reviewedCount} + (${lm.reviewedCount == 1} ? ' project reviewed' : ' projects reviewed')">0 projects reviewed</span>
+                        <span th:if="${lm.sameDepartment}"> · your department</span>
+                    </div>
+                    <div class="lecturer-match-tags">
+                        <span th:each="area : ${lm.sharedResearchAreas}" class="chip chip-gold" th:text="${area}">area</span>
+                        <span th:each="tech : ${lm.sharedTechnologies}" class="chip chip-match" th:text="${tech}">tech</span>
+                    </div>
                 </div>
             </div>
         </div>

@@ -2,6 +2,7 @@ package com.unisubmit.service;
 
 import com.unisubmit.domain.Role;
 import com.unisubmit.domain.Submission;
+import com.unisubmit.domain.SubmissionStatus;
 import com.unisubmit.domain.User;
 import com.unisubmit.domain.TeachingAssignment;
 import com.unisubmit.repository.CollaborationRepository;
@@ -58,5 +59,30 @@ public class SubmissionAccessService {
         }
 
         return collaborationRepository.existsByUserAndSubmission(user, submission);
+    }
+
+    /**
+     * Whether a user may *discover* a submission — i.e. see its title, summary,
+     * keywords and owner in similarity/recommendation results and on the shared
+     * project page. Weaker than file access: discovery is the collaboration
+     * feature's whole point, but private drafts must never leak into another
+     * student's recommendations.
+     */
+    public boolean canDiscoverSubmission(User user, Submission submission) {
+        if (user == null || submission == null) {
+            return false;
+        }
+
+        // Owner / group members / staff / collaborators can always see it
+        if (canAccessSubmissionFile(user, submission)) {
+            return true;
+        }
+        if (user.getRole() == Role.LECTURER) {
+            return true;
+        }
+
+        // Peers can only discover work that has actually been put forward
+        SubmissionStatus status = submission.getStatus();
+        return status != SubmissionStatus.DRAFT;
     }
 }

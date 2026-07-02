@@ -56,15 +56,29 @@ public class SecurityConfig {
     }
 
     /**
-     * Surfaces a suspension reason to the login page. A {@link LockedException}
-     * (thrown for suspended accounts) redirects to /login?suspended and stashes
-     * the reason in the session; all other failures use the generic error.
+     * Routes authentication failures to the right login-page message.
+     * <p>
+     * Exceptions thrown inside {@code CustomUserDetailsService} arrive wrapped
+     * in an {@link org.springframework.security.authentication.InternalAuthenticationServiceException},
+     * so the real cause is unwrapped first. A {@link LockedException} (suspended
+     * account) redirects to /login?suspended with the reason in the session; a
+     * {@link TooManyLoginAttemptsException} (brute-force throttle — see
+     * {@link LoginAttemptService}: 5 failures per username+IP locks the pair for
+     * 15 minutes) redirects to /login?locked; everything else is the generic error.
      */
     @Bean
     public AuthenticationFailureHandler authenticationFailureHandler() {
         return (request, response, exception) -> {
-            if (exception instanceof LockedException) {
-                request.getSession().setAttribute("suspendedReason", exception.getMessage());
+            Throwable cause = exception;
+            if (exception instanceof org.springframework.security.authentication.InternalAuthenticationServiceException
+                    && exception.getCause() != null) {
+                cause = exception.getCause();
+            }
+            if (cause instanceof TooManyLoginAttemptsException) {
+                request.getSession().setAttribute("lockoutMessage", cause.getMessage());
+                response.sendRedirect(request.getContextPath() + "/login?locked");
+            } else if (cause instanceof LockedException) {
+                request.getSession().setAttribute("suspendedReason", cause.getMessage());
                 response.sendRedirect(request.getContextPath() + "/login?suspended");
             } else {
                 response.sendRedirect(request.getContextPath() + "/login?error");

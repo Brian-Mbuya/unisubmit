@@ -1,357 +1,376 @@
 # UniSubmit — Feasible Roadmap (Solo-Buildable Edition)
 
+> Status as of **2 July 2026**: Phases 1–4 complete. Phase 5 ~90% complete (backend done,
+> compiled clean; UI built but not browser-verified). Phase 5.5 (fix backlog) and Phase 6
+> are next. Phase 7 is the stretch goal that makes the final report strong.
+
 This roadmap keeps only what one student, working alone on the current Spring Boot
-codebase, can realistically build and demo. Each phase is self-contained: it has its
-own goal, concrete features, UI/UX notes, security notes, and a ready-to-paste prompt
-so you can start a fresh chat per phase without re-explaining context every time.
-
-Paste the "Starter prompt" at the top of a new conversation along with the current
-`unisubmit-main` zip, and the phase's content as the task brief.
+codebase, can realistically build and demo. Each phase is self-contained: goal, tasks,
+and a ready-to-paste starter prompt — so any AI model or agent can pick up a phase in a
+fresh chat with zero prior conversation context. **Always paste the "Current State
+Snapshot" section below together with the phase's starter prompt.**
 
 ---
 
-## Phase 1 — Academic Foundation
+## Current State Snapshot (paste this with any starter prompt)
 
-**Goal:** Turn the current flat user/unit/submission model into a real university
-hierarchy, without touching AI.
-
-### Features
-- `School`, `Department`, `Programme` entities above the existing `Unit`
-- Academic Year / Semester entities, with units offered per semester
-- Group projects: a `ProjectGroup` entity with a leader + members, instead of
-  one student per submission
-- Multiple supervisors per project (many-to-many `Submission` ↔ `User` with role LECTURER)
-- Project lifecycle status: `PROPOSAL → UNDER_REVIEW → FINAL → ARCHIVED`
-  (extends your existing `SubmissionStatus` enum)
-- Basic in-app notifications table (new feedback, status change, deadline)
-
-### UI/UX improvements
-- Add a breadcrumb (School → Department → Programme → Unit) on submission detail pages
-  so users always know where they are in the hierarchy
-- Replace the flat "Units" dropdown in `new-submission.html` with a cascading
-  School → Department → Unit selector to prevent wrong-unit submissions
-- Add a notification bell icon in `layout.html` header with unread count badge
-- Status pill colors on dashboards (grey=proposal, amber=review, green=final, slate=archived)
-  for instant visual scanning
-
-### Security improvements
-- Add `@PreAuthorize` method-level checks on group membership changes (only the group
-  leader or an admin should be able to add/remove members)
-- Validate that a lecturer assigned as supervisor actually belongs to the unit's
-  department before allowing assignment (currently nothing stops cross-department
-  assignment)
-
-### Starter prompt
 ```
-I'm working on UniSubmit, a Spring Boot academic submission platform (attached zip).
-Implement Phase 1 of my roadmap: Academic Foundation.
+UniSubmit is a Spring Boot 4 / Java 17 / Thymeleaf / PostgreSQL academic submission
+platform at C:\Users\BOM\Downloads\unisubmit-main\unisubmit-main (a git repo, branch main).
 
-Add: School, Department, Programme entities above the existing Unit entity;
-Academic Year and Semester entities; group project support (ProjectGroup with a
-leader and members); multiple supervisors per submission; and a project lifecycle
-status field. Use JPA entities consistent with the existing domain package style
-(see Submission.java, Unit.java for conventions). Generate Flyway/SQL migration
-files consistent with railway-collaboration.sql. Keep changes additive — don't
-break existing Submission/Unit relationships.
+TECH: Spring Boot 4.0.5, Spring Security, Spring Data JPA, Thymeleaf 3.1, Lombok,
+Flyway (V2–V16 in src/main/resources/db/migration), PostgreSQL + pgvector in prod,
+H2 file DB via the `local` profile (Flyway OFF, ddl-auto: update — run with
+`mvnw spring-boot:run -Dspring-boot.run.profiles=local`; seeds accounts
+admin / L001 / S001, all password123). Compile check: `mvnw -q compile -DskipTests`
+(on Windows use mvnw.cmd; the bash ./mvnw wrapper script is broken on this machine).
 
-After the backend changes, update new-submission.html to use a cascading
-School -> Department -> Unit selector, and add a notification bell with unread
-count to layout.html.
-```
+DOMAIN (src/main/java/com/unisubmit/domain): User (STUDENT/LECTURER/ADMIN) with
+StudentProfile/LecturerProfile, hierarchy Faculty→Department→Programme→Unit→Curriculum,
+AcademicYear/Semester, TeachingAssignment (lecturer↔curriculum), Enrollment,
+Submission (student, curriculum, projectGroup, supervisors, status enum
+DRAFT/SUBMITTED/UNDER_REVIEW/APPROVED/REJECTED/PROPOSAL/FINAL/ARCHIVED,
+float[] embedding via VectorConverter, ManyToMany tag sets: technologies,
+researchAreas, frameworks, databases, programmingLanguages, skills),
+SubmissionVersion (+Feedback with optional grade), AIInsight (summary, keywords,
+objectives, problemStatement, status PENDING/PROCESSING/COMPLETED/FAILED),
+SubmissionSimilarity (score + per-signal breakdown columns + matched keyword/tech/area
+element collections), SubmissionRelation (INSPIRED_BY/EXTENDS/RELATED), AuditLog
+(append-only), Announcement (ANNOUNCEMENT/ASSIGNMENT + deadline), AppNotification,
+Collaboration/CollaborationRequest, ProjectGroup, Reference (GROBID citations),
+lookup entities Technology/ResearchArea/Framework/Database/ProgrammingLanguage/Skill.
 
----
+AI PIPELINE (service/AIInsightProcessingService): Tika text extraction → optional
+GROBID structured parsing (GROBID_ENABLED, http://localhost:8070) → LLM call to an
+OpenAI-compatible endpoint (OPENAI_API_KEY / OPENAI_BASE_URL, default OpenRouter,
+model default openai/gpt-4o-mini) returning strict JSON {summary, keywords, objectives,
+technologies, researchAreas, problemStatement} → maps technologies/researchAreas onto
+lookup tables (find-or-create, case-insensitive) → optional SPECTER2 embedding via a
+Flask sidecar (specter-service/, SPECTER_ENABLED, http://localhost:5001, model
+allenai/specter2_base) stored on Submission.embedding → triggers
+RecommendationService.precomputeForSubmission().
 
-## Phase 2 — Knowledge Model
+RECOMMENDATION ENGINE (Phase 5, service/RecommendationService): blends SIX signals —
+keyword overlap, title Jaccard, unit/department proximity, embedding cosine similarity,
+structured Technology tag Jaccard, structured ResearchArea tag Jaccard — weights
+configurable under unisubmit.recommendation.weight.* in application.yml
+(config/RecommendationWeights.java), final score normalised by weight sum. Per-signal
+breakdown persisted on SubmissionSimilarity (V16 migration). Read side
+findSimilarSubmissions(submission, viewer) re-checks visibility per viewer.
+service/LecturerRecommendationService recommends reviewers by aggregating each
+lecturer's Feedback history tags vs the current submission (no LLM). Access rules in
+service/SubmissionAccessService: canAccessSubmissionFile (strict) and
+canDiscoverSubmission (discovery level — peers may see non-DRAFT work only).
 
-**Goal:** Design (and persist) the vocabulary the rest of the system will reuse —
-no AI, just schema.
+UI: server-rendered Thymeleaf; design system in static/css/base.css ("Scholarly Dark":
+ink charcoal surfaces, laurel green primary --primary/--brand, brass gold accent
+--gold, Inter body + Fraunces display headings, mortarboard logo). Shared fragments in
+templates/fragments/components.html: statusBadge, feedbackTimeline, aiInsightPanel,
+similarProjectsPanel (with expandable per-signal "why this match" breakdown),
+lecturerMatchesPanel. Key pages: student/dashboard, student/submission-detail (AI
+insights + similar work + suggested reviewers + tags), student/announcements,
+lecturer/dashboard, lecturer/review-split, lecturer/announcements, admin/* console,
+notifications, login/register. Small dependency-free JS in static/js/app.js
+(nav, AI status polling of /api/ai-insights/{id}, filters).
 
-### Features
-- New lookup entities: `Technology`, `Framework`, `Database`, `ProgrammingLanguage`,
-  `ResearchArea`, `Skill`
-- Many-to-many join tables: `Submission ↔ Technology`, `Submission ↔ ResearchArea`, etc.
-- A `Reference`/citation entity for bibliography entries extracted later in Phase 3
-- Seed data script for common technologies/research areas so the system isn't empty
-  on first run
-
-### UI/UX improvements
-- Tag-style chips (not free-text) for technologies/research areas on the submission
-  detail page — read-only chips for students, editable chips for the lecturer/admin
-  who verifies them
-- An admin screen to manage the lookup tables (add/merge duplicate technology names —
-  e.g. "Spring" vs "Spring Boot" vs "SpringBoot")
-
-### Security improvements
-- Restrict lookup-table CRUD (`/admin/technologies`, etc.) to `ROLE_ADMIN` only;
-  don't let lecturers silently create duplicate/junk tag values
-- Add basic input sanitization on free-text tag creation to prevent stored XSS in
-  tag names rendered back into Thymeleaf templates
-
-### Starter prompt
-```
-Continuing UniSubmit (attached zip, Phase 1 already applied if done). Implement
-Phase 2: Knowledge Model.
-
-Add lookup entities: Technology, Framework, Database, ProgrammingLanguage,
-ResearchArea, Skill, and a Reference entity for citations. Create many-to-many
-join tables between Submission and each lookup entity. Write a SQL seed script
-with ~30 common technologies and ~15 research areas relevant to a Kenyan
-university CS/IT department.
-
-Add an admin-only CRUD screen for managing these lookup tables (merge/rename
-duplicates), restricted to ROLE_ADMIN via SecurityConfig. Update
-submission-detail.html to show technologies/research areas as read-only chips
-for students and editable chips for lecturers/admins.
+RULES FOR EVERY CHANGE: never break existing flows; new entity fields nullable or
+defaulted; ship a Flyway migration (V17+) for every schema change AND remember the
+local H2 profile applies schema via ddl-auto instead; match existing Lombok/JPA/
+Thymeleaf patterns; finish by running `mvnw.cmd -q compile -DskipTests` (zero errors).
 ```
 
 ---
 
-## Phase 3 — Academic Intelligence Engine (LLM enters here, narrowly)
+## Phase 1 — Academic Foundation — ✅ DONE
 
-**Goal:** Replace the broken frequency-based "AI summary" with one real, scoped LLM
-call that fills in the Knowledge Model from Phase 2.
+Shipped: Faculty/Department/Programme/Unit/Curriculum hierarchy, AcademicYear/Semester,
+ProjectGroup with leader+members, multiple supervisors per submission, extended
+lifecycle statuses, AppNotification table + bell with unread badge, cascading
+hierarchy selector on new-submission, breadcrumbs on detail pages.
 
-### Features
-- Add `spring-ai-starter-model-anthropic`, wire `ANTHROPIC_API_KEY`
-- One structured-output prompt per submission: input = extracted text (Tika, already
-  in place), output = JSON `{summary, keywords[], objectives[], technologies[],
-  researchAreas[], problemStatement}`
-- Map the structured JSON onto the Phase 2 lookup tables instead of free text
-  (e.g. match "Spring Boot" string to existing `Technology` row, create if missing)
-- Trim front-matter (first ~300–500 words: cover page, dedication, declaration) before
-  sending text to the model — this is the actual fix for the Genesis/Pharaoh bug
-- Keep the existing `AIInsightStatus` (PENDING/PROCESSING/COMPLETED/FAILED) flow as-is
+## Phase 2 — Knowledge Model — ✅ DONE
 
-### UI/UX improvements
-- Show a loading skeleton (not just "PROCESSING" text) while the AI insight runs,
-  since LLM calls take a few seconds longer than the old keyword-count method
-- Add a "Re-analyze" button visible to admins only, for when extraction fails or a
-  new file version is uploaded
-- Surface the structured fields (objectives, problem statement) as labeled sections
-  on the submission detail page instead of one undifferentiated summary blob
+Shipped: Technology/ResearchArea/Framework/Database/ProgrammingLanguage/Skill lookup
+entities with ManyToMany joins to Submission, Reference entity for citations, seed data
+(migrations V9–V11 + CommandLineRunner seeder), admin tag-management console
+(admin/tags.html), chip display on submission detail.
 
-### Security improvements
-- Never send the raw file path or any user PII in the LLM prompt — only the
-  extracted document text
-- Set a hard spend cap in the Anthropic console and log token usage per request so
-  one large/malicious upload can't run up unexpected cost
-- Validate/limit uploaded file size and MIME type before it ever reaches Tika or the
-  LLM call (currently `FileStorageService` has no size or type restriction at all —
-  this is a real gap today, not just an AI concern)
+## Phase 3 — Academic Intelligence Engine — ✅ DONE (implementation differs from plan)
 
-### Starter prompt
+Shipped: real LLM structured-output analysis replacing keyword-frequency "AI". Note the
+deviations from the original plan: uses an **OpenAI-compatible client (OpenRouter)**
+instead of spring-ai-anthropic; adds **GROBID** structured PDF parsing (front-matter
+problem solved properly — introduction/methodology/conclusion sections are extracted,
+with 400-word trim as Tika fallback); adds **SPECTER2 embeddings + pgvector** (V14).
+File size (25MB) + MIME/extension allowlist validation exists in FileStorageService.
+Loading skeleton + retry button exist. Structured fields (objectives, problem statement)
+shown as tabbed sections.
+
+## Phase 4 — Academic Memory — ✅ DONE
+
+Shipped: typed AIInsight fields (objectives, problemStatement), SubmissionRelation
+lineage links with staff-only management UI, append-only AuditLog (V15) with vertical
+timeline on project-detail, "Related projects" section kept distinct from automatic
+"Similar work".
+
+---
+
+## Phase 5 — Recommendation Engine — 🔨 ~90% DONE
+
+**Already shipped (do not redo):**
+- Six-signal weighted scoring with structured Technology/ResearchArea Jaccard overlap.
+- Weights moved to `application.yml` (`unisubmit.recommendation.weight.*`), score
+  normalised by weight total (`RecommendationWeights.totalWeight()`).
+- Per-signal breakdown + matched tech/area lists persisted on SubmissionSimilarity
+  (migration `V16__recommendation_breakdown.sql`).
+- Lecturer matching: `LecturerRecommendationService` + `dto/LecturerMatch` — aggregates
+  Feedback history (`FeedbackRepository.findAllWithReviewedSubmissions()`), scores
+  shared tags (research areas weighted 1.5×), review-volume tie-breaker, same-department
+  bonus, top 3.
+- Access control: `SubmissionAccessService.canDiscoverSubmission()` applied in
+  precompute (candidate pool) AND at read time (viewer-aware), plus a discovery check
+  added to `ProjectController.viewProjectDetail` (drafts no longer leak to peers).
+- UI: expandable "Why this match" per-signal bar breakdown + match-reason line in
+  `similarProjectsPanel`; "Suggested reviewers" widget on student/submission-detail.html
+  via `lecturerMatchesPanel` fragment.
+- Bug fixes shipped alongside: student dashboard crashed whenever a unit had a deadline
+  (`#temporals.between` doesn't exist in Thymeleaf — replaced with
+  `Unit.getDaysToDeadline()` transient); lecturer announcements badge class typo;
+  "Deadline: null" in notification text; empty-state for lecturers with no teaching
+  units; student assignments count now counts only open assignments.
+- Theme refresh: Fraunces display font, brass/gold accent tokens, collegiate logo mark +
+  favicon, page-head brass rule, refined tokens (all in base.css; fonts linked in
+  layout.html and admin/layout.html).
+
+**Remaining to finish Phase 5:**
+
+1. **Browser-verify the new UI** (never visually checked). Run the app with the local
+   profile, log in as S001, open a submission with computed similarities: check the
+   "Why this match" expand/collapse, signal bars at sensible widths, lecturer widget,
+   chips (gold = research areas, green = technologies), dark-theme contrast, and mobile
+   at 375px. Fix whatever looks wrong in base.css / components.html.
+2. **Lecturer-side transparency**: lecturer/review-split.html shows no recommendation
+   info. Add the same similar-work + breakdown panel (read-only) so lecturers can spot
+   overlapping submissions during review — reuse `similarProjectsPanel`.
+3. **Precompute freshness**: recommendations only recompute when AI analysis runs.
+   Tag edits by lecturers (`LecturerController.updateTags`) change the structured
+   overlap but do NOT trigger `recommendationService.precomputeForSubmission()` — wire
+   that call into `KnowledgeTagService.updateSubmissionTags`.
+
+### Starter prompt (Phase 5 remainder)
 ```
-Continuing UniSubmit (attached zip). Implement Phase 3: Academic Intelligence Engine.
-
-Replace the keyword-frequency logic in AIInsightProcessingService.java with a real
-LLM call using spring-ai-starter-model-anthropic (model: claude-haiku-4-5). The
-prompt should request strict JSON output: summary, keywords[], objectives[],
-technologies[], researchAreas[], problemStatement. Trim the first 400 words of
-extracted text before sending (skip cover pages/dedications). Map the returned
-technologies/researchAreas arrays onto the Technology/ResearchArea lookup tables
-from Phase 2 (match existing rows case-insensitively, create new ones if not found).
-
-Also: add file size limit (e.g. 25MB) and MIME-type allowlist (pdf, docx) validation
-in FileStorageService.storeFile before any Tika/LLM processing happens — this
-doesn't currently exist and is a real gap. Update submission-detail.html to show
-a loading skeleton during PROCESSING status and labeled sections for the
-structured fields instead of one summary paragraph.
+[Paste Current State Snapshot first.]
+Finish Phase 5 of UniSubmit. Three tasks:
+(1) Wire recommendationService.precomputeForSubmission() into
+KnowledgeTagService.updateSubmissionTags so lecturer tag edits refresh similarity scores.
+(2) Add the existing similarProjectsPanel fragment (read-only, no collaborate buttons —
+add a boolean fragment param) to lecturer/review-split.html so lecturers see overlapping
+work with the "why this match" breakdown; pass similar submissions from
+LecturerController.viewSubmission using recommendationService.findSimilarSubmissions(
+submission, lecturerUser).
+(3) Run the app with the local profile and visually verify the Phase 5 UI on
+student/submission-detail (breakdown bars, suggested reviewers widget, chips, mobile
+375px), fixing any CSS/template issues found. Compile must pass.
 ```
 
 ---
 
-## Phase 4 — Academic Memory (lightweight version)
+## Phase 5.5 — Fix & Refinement Backlog (from code review, 2 Jul 2026)
 
-**Goal:** Store "Project DNA" as real structured data so later phases (analytics,
-search, recommendations) can query it — without building a vector database or
-knowledge graph engine.
+Ordered by severity. Each item is independent; do them in one sitting or cherry-pick.
 
-### Features
-- Persist the Phase 3 structured output permanently on `AIInsight` (already mostly
-  there — extend with the new typed fields instead of just `summary`/`keywords`)
-- A simple `SubmissionRelation` entity for manually or AI-suggested links
-  ("inspired by", "extends") between two submissions — this gets you "research
-  genealogy" in Phase 7-equivalent form without a graph database
-- An audit/history table that logs status changes, feedback, and file uploads per
-  submission (you likely have most of the raw data already via timestamps —
-  this just centralizes it into one queryable timeline)
+### A. Security / correctness (do first)
 
-### UI/UX improvements
-- A simple visual timeline component on the project detail page (vertical list:
-  created → version 2 uploaded → feedback received → status changed) — this is a
-  Thymeleaf + CSS component, no charting library needed
-- A "Related projects" section using the `SubmissionRelation` table, separate from
-  the keyword-based "Similar work" section, so manual curation and automatic
-  similarity don't get confused in the UI
+1. **Insight API has no access control** — `AIInsightApiController`
+   (`/api/ai-insights/{id}` GET and `/retry` POST) lets ANY authenticated user read any
+   submission's summary/keywords/error and re-trigger analysis by iterating IDs.
+   Fix: inject `SubmissionAccessService`, load the insight's submission, require
+   `canDiscoverSubmission(currentUser, submission)` for GET and
+   `canAccessSubmissionFile` for retry; return 404 (not 403) on failure to avoid ID
+   probing. Current user comes from `@AuthenticationPrincipal CustomUserDetails`.
 
-### Security improvements
-- Audit log entries should be append-only at the application layer (no update/delete
-  endpoint exposed, even to admins) so the history can't be quietly edited later
-- Rate-limit the relation-creation endpoint to prevent spam-linking submissions
+2. **LLM-failure fallback fabricates fake data** — in `AIInsightProcessingService`
+   (~line 306), when the LLM call fails it invents technologies ("Spring Boot", "Java",
+   "H2 Database"), canned objectives and a canned problem statement. This pollutes the
+   knowledge model and recommendation signals with fiction for every failed analysis.
+   Fix: fallback should keep only the real TF-derived keywords + extractive summary,
+   leave technologies/researchAreas/objectives/problemStatement EMPTY, and prefix the
+   summary with "(Automated fallback — AI analysis unavailable.)".
 
-### Starter prompt
+3. **Announcement deadlines clobber each other** — `AnnouncementService` writes
+   `unit.submissionDeadline` on every ASSIGNMENT creation and NULLS it when any
+   assignment announcement is deleted. With two assignments on one unit, creating the
+   second overwrites the first's deadline, and deleting either wipes the unit deadline
+   entirely. Fix: on create AND delete, recompute `unit.submissionDeadline` as the
+   nearest future deadline among the unit's remaining ASSIGNMENT announcements
+   (query AnnouncementRepository), instead of blind set/null.
+
+4. **Notification "View" link wrong for non-owners** — notifications.html hardcodes
+   `/student/submission/{id}`; lecturers or group members without ownership get an
+   access error. Fix: link to `/projects/{id}` (the role-agnostic project page).
+
+5. **Login throttling missing** — no brute-force protection on `/login`. Add a simple
+   in-memory attempt counter (ConcurrentHashMap keyed by username+IP, lock 15 min after
+   5 failures) via an AuthenticationFailureListener; document it in SecurityConfig.
+
+### B. Robustness / performance
+
+6. **AI pipeline transaction shape** — `performAnalysisAsync` is `@Transactional` and
+   holds that outer transaction (and DB connection) open while blocking up to 30s on an
+   inner `CompletableFuture` that runs its own `TransactionTemplate`. On failure the
+   outer entity save can race the inner committed state. Refactor: mark PROCESSING in
+   a short standalone tx, run the pipeline work (which already has its own tx), then
+   mark COMPLETED/FAILED in another short tx; drop `@Transactional` from the outer
+   method. Also make the 30s timeout configurable
+   (`unisubmit.ai.timeout-seconds`, default 120 — GROBID + LLM regularly exceeds 30s).
+
+7. **N+1 queries in precompute** — `RecommendationService.precomputeForSubmission`
+   lazily loads aiInsight/technologies/researchAreas per candidate (~50 candidates ×3
+   queries). Add a fetch-join query to SubmissionRepository for the candidate pool
+   (JOIN FETCH aiInsight LEFT JOIN FETCH technologies LEFT JOIN FETCH researchAreas)
+   and use it for both pool queries.
+
+8. **Header does heavy work on every request** — `GlobalModelAttributes.
+   pendingCollaborationCount` builds the entire inbox view per page load. Add
+   `long countByRecipientAndStatus(User, CollaborationRequestStatus)` to
+   CollaborationRequestRepository and use it.
+
+9. **Shared-tag display casing mangled** — `RecommendationService.titleCase()` turns
+   "PostgreSQL" into "Postgresql" in the matched-tag chips. Keep a lowercase→original
+   map when building the tag sets and emit original casing instead of re-title-casing.
+
+10. **File validation nits** — FileStorageService: error message mentions ".zip" but
+    zip is not allowed (fix message); multipart limit in application.yml is 50MB while
+    the service rejects >25MB (lower multipart to ~26MB so oversize uploads fail fast
+    with a clear error).
+
+### C. UX / product refinements
+
+11. **Trim the manual tag editor** (owner decision made: yes, trim). In
+    lecturer/review-split.html reduce the six multi-selects to TWO editable categories —
+    Technologies and Research Areas (the only ones the recommendation engine uses).
+    Frameworks/Databases/Languages/Skills stay in the model, LLM-populated, shown
+    read-only. Simplify admin/tags.html to emphasise the same two categories (keep the
+    other tables reachable but collapsed). Keep
+    `KnowledgeTagService.updateSubmissionTags` backward-compatible (null lists = no
+    change to that category).
+
+12. **Unit tests for the scoring math** — none exist for RecommendationService or
+    LecturerRecommendationService, yet they're pure functions (great viva material).
+    Add plain JUnit tests (no Spring context): Jaccard edge cases, weight normalisation,
+    viewer filtering with a stubbed access service, lecturer ranking order.
+
+13. **Empty/loading polish** — pass through main pages checking empty states and
+    the reduced-motion media query still hold after the theme refresh.
+
+### Starter prompt (Phase 5.5)
 ```
-Continuing UniSubmit (attached zip). Implement Phase 4: Academic Memory (lightweight).
-
-Extend AIInsight with typed fields for objectives, problemStatement (from Phase 3
-JSON) if not already added. Create a SubmissionRelation entity (submissionA,
-submissionB, relationType enum [INSPIRED_BY, EXTENDS, RELATED], createdBy, createdAt)
-for manual/suggested project lineage links. Create an append-only AuditLog entity
-that records status changes, feedback creation, and file uploads per submission
-(no update or delete endpoint for this table, even for admins).
-
-Add a vertical timeline UI component to project-detail.html driven by the AuditLog,
-and a separate "Related projects" section driven by SubmissionRelation, distinct
-from the existing keyword-similarity "Similar work" section.
-```
-
----
-
-## Phase 5 — Recommendation Engine (expand what already exists)
-
-**Goal:** You already built the core of this (`RecommendationService`). This phase
-is about making the existing scoring better and more transparent, not building
-something new from scratch.
-
-### Features
-- Add Phase 2/3 signals into the existing weighted score: shared `Technology`/
-  `ResearchArea` rows (now structured, not just free-text keyword overlap)
-- Lecturer-matching: recommend lecturers whose past reviewed submissions share
-  technologies/research areas with the current one (pure SQL aggregation —
-  "no LLM, just math" as originally intended)
-- Make weights configurable (a simple `application.yml` block) instead of hardcoded
-  `0.5/0.3/0.2`, so you can tune and demonstrate different scoring strategies
-  for your report/viva
-
-### UI/UX improvements
-- Show the score breakdown, not just the final label ("🔥 Strong Match") — e.g.
-  a small expandable "why this match" row showing keyword overlap %, shared tech,
-  same-unit flag
-- Add a lecturer recommendation widget on the student's submission detail page
-
-### Security improvements
-- Ensure recommendation queries respect visibility rules (a student should never see
-  similarity matches that expose another student's submission they don't have
-  access to — check this against `SubmissionAccessService`, since `findByStudentNot`
-  in `RecommendationService` currently has no access-control filtering applied
-  before scoring)
-
-### Starter prompt
-```
-Continuing UniSubmit (attached zip). Implement Phase 5: expand the existing
-RecommendationService.
-
-Add lecturer-matching: recommend lecturers based on technologies/research areas of
-submissions they've previously reviewed (pure SQL/Java aggregation, no LLM). Move
-the hardcoded scoring weights (0.5/0.3/0.2 in calculateSimilarity logic) into
-application.yml as configurable properties. Incorporate the structured
-Technology/ResearchArea overlap from Phase 2 into the existing keyword/title
-scoring instead of just free-text keywords.
-
-Important: audit RecommendationService's candidate pool queries
-(findByUnitAndStudentNot, findByStudentNotOrderByCreatedAtDesc) against
-SubmissionAccessService's visibility rules — currently no access check is applied
-before a candidate is scored and shown, which could leak submissions a student
-shouldn't see. Fix this.
-
-Update submission-detail.html to show an expandable "why this match" breakdown
-and a lecturer-recommendation widget.
+[Paste Current State Snapshot first.]
+Work through the Phase 5.5 backlog in UniSubmit-Feasible-Roadmap.md, section by section
+(A security items first, then B, then C). Each item names the file, the problem, and
+the intended fix — implement exactly those. After each section run
+`mvnw.cmd -q compile -DskipTests`. For item 12 write pure JUnit tests without a Spring
+context. Do not refactor beyond what an item asks.
 ```
 
 ---
 
 ## Phase 6 — Explainable Academic Assistant
 
-**Goal:** The one remaining LLM touchpoint — turning the already-computed,
-already-explainable recommendation/DNA data into natural language. The LLM writes
-the explanation; it never computes the match itself.
+**Goal:** the one remaining LLM touchpoint — turn already-computed recommendation/DNA
+data into natural language. The LLM explains; it never computes the match itself.
 
 ### Features
-- One endpoint: given a submission + its precomputed similarity/lecturer-match
-  results (from Phase 5) + its Project DNA (from Phase 3), ask the LLM to write a
-  short natural-language explanation paragraph
-- Strict prompt contract: the LLM is only given the already-computed structured
-  data, never raw access to search the whole database — this keeps it "explainable"
-  rather than "hallucinating," matching your original design intent
-- A basic Q&A box scoped only to the current submission's own extracted text +
-  DNA (not the whole university's data) — a safe, small version of phase 6's
-  "Academic Assistant" idea without needing real retrieval infrastructure
+- One endpoint: given a submission + its precomputed SubmissionSimilarity breakdowns +
+  LecturerMatch results + AIInsight fields, ask the LLM (reuse the existing
+  OpenAI-compatible client pattern from AIInsightProcessingService — do NOT add
+  spring-ai) to write a short explanation paragraph.
+- Strict contract: the LLM receives only the already-computed structured data as
+  compact JSON — never raw DB access, never other students' full documents.
+- A small Q&A box scoped ONLY to the current submission's own extracted text + insight
+  fields.
 
-### UI/UX improvements
-- Present the explanation as a quote-styled callout block, visually distinct from
-  the raw computed data above it, so users understand "this part is the AI's
-  interpretation, that part above is the system's actual calculation"
-- A simple chat-style input box on the submission detail page for the scoped Q&A,
-  with the answer always showing which submission fields it drew from
+### Security
+- Enforce `SubmissionAccessService` checks before the endpoint runs.
+- Prompt-injection guardrail: system prompt must state that document text is untrusted
+  DATA, not instructions (a malicious PDF could embed instructions aimed at the AI).
+- Rate-limit: max ~10 assistant calls per submission per hour (in-memory map is fine).
 
-### Security improvements
-- Enforce the same `SubmissionAccessService` check before this endpoint runs —
-  a user must already be allowed to view the submission before asking the assistant
-  about it
-- Add prompt-injection guardrails: since the assistant reads extracted document
-  text, treat that text as untrusted input in the system prompt (a malicious
-  student could embed instructions in their PDF aimed at the reviewer's AI
-  assistant) — explicitly instruct the model to treat document content as data,
-  not as instructions
+### UI
+- Explanation rendered as a visually distinct quote/callout block (use the gold accent
+  border — `--gold` token) BELOW the computed breakdown, labelled "AI interpretation of
+  the scores above".
+- Simple chat-style input for the scoped Q&A with an "answers come only from this
+  document" note.
 
-### Starter prompt
+### Starter prompt (Phase 6)
 ```
-Continuing UniSubmit (attached zip). Implement Phase 6: Explainable Academic
-Assistant.
-
-Add an endpoint that takes a submission's already-computed RecommendationService
-output and AIInsight DNA fields, and asks Claude (via the existing
-spring-ai-starter-model-anthropic setup) to write a short natural-language
-explanation of why the recommendations make sense. The LLM must only receive the
-already-computed structured data as input — it should not query the database or
-compute its own similarity. Also add a small Q&A feature scoped only to the
-current submission's extracted text and DNA fields (not the whole database).
-
-Security: enforce SubmissionAccessService checks before this endpoint runs.
-In the system prompt, explicitly instruct the model to treat the extracted
-document text as untrusted data, not as instructions, to guard against
-prompt injection from a malicious uploaded document.
-
-UI: render the explanation as a visually distinct callout/quote block on
-submission-detail.html, separate from the raw computed scores above it. Add a
-simple scoped chat input for the Q&A feature.
+[Paste Current State Snapshot first.]
+Implement Phase 6: Explainable Academic Assistant. Add an AssistantService that builds
+a compact JSON context from a submission's persisted SubmissionSimilarity breakdown
+rows, LecturerRecommendationService results, and AIInsight fields, then calls the same
+OpenAI-compatible HTTP endpoint AIInsightProcessingService already uses (reuse its
+api-key/base-url/model config) with a system prompt that (a) restricts the model to the
+provided data only and (b) declares extracted document text as untrusted data, never
+instructions. Endpoints: POST /api/assistant/{submissionId}/explain and
+POST /api/assistant/{submissionId}/ask {question} — both guarded by
+SubmissionAccessService.canDiscoverSubmission (404 on failure) and a simple in-memory
+rate limit (10/submission/hour). Degrade gracefully to a friendly message when no API
+key is configured. UI: gold-bordered callout block + small Q&A input on
+student/submission-detail.html below the similar-work card, loaded via fetch with the
+CSRF header pattern from static/js/app.js. Compile must pass.
 ```
 
 ---
 
-## Cross-cutting items (apply across all phases, not their own phase)
+## Phase 7 — Measured Intelligence (stretch — strongest report material)
 
-These aren't sized like a phase — they're ongoing hygiene worth doing alongside
-whichever phase you're on.
+Do these AFTER 5.5/6; each is independent. Priority order:
 
-### Security (general, not LLM-specific)
-- **CSRF**: confirm Spring Security's default CSRF protection isn't accidentally
-  disabled anywhere (not visible in current `SecurityConfig`, which is good —
-  just don't disable it later for convenience)
-- **Session fixation / login throttling**: no brute-force protection currently
-  exists on `/login` — add a simple attempt counter or Spring Security's built-in
-  lockout support
-- **File access path**: `FileController` correctly checks `canAccessSubmissionFile`,
-  which is good — keep this pattern as the template for any new file-serving
-  endpoint added in later phases
-- **Secrets**: confirm `.env.example` / `application.yml` never has real credentials
-  committed (check `.gitignore` covers `.env` — it currently does, good)
-
-### UI/UX (general)
-- Consistent empty states: several dashboards likely show blank tables when there's
-  no data yet — add friendly empty-state messaging ("No submissions yet — create
-  your first one") instead of a bare empty table
-- Mobile responsiveness check on `review-split.html` specifically, since split-pane
-  layouts are usually the first thing to break on small screens
-- Form validation feedback: ensure every form (`new-submission.html`, `register.html`)
-  shows inline field errors, not just a generic failure banner
+1. **Evaluation harness (do this one even if nothing else).** Use logged ground truth —
+   accepted CollaborationRequests and lecturer tag corrections — to measure the
+   recommender: precision@5 / MRR under different `unisubmit.recommendation.weight.*`
+   configs. Implement as an admin-only page or a CommandLineRunner report that prints a
+   table. This converts "I built features" into "I built and validated a system" for
+   the report/viva, and is exactly why the weights were made configurable.
+2. **Hybrid semantic search page.** One search bar: embed the query via the SPECTER
+   sidecar → pgvector KNN (`<=>` cosine operator, native query), in parallel Postgres
+   full-text (`tsvector` on title+summary), fuse with Reciprocal Rank Fusion
+   (score = Σ 1/(60+rank)). Results respect canDiscoverSubmission. Postgres-only
+   feature — degrade to keyword-only on H2.
+3. **Near-duplicate / integrity check.** At upload time, compare the new embedding
+   against the whole corpus (pgvector KNN, threshold ~0.95 cosine); surface a private
+   "very similar prior work exists" banner to the owning student and to lecturers on
+   the review page. Not an accusation — a signal.
+4. **Research landscape map.** Cluster all submission embeddings (k-means, k≈8, plain
+   Java or the sidecar) + 2D projection, rendered as an SVG dot map on an admin
+   analytics page ("the university's research landscape").
+5. **BM25 keyword upgrade + retrieve-then-rerank** (optional): replace raw keyword
+   intersection with BM25 scoring; optionally add a cross-encoder rerank endpoint
+   (ms-marco-MiniLM) to the Flask sidecar for the top-20 similar list.
+6. **OCR fallback** for scanned PDFs (Tika currently yields empty text → pipeline
+   fails): add Tesseract via tess4j or a sidecar endpoint, triggered when extraction
+   returns < ~200 chars.
+7. **Blind review mode** (no ML): hide student identity from lecturers until a grade is
+   submitted — genuine fairness feature, small change to review-split.html + a config
+   flag.
 
 ---
 
-## What's deliberately excluded
+## Cross-cutting hygiene (unchanged, still applies)
 
-Multi-university support, knowledge-graph/vector-database infrastructure, citation
-tracking across institutions, autonomous agents, policy simulation, and the plugin
-marketplace (original Phases 7–18) are not included here. They require a team, real
-user volume, and infrastructure a solo project doesn't need. If useful, mention them
-as a single "Future Direction" paragraph in your final report — not as build tasks.
+- **CSRF** stays on; never disable for convenience.
+- **File access**: FileController's `canAccessSubmissionFile` check is the template for
+  any new file-serving endpoint.
+- **Secrets**: `.env` is gitignored; never commit real keys; set a spend cap on the LLM
+  provider console.
+- **Schema changes**: every change ships a Flyway `V17+` migration for Postgres AND is
+  compatible with the H2 `local` profile's ddl-auto path.
+- **Empty states, inline form validation, mobile check on review-split.html** — verify
+  whenever touching those templates.
+
+## Deliberately excluded
+
+Multi-university support, knowledge-graph/vector infra beyond pgvector, cross-institution
+citation tracking, autonomous agents, policy simulation, plugin marketplace. Mention as a
+single "Future Directions" paragraph in the final report — not build tasks.

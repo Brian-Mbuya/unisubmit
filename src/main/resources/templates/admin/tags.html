@@ -11,112 +11,121 @@
         </div>
     </div>
 
-    <!-- 6 Column Grid for each lookup category -->
-    <div class="tags-grid">
-        
-        <!-- Category Card Macro Fragment Generator -->
-        <div th:each="cat : ${ { 
-             ('Technologies'), 
-             ('Research Areas'), 
-             ('Frameworks'), 
-             ('Databases'), 
-             ('Programming Languages'), 
-             ('Skills') } }" 
-             class="card tag-category-card">
-            
+    <!-- Reusable category card. Rendered via th:replace below; the th:if="false"
+         wrapper stops this definition from also rendering in place. -->
+    <th:block th:if="${false}">
+        <div th:fragment="tagCategoryCard(cat)" class="card tag-category-card">
+
             <div class="tag-card-header">
                 <h3 th:text="${cat}" class="text-accent no-margin">Category</h3>
-                <span class="badge badge-submitted" 
-                      th:with="listName=${#strings.toLowerCase(#strings.replace(cat, ' ', ''))}, 
-                               listSize=${cat == 'Technologies' ? technologies.size() : 
-                                         cat == 'Research Areas' ? researchAreas.size() : 
-                                         cat == 'Frameworks' ? frameworks.size() : 
-                                         cat == 'Databases' ? databases.size() : 
-                                         cat == 'Programming Languages' ? programmingLanguages.size() : 
-                                         skills.size()}" 
+                <span class="badge badge-submitted"
+                      th:with="listSize=${cat == 'Technologies' ? technologies.size() :
+                                         cat == 'Research Areas' ? researchAreas.size() :
+                                         cat == 'Frameworks' ? frameworks.size() :
+                                         cat == 'Databases' ? databases.size() :
+                                         cat == 'Programming Languages' ? programmingLanguages.size() :
+                                         skills.size()}"
                       th:text="${listSize} + ' tags'">0 tags</span>
             </div>
 
             <!-- Create Tag Form -->
             <form th:action="@{/admin/tags/create}" method="post" class="tag-create-form">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <input type="hidden" name="category" 
-                       th:value="${cat == 'Technologies' ? 'TECHNOLOGY' : 
-                                   cat == 'Research Areas' ? 'RESEARCH_AREA' : 
-                                   cat == 'Frameworks' ? 'FRAMEWORK' : 
-                                   cat == 'Databases' ? 'DATABASE' : 
-                                   cat == 'Programming Languages' ? 'PROGRAMMING_LANGUAGE' : 
+                <input type="hidden" name="category"
+                       th:value="${cat == 'Technologies' ? 'TECHNOLOGY' :
+                                   cat == 'Research Areas' ? 'RESEARCH_AREA' :
+                                   cat == 'Frameworks' ? 'FRAMEWORK' :
+                                   cat == 'Databases' ? 'DATABASE' :
+                                   cat == 'Programming Languages' ? 'PROGRAMMING_LANGUAGE' :
                                    'SKILL'}">
-                <input type="text" name="name" required placeholder="New tag name..." 
+                <input type="text" name="name" required placeholder="New tag name..."
                        class="form-control">
                 <button type="submit" class="btn btn-sm">Add</button>
             </form>
 
             <!-- Scrollable list of existing tags -->
             <div class="tag-scroll-list">
-                <!-- Target list selection -->
-                <div th:each="tag : ${cat == 'Technologies' ? technologies : 
-                                     cat == 'Research Areas' ? researchAreas : 
-                                     cat == 'Frameworks' ? frameworks : 
-                                     cat == 'Databases' ? databases : 
-                                     cat == 'Programming Languages' ? programmingLanguages : 
-                                     skills}" 
+                <div th:each="tag : ${cat == 'Technologies' ? technologies :
+                                     cat == 'Research Areas' ? researchAreas :
+                                     cat == 'Frameworks' ? frameworks :
+                                     cat == 'Databases' ? databases :
+                                     cat == 'Programming Languages' ? programmingLanguages :
+                                     skills}"
                      class="tag-item-row">
-                    
+
                     <span th:text="${tag.name}" class="tag-item-name">Tag Name</span>
-                    
-                    <div class="tag-item-actions">
+
+                    <div class="tag-item-actions"
+                         th:with="catCode=${cat == 'Technologies' ? 'TECHNOLOGY' :
+                                            cat == 'Research Areas' ? 'RESEARCH_AREA' :
+                                            cat == 'Frameworks' ? 'FRAMEWORK' :
+                                            cat == 'Databases' ? 'DATABASE' :
+                                            cat == 'Programming Languages' ? 'PROGRAMMING_LANGUAGE' :
+                                            'SKILL'}">
                         <!-- Inline Rename Action -->
-                        <button class="btn btn-sm btn-secondary" 
-                                th:onclick="renameTag([[${cat == 'Technologies' ? 'TECHNOLOGY' : 
-                                                         cat == 'Research Areas' ? 'RESEARCH_AREA' : 
-                                                         cat == 'Frameworks' ? 'FRAMEWORK' : 
-                                                         cat == 'Databases' ? 'DATABASE' : 
-                                                         cat == 'Programming Languages' ? 'PROGRAMMING_LANGUAGE' : 
-                                                         'SKILL'}]], [[${tag.id}]], [[${tag.name}]])">
+                        <button class="btn btn-sm btn-secondary" title="Rename"
+                                th:onclick="renameTag([[${catCode}]], [[${tag.id}]], [[${tag.name}]])">
                             ✏️
                         </button>
-                        
+
                         <!-- Inline Merge Action -->
-                        <button class="btn btn-sm btn-secondary" 
-                                th:onclick="mergeTags([[${cat == 'Technologies' ? 'TECHNOLOGY' : 
-                                                        cat == 'Research Areas' ? 'RESEARCH_AREA' : 
-                                                        cat == 'Frameworks' ? 'FRAMEWORK' : 
-                                                        cat == 'Databases' ? 'DATABASE' : 
-                                                        cat == 'Programming Languages' ? 'PROGRAMMING_LANGUAGE' : 
-                                                        'SKILL'}]], [[${tag.id}]], [[${tag.name}]])">
+                        <button class="btn btn-sm btn-secondary" title="Merge into another tag"
+                                th:onclick="mergeTags([[${catCode}]], [[${tag.id}]], [[${tag.name}]])">
                             🔗
                         </button>
 
                         <!-- Delete Form -->
-                        <form th:action="@{/admin/tags/delete}" method="post" class="inline-form" 
+                        <form th:action="@{/admin/tags/delete}" method="post" class="inline-form"
                               onsubmit="return confirm('Delete this tag? Submissions referencing it will lose this tag link.');">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                            <input type="hidden" name="category" 
-                                   th:value="${cat == 'Technologies' ? 'TECHNOLOGY' : 
-                                              cat == 'Research Areas' ? 'RESEARCH_AREA' : 
-                                              cat == 'Frameworks' ? 'FRAMEWORK' : 
-                                              cat == 'Databases' ? 'DATABASE' : 
-                                              cat == 'Programming Languages' ? 'PROGRAMMING_LANGUAGE' : 
-                                              'SKILL'}">
+                            <input type="hidden" name="category" th:value="${catCode}">
                             <input type="hidden" name="id" th:value="${tag.id}">
-                            <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                            <button type="submit" class="btn btn-sm btn-danger" title="Delete">🗑️</button>
                         </form>
                     </div>
                 </div>
 
-                <div th:if="${(cat == 'Technologies' and technologies.empty) or 
-                              (cat == 'Research Areas' and researchAreas.empty) or 
-                              (cat == 'Frameworks' and frameworks.empty) or 
-                              (cat == 'Databases' and databases.empty) or 
-                              (cat == 'Programming Languages' and programmingLanguages.empty) or 
-                              (cat == 'Skills' and skills.empty)}" 
+                <div th:if="${(cat == 'Technologies' and technologies.empty) or
+                              (cat == 'Research Areas' and researchAreas.empty) or
+                              (cat == 'Frameworks' and frameworks.empty) or
+                              (cat == 'Databases' and databases.empty) or
+                              (cat == 'Programming Languages' and programmingLanguages.empty) or
+                              (cat == 'Skills' and skills.empty)}"
                      class="text-center text-muted py-4 text-sm italic">
                     No tags seeded yet.
                 </div>
             </div>
         </div>
-    </div>
+    </th:block>
+
+    <!-- Primary categories — these two drive the recommendation engine -->
+    <section>
+        <h2 class="text-sm text-muted mb-2" style="text-transform: uppercase; letter-spacing: 0.06em;">
+            Recommendation signals
+        </h2>
+        <p class="field-hint mb-4">
+            Technologies and Research Areas feed the similarity engine and reviewer matching —
+            keep these clean and deduplicated first.
+        </p>
+        <div class="tags-grid tags-grid-primary">
+            <th:block th:each="cat : ${ {'Technologies', 'Research Areas'} }">
+                <div th:replace="~{:: tagCategoryCard(${cat})}"></div>
+            </th:block>
+        </div>
+    </section>
+
+    <!-- Secondary categories — LLM-populated detail, collapsed by default -->
+    <details class="tags-secondary mt-6">
+        <summary class="text-sm text-muted">
+            Detail categories — Frameworks, Databases, Programming Languages, Skills
+            (auto-populated by AI analysis)
+        </summary>
+        <div class="tags-grid mt-4">
+            <th:block th:each="cat : ${ {'Frameworks', 'Databases', 'Programming Languages', 'Skills'} }">
+                <div th:replace="~{:: tagCategoryCard(${cat})}"></div>
+            </th:block>
+        </div>
+    </details>
 
     <!-- Hidden Action Forms for Javascript interaction -->
     <form id="jsRenameForm" th:action="@{/admin/tags/rename}" method="post" style="display:none;">

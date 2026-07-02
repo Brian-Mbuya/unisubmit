@@ -8,6 +8,9 @@
 
 $ErrorActionPreference = "Stop"
 
+# Always run from the project root, regardless of the caller's directory
+Set-Location $PSScriptRoot
+
 # Load .env file if it exists
 $envFile = Join-Path $PSScriptRoot ".env"
 if (Test-Path $envFile) {
@@ -25,11 +28,14 @@ if (Test-Path $envFile) {
 $Mode = "h2"   # change to "supabase" to connect to the remote DB
 # ─────────────────────────────────────────────────────────────────────────────
 
-# 1. Java setup: Find JDK 17 (Eclipse Adoptium Temurin or similar)
+# 1. Java setup: Find JDK 17 (Eclipse Adoptium system install, then portable ~/.jdks)
 $temurinDir = Get-ChildItem -Path "C:\Program Files\Eclipse Adoptium" -Filter "jdk-17*" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $temurinDir) {
+    $temurinDir = Get-ChildItem -Path (Join-Path $env:USERPROFILE ".jdks") -Filter "jdk-17*" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+}
 if ($temurinDir) {
     $env:JAVA_HOME = $temurinDir.FullName
-    Write-Host "[INFO] Using JDK 17 from Eclipse Adoptium: $env:JAVA_HOME" -ForegroundColor Cyan
+    Write-Host "[INFO] Using JDK 17: $env:JAVA_HOME" -ForegroundColor Cyan
 } else {
     # Fallback to hardcoded JetBrains WebStorm JBR or existing JAVA_HOME
     if (-not $env:JAVA_HOME) {
@@ -37,6 +43,7 @@ if ($temurinDir) {
     }
     Write-Host "[INFO] Fallback JDK path: $env:JAVA_HOME" -ForegroundColor Yellow
 }
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 
 if ($Mode -eq "supabase") {
     # ── Supabase mode: connect to the remote cloud database ──────────────────

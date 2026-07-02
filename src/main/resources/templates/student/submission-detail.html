@@ -77,7 +77,48 @@
                 <!-- Similar projects -->
                 <div class="card">
                     <div class="card-head"><h2>Similar work & collaborators</h2></div>
-                    <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${requestStatusesBySubmissionId})}"></div>
+                    <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${requestStatusesBySubmissionId}, false)}"></div>
+                </div>
+
+                <!-- Explainable Academic Assistant (Phase 6) -->
+                <div class="card assistant-card" th:attr="data-assistant-panel=${submission.id}">
+                    <div class="card-head">
+                        <h2>Academic assistant</h2>
+                        <span class="badge badge-review">AI</span>
+                    </div>
+
+                    <!-- Explanation of the computed scores -->
+                    <p class="field-hint mb-2">
+                        The assistant explains the scores computed above — it never
+                        computes matches itself and only sees the structured data you see.
+                    </p>
+                    <button type="button" class="btn btn-secondary btn-sm" data-assistant-explain>
+                        Explain these matches
+                    </button>
+                    <div class="assistant-callout" data-assistant-explanation hidden>
+                        <div class="assistant-callout-label">AI interpretation of the scores above</div>
+                        <p class="assistant-callout-text" data-assistant-explanation-text></p>
+                    </div>
+
+                    <!-- Q&A scoped to this document only -->
+                    <div class="assistant-qa mt-4">
+                        <label class="form-label" th:for="'assistantQuestion-' + ${submission.id}">
+                            Ask about this document
+                        </label>
+                        <p class="field-hint mb-2">Answers come only from this document and its AI analysis — nothing else.</p>
+                        <div class="assistant-qa-row">
+                            <input type="text" class="form-control"
+                                   th:id="'assistantQuestion-' + ${submission.id}"
+                                   data-assistant-question
+                                   maxlength="500"
+                                   placeholder="e.g. What methodology does this project propose?">
+                            <button type="button" class="btn btn-sm" data-assistant-ask>Ask</button>
+                        </div>
+                        <div class="assistant-callout" data-assistant-answer hidden>
+                            <div class="assistant-callout-label">Answer from this document</div>
+                            <p class="assistant-callout-text" data-assistant-answer-text></p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -109,66 +150,24 @@
                     </div>
                 </div>
 
-                <!-- Project Tags (Classification) -->
+                <!-- Recommended reviewers (Phase 5 — lecturer matching) -->
                 <div class="card">
-                    <div class="card-head"><h2>Project Tags</h2></div>
-                    <div class="classification-form">
-                        
-                        <!-- Technologies -->
-                        <div>
-                            <strong class="tag-section-label">Technologies</strong>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span th:each="t : ${submission.technologies}" class="badge badge-draft" th:text="${t.name}">Tag</span>
-                                <span th:if="${submission.technologies.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                        </div>
-
-                        <!-- Research Areas -->
-                        <div>
-                            <strong class="tag-section-label">Research Areas</strong>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span th:each="r : ${submission.researchAreas}" class="badge badge-draft" th:text="${r.name}">Tag</span>
-                                <span th:if="${submission.researchAreas.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                        </div>
-
-                        <!-- Frameworks -->
-                        <div>
-                            <strong class="tag-section-label">Frameworks</strong>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span th:each="f : ${submission.frameworks}" class="badge badge-draft" th:text="${f.name}">Tag</span>
-                                <span th:if="${submission.frameworks.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                        </div>
-
-                        <!-- Databases -->
-                        <div>
-                            <strong class="tag-section-label">Databases</strong>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span th:each="d : ${submission.databases}" class="badge badge-draft" th:text="${d.name}">Tag</span>
-                                <span th:if="${submission.databases.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                        </div>
-
-                        <!-- Programming Languages -->
-                        <div>
-                            <strong class="tag-section-label">Programming Languages</strong>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span th:each="p : ${submission.programmingLanguages}" class="badge badge-draft" th:text="${p.name}">Tag</span>
-                                <span th:if="${submission.programmingLanguages.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                        </div>
-
-                        <!-- Skills -->
-                        <div>
-                            <strong class="tag-section-label">Skills</strong>
-                            <div class="flex flex-wrap gap-2 mt-1">
-                                <span th:each="s : ${submission.skills}" class="badge badge-draft" th:text="${s.name}">Tag</span>
-                                <span th:if="${submission.skills.empty}" class="text-muted text-xs italic">None</span>
-                            </div>
-                        </div>
-
+                    <div class="card-head">
+                        <h2>Suggested reviewers</h2>
                     </div>
+                    <p class="field-hint mb-2">Lecturers who have reviewed work sharing your technologies and research areas — computed from review history, no AI involved.</p>
+                    <div th:replace="~{fragments/components :: lecturerMatchesPanel(${lecturerMatches})}"></div>
+                </div>
+
+                <!-- Focus areas — only the two tag families that drive matching -->
+                <div class="card"
+                     th:if="${not submission.researchAreas.empty or not submission.technologies.empty}">
+                    <div class="card-head"><h2>Focus areas</h2></div>
+                    <div class="flex flex-wrap gap-2">
+                        <span th:each="r : ${submission.researchAreas}" class="chip chip-gold" th:text="${r.name}">Area</span>
+                        <span th:each="t : ${submission.technologies}" class="chip chip-match" th:text="${t.name}">Tech</span>
+                    </div>
+                    <p class="field-hint mt-2">Detected by AI analysis and refined by your lecturer — these drive the "Similar work" matches.</p>
                 </div>
             </div>
         </div>

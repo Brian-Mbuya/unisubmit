@@ -6,7 +6,10 @@
             <div class="auth-head">
                 <svg class="auth-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <rect width="24" height="24" rx="6" fill="var(--brand)"/>
-                    <path d="M12 6l4.5 4.5h-3v6h-3v-6h-3L12 6z" fill="#fff"/>
+                    <path d="M12 5.4 3.8 9.4l8.2 4 8.2-4-8.2-4z" fill="#fff"/>
+                    <path d="M7.4 12.4v2.9c0 1.15 2.06 2.1 4.6 2.1s4.6-.95 4.6-2.1v-2.9L12 14.65l-4.6-2.25z" fill="#fff" opacity="0.82"/>
+                    <path d="M19.6 10.1v4.1" stroke="var(--gold, #c9a35f)" stroke-width="1.3" stroke-linecap="round"/>
+                    <circle cx="19.6" cy="15" r="0.9" fill="var(--gold, #c9a35f)"/>
                 </svg>
                 <h1>Sign in to UniSubmit</h1>
                 <p class="text-muted text-sm">Use your Student ID, Staff ID, email, or admin username</p>
@@ -18,6 +21,10 @@
             <div th:if="${param.suspended}" class="alert alert-error">
                 <strong>Account suspended.</strong>
                 <span th:text="${session.suspendedReason} ?: 'Please contact an administrator.'">Reason</span>
+            </div>
+            <div th:if="${param.locked}" class="alert alert-error">
+                <strong>Temporarily locked.</strong>
+                <span th:text="${session.lockoutMessage} ?: 'Too many failed attempts — please wait 15 minutes and try again.'">Reason</span>
             </div>
             <div th:if="${param.logout}" class="alert alert-success">
                 You have been signed out successfully.

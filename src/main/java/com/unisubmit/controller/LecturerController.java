@@ -26,15 +26,18 @@ public class LecturerController {
     private final com.unisubmit.service.AnnouncementService announcementService;
     private final com.unisubmit.service.KnowledgeTagService tagService;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
+    private final com.unisubmit.service.RecommendationService recommendationService;
 
     public LecturerController(SubmissionService submissionService,
                               com.unisubmit.service.AnnouncementService announcementService,
                               com.unisubmit.service.KnowledgeTagService tagService,
-                              TeachingAssignmentRepository teachingAssignmentRepository) {
+                              TeachingAssignmentRepository teachingAssignmentRepository,
+                              com.unisubmit.service.RecommendationService recommendationService) {
         this.submissionService = submissionService;
         this.announcementService = announcementService;
         this.tagService = tagService;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
+        this.recommendationService = recommendationService;
     }
 
     @GetMapping("/announcements")
@@ -129,10 +132,10 @@ public class LecturerController {
         model.addAttribute("submission", submission);
         model.addAttribute("allTechnologies", tagService.getAllTechnologies());
         model.addAttribute("allResearchAreas", tagService.getAllResearchAreas());
-        model.addAttribute("allFrameworks", tagService.getAllFrameworks());
-        model.addAttribute("allDatabases", tagService.getAllDatabases());
-        model.addAttribute("allProgrammingLanguages", tagService.getAllProgrammingLanguages());
-        model.addAttribute("allSkills", tagService.getAllSkills());
+        // Lecturer-side transparency: same similar-work panel the student sees,
+        // read-only, so overlapping submissions surface during review.
+        model.addAttribute("similarSubmissions",
+                recommendationService.findSimilarSubmissions(submission, userDetails.getUser()));
         return "lecturer/review-split";
     }
 

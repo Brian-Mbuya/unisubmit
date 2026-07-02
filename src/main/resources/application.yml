@@ -30,8 +30,10 @@ spring:
     locations: classpath:db/migration
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
+      # Slightly above the 25MB service-level limit so oversize uploads fail fast
+      # with FileStorageService's clear message instead of a generic 500.
+      max-file-size: 26MB
+      max-request-size: 27MB
   ai:
     openai:
       base-url: ${OPENAI_BASE_URL:https://openrouter.ai/api/v1}
@@ -48,6 +50,9 @@ app:
     upload-dir: ${APP_UPLOAD_DIR:uploads}
 
 unisubmit:
+  ai:
+    # Upper bound (seconds) for one full analysis run — GROBID + LLM can be slow.
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:120}
   grobid:
     enabled: ${GROBID_ENABLED:false}
     url: ${GROBID_URL:http://localhost:8070}
@@ -55,8 +60,12 @@ unisubmit:
     enabled: ${SPECTER_ENABLED:false}
     url: ${SPECTER_URL:http://localhost:5001}
   recommendation:
+    # Scoring weights are relative — the final score is normalised by their sum,
+    # so you can tune each signal independently for the report/viva demos.
     weight:
-      keyword: 0.5
-      title: 0.3
-      unit: 0.2
-      semantic: 0.3
+      keyword: 0.5        # free-text keyword overlap (AI insight keywords)
+      title: 0.3          # Jaccard word overlap between titles
+      unit: 0.2           # same unit (1.0) / same department (0.5)
+      semantic: 0.3       # SPECTER2 embedding cosine similarity (when available)
+      technology: 0.35    # structured Technology tag overlap (knowledge model)
+      research-area: 0.25 # structured ResearchArea tag overlap (knowledge model)

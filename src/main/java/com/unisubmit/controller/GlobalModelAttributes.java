@@ -24,7 +24,7 @@ public class GlobalModelAttributes {
         if (userDetails == null || userDetails.getUser() == null || !userDetails.getUser().getRole().name().equals("STUDENT")) {
             return 0L;
         }
-        return collaborationRequestService.getInbox(userDetails.getUser()).pendingIncomingCount();
+        return collaborationRequestService.countPendingIncoming(userDetails.getUser());
     }
 
     @ModelAttribute("unreadNotificationCount")
