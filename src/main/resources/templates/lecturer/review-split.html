@@ -18,6 +18,9 @@
             </div>
         </div>
 
+        <div th:if="${param.success}" class="alert alert-success mt-2" th:text="${param.success}">Success</div>
+        <div th:if="${param.error}" class="alert alert-error mt-2" th:text="${param.error}">Error</div>
+
         <div class="split-layout review-workspace">
             <section class="document-panel" aria-label="Submitted document">
                 <div class="document-panel-head">

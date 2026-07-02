@@ -156,7 +156,7 @@ public class LecturerController {
                                @RequestParam(required = false) Integer grade) {
         submissionService.addFeedbackAndReview(id, userDetails.getUser(), message, status, grade);
         // Redirect back to the submission so the lecturer can see the saved feedback immediately
-        return "redirect:/lecturer/submission/" + id;
+        return "redirect:/lecturer/submission/" + id + "?success=Review submitted successfully";
     }
 
     @PostMapping("/announcements/{id}/delete")

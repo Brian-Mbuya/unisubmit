@@ -17,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -64,6 +66,7 @@ public class AIInsightProcessingService {
     private final ReferenceRepository referenceRepository;
     private final SpecterService specterService;
     private final SubmissionRepository submissionRepository;
+    private final TransactionTemplate transactionTemplate;
     private final Path uploadRoot;
 
     @Value("${spring.ai.openai.api-key:NO_KEY}")
@@ -83,6 +86,7 @@ public class AIInsightProcessingService {
                                       ReferenceRepository referenceRepository,
                                       SpecterService specterService,
                                       SubmissionRepository submissionRepository,
+                                      PlatformTransactionManager transactionManager,
                                       @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.aiInsightRepository = aiInsightRepository;
         this.recommendationService = recommendationService;
@@ -92,6 +96,7 @@ public class AIInsightProcessingService {
         this.referenceRepository = referenceRepository;
         this.specterService = specterService;
         this.submissionRepository = submissionRepository;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -234,166 +239,174 @@ public class AIInsightProcessingService {
             }
 
             // Run the text extraction and summary generation in a timeout-bounded execution block
-            final Submission finalSub = submission;
             java.util.concurrent.CompletableFuture<Void> future = java.util.concurrent.CompletableFuture.runAsync(() -> {
-                try {
-                    String promptInputText = "";
-                    String rawText = null;
+                transactionTemplate.execute(status -> {
+                    try {
+                        // Reload entities inside this transaction thread
+                        AIInsight txInsight = aiInsightRepository.findById(insightId)
+                                .orElseThrow(() -> new IllegalStateException("Insight not found: " + insightId));
+                        Submission txSubmission = txInsight.getSubmission();
 
-                    // Try GROBID first
-                    Optional<GrobidService.GrobidResult> grobidResult = grobidService.extractStructured(filePath.toFile());
-                    if (grobidResult.isPresent()) {
-                        GrobidService.GrobidResult gr = grobidResult.get();
-                        StringBuilder sb = new StringBuilder();
-                        if (gr.introduction() != null && !gr.introduction().isBlank()) {
-                            sb.append("=== INTRODUCTION ===\n").append(gr.introduction()).append("\n\n");
-                        }
-                        if (gr.methodology() != null && !gr.methodology().isBlank()) {
-                            sb.append("=== METHODOLOGY ===\n").append(gr.methodology()).append("\n\n");
-                        }
-                        if (gr.conclusion() != null && !gr.conclusion().isBlank()) {
-                            sb.append("=== CONCLUSION ===\n").append(gr.conclusion()).append("\n\n");
-                        }
-                        promptInputText = sb.toString().trim();
+                        String promptInputText = "";
+                        String rawText = null;
 
-                        // Save references deterministically (without LLM)
-                        if (gr.references() != null && !gr.references().isEmpty()) {
-                            List<Reference> existingRefs = referenceRepository.findBySubmissionIdOrderByTitle(finalSub.getId());
-                            referenceRepository.deleteAll(existingRefs);
-                            for (GrobidService.GrobidReference gRef : gr.references()) {
-                                Reference ref = new Reference();
-                                ref.setSubmission(finalSub);
-                                ref.setAuthors(gRef.authors());
-                                ref.setTitle(gRef.title());
-                                ref.setYear(gRef.year());
-                                ref.setDoi(gRef.doi());
-                                referenceRepository.save(ref);
+                        // Try GROBID first
+                        Optional<GrobidService.GrobidResult> grobidResult = grobidService.extractStructured(filePath.toFile());
+                        if (grobidResult.isPresent()) {
+                            GrobidService.GrobidResult gr = grobidResult.get();
+                            StringBuilder sb = new StringBuilder();
+                            if (gr.introduction() != null && !gr.introduction().isBlank()) {
+                                sb.append("=== INTRODUCTION ===\n").append(gr.introduction()).append("\n\n");
+                            }
+                            if (gr.methodology() != null && !gr.methodology().isBlank()) {
+                                sb.append("=== METHODOLOGY ===\n").append(gr.methodology()).append("\n\n");
+                            }
+                            if (gr.conclusion() != null && !gr.conclusion().isBlank()) {
+                                sb.append("=== CONCLUSION ===\n").append(gr.conclusion()).append("\n\n");
+                            }
+                            promptInputText = sb.toString().trim();
+
+                            // Save references deterministically (without LLM)
+                            if (gr.references() != null && !gr.references().isEmpty()) {
+                                List<Reference> existingRefs = referenceRepository.findBySubmissionIdOrderByTitle(txSubmission.getId());
+                                referenceRepository.deleteAll(existingRefs);
+                                for (GrobidService.GrobidReference gRef : gr.references()) {
+                                    Reference ref = new Reference();
+                                    ref.setSubmission(txSubmission);
+                                    ref.setAuthors(gRef.authors());
+                                    ref.setTitle(gRef.title());
+                                    ref.setYear(gRef.year());
+                                    ref.setDoi(gRef.doi());
+                                    referenceRepository.save(ref);
+                                }
                             }
                         }
-                    }
 
-                    // If GROBID fails/disabled or yields no text, fall back to Tika
-                    if (promptInputText.isBlank()) {
-                        rawText = extractText(filePath);
-                        if (rawText == null || rawText.isBlank()) {
-                            throw new IllegalStateException("Document appears to be empty or unreadable.");
-                        }
-                        promptInputText = trimFrontMatter(rawText);
-                    } else {
-                        // Still run Tika text extraction to compute term frequency keywords from body
-                        try {
+                        // If GROBID fails/disabled or yields no text, fall back to Tika
+                        if (promptInputText.isBlank()) {
                             rawText = extractText(filePath);
+                            if (rawText == null || rawText.isBlank()) {
+                                throw new IllegalStateException("Document appears to be empty or unreadable.");
+                            }
+                            promptInputText = trimFrontMatter(rawText);
+                        } else {
+                            // Still run Tika text extraction to compute term frequency keywords from body
+                            try {
+                                rawText = extractText(filePath);
+                            } catch (Exception ex) {
+                                log.warn("Tika fallback text extraction failed during GROBID process: {}", ex.getMessage());
+                            }
+                        }
+
+                        List<String> keywords = extractKeywords(rawText != null ? rawText : promptInputText, 10);
+                        LlmResult result = null;
+
+                        try {
+                            result = callOpenAi(promptInputText);
                         } catch (Exception ex) {
-                            log.warn("Tika fallback text extraction failed during GROBID process: {}", ex.getMessage());
+                            log.warn("OpenAI/OpenRouter LLM analysis failed. Using fallback local heuristic analysis. Reason: {}", ex.getMessage());
+                            result = new LlmResult();
+                            result.summary = extractSummary(rawText != null ? rawText : promptInputText, keywords, 3);
+                            result.keywords = keywords;
+                            result.objectives = List.of(
+                                "Design and implement the proposed system model.",
+                                "Evaluate the performance, scalability, and usability of the application."
+                            );
+                            result.problemStatement = "The manual processes and lack of specialized automation currently limit efficiency in this academic domain.";
+                            result.technologies = List.of("Spring Boot", "Java", "H2 Database");
+                            result.researchAreas = List.of("Software Engineering");
                         }
-                    }
 
-                    List<String> keywords = extractKeywords(rawText != null ? rawText : promptInputText, 10);
-                    LlmResult result = null;
+                        // Deduplicate lists before saving/mapping
+                        result.keywords = dedupeCaseInsensitive(result.keywords, 10);
+                        result.objectives = dedupeCaseInsensitive(result.objectives, 6);
+                        result.technologies = dedupeCaseInsensitive(result.technologies, Integer.MAX_VALUE);
+                        result.researchAreas = dedupeCaseInsensitive(result.researchAreas, Integer.MAX_VALUE);
 
-                    try {
-                        result = callOpenAi(promptInputText);
-                    } catch (Exception ex) {
-                        log.warn("OpenAI/OpenRouter LLM analysis failed. Using fallback local heuristic analysis. Reason: {}", ex.getMessage());
-                        result = new LlmResult();
-                        result.summary = extractSummary(rawText != null ? rawText : promptInputText, keywords, 3);
-                        result.keywords = keywords;
-                        result.objectives = List.of(
-                            "Design and implement the proposed system model.",
-                            "Evaluate the performance, scalability, and usability of the application."
-                        );
-                        result.problemStatement = "The manual processes and lack of specialized automation currently limit efficiency in this academic domain.";
-                        result.technologies = List.of("Spring Boot", "Java", "H2 Database");
-                        result.researchAreas = List.of("Software Engineering");
-                    }
-
-                    // Deduplicate lists before saving/mapping
-                    result.keywords = dedupeCaseInsensitive(result.keywords, 10);
-                    result.objectives = dedupeCaseInsensitive(result.objectives, 6);
-                    result.technologies = dedupeCaseInsensitive(result.technologies, Integer.MAX_VALUE);
-                    result.researchAreas = dedupeCaseInsensitive(result.researchAreas, Integer.MAX_VALUE);
-
-                    // Save structured results on insight
-                    insight.setSummary(result.summary);
-                    
-                    insight.getKeywords().clear();
-                    if (result.keywords != null) {
-                        insight.getKeywords().addAll(result.keywords);
-                    }
-                    
-                    insight.getObjectives().clear();
-                    if (result.objectives != null) {
-                        insight.getObjectives().addAll(result.objectives);
-                    }
-                    
-                    insight.setProblemStatement(result.problemStatement);
-                    insight.setStatus(AIInsightStatus.COMPLETED);
-                    aiInsightRepository.save(insight);
-
-                    // Generate document embedding via SPECTER service
-                    try {
-                        String combinedText = finalSub.getTitle() + " " + result.summary;
-                        Optional<float[]> embeddingOpt = specterService.embed(combinedText);
-                        if (embeddingOpt.isPresent()) {
-                            finalSub.setEmbedding(embeddingOpt.get());
-                            submissionRepository.save(finalSub);
+                        // Save structured results on insight
+                        txInsight.setSummary(result.summary);
+                        
+                        txInsight.getKeywords().clear();
+                        if (result.keywords != null) {
+                            txInsight.getKeywords().addAll(result.keywords);
                         }
-                    } catch (Exception ex) {
-                        log.warn("Failed to generate or save embedding for submission {}: {}", finalSub.getId(), ex.getMessage());
-                    }
+                        
+                        txInsight.getObjectives().clear();
+                        if (result.objectives != null) {
+                            txInsight.getObjectives().addAll(result.objectives);
+                        }
+                        
+                        txInsight.setProblemStatement(result.problemStatement);
+                        txInsight.setStatus(AIInsightStatus.COMPLETED);
+                        aiInsightRepository.save(txInsight);
 
-                    // Map lookup tables
-                    if (result.technologies != null) {
-                        Set<Technology> mappedTechs = new HashSet<>();
-                        for (String techName : result.technologies) {
-                            if (techName == null || techName.isBlank()) continue;
-                            Technology tech;
-                            try {
-                                String trimmedName = techName.trim();
-                                tech = technologyRepository.findByNameIgnoreCase(trimmedName)
-                                        .orElseGet(() -> {
-                                            Technology newTech = new Technology();
-                                            newTech.setName(trimmedName);
-                                            return technologyRepository.saveAndFlush(newTech);
-                                        });
-                            } catch (Exception ex) {
-                                tech = technologyRepository.findByNameIgnoreCase(techName.trim())
-                                        .orElseThrow(() -> new RuntimeException("Failed to save or find technology: " + techName, ex));
+                        // Generate document embedding via SPECTER service
+                        try {
+                            String combinedText = txSubmission.getTitle() + " " + result.summary;
+                            Optional<float[]> embeddingOpt = specterService.embed(combinedText);
+                            if (embeddingOpt.isPresent()) {
+                                txSubmission.setEmbedding(embeddingOpt.get());
                             }
-                            mappedTechs.add(tech);
+                        } catch (Exception ex) {
+                            log.warn("Failed to generate or save embedding for submission {}: {}", txSubmission.getId(), ex.getMessage());
                         }
-                        submission.setTechnologies(mappedTechs);
-                    }
 
-                    if (result.researchAreas != null) {
-                        Set<ResearchArea> mappedAreas = new HashSet<>();
-                        for (String areaName : result.researchAreas) {
-                            if (areaName == null || areaName.isBlank()) continue;
-                            ResearchArea area;
-                            try {
-                                String trimmedName = areaName.trim();
-                                area = researchAreaRepository.findByNameIgnoreCase(trimmedName)
-                                        .orElseGet(() -> {
-                                            ResearchArea newArea = new ResearchArea();
-                                            newArea.setName(trimmedName);
-                                            return researchAreaRepository.saveAndFlush(newArea);
-                                        });
-                            } catch (Exception ex) {
-                                area = researchAreaRepository.findByNameIgnoreCase(areaName.trim())
-                                        .orElseThrow(() -> new RuntimeException("Failed to save or find research area: " + areaName, ex));
+                        // Map lookup tables
+                        if (result.technologies != null) {
+                            Set<Technology> mappedTechs = new HashSet<>();
+                            for (String techName : result.technologies) {
+                                if (techName == null || techName.isBlank()) continue;
+                                Technology tech;
+                                try {
+                                    String trimmedName = techName.trim();
+                                    tech = technologyRepository.findByNameIgnoreCase(trimmedName)
+                                            .orElseGet(() -> {
+                                                Technology newTech = new Technology();
+                                                newTech.setName(trimmedName);
+                                                return technologyRepository.saveAndFlush(newTech);
+                                            });
+                                } catch (Exception ex) {
+                                    tech = technologyRepository.findByNameIgnoreCase(techName.trim())
+                                            .orElseThrow(() -> new RuntimeException("Failed to save or find technology: " + techName, ex));
+                                }
+                                mappedTechs.add(tech);
                             }
-                            mappedAreas.add(area);
+                            txSubmission.setTechnologies(mappedTechs);
                         }
-                        submission.setResearchAreas(mappedAreas);
+
+                        if (result.researchAreas != null) {
+                            Set<ResearchArea> mappedAreas = new HashSet<>();
+                            for (String areaName : result.researchAreas) {
+                                if (areaName == null || areaName.isBlank()) continue;
+                                ResearchArea area;
+                                try {
+                                    String trimmedName = areaName.trim();
+                                    area = researchAreaRepository.findByNameIgnoreCase(trimmedName)
+                                            .orElseGet(() -> {
+                                                ResearchArea newArea = new ResearchArea();
+                                                newArea.setName(trimmedName);
+                                                return researchAreaRepository.saveAndFlush(newArea);
+                                            });
+                                } catch (Exception ex) {
+                                    area = researchAreaRepository.findByNameIgnoreCase(areaName.trim())
+                                            .orElseThrow(() -> new RuntimeException("Failed to save or find research area: " + areaName, ex));
+                                }
+                                mappedAreas.add(area);
+                            }
+                            txSubmission.setResearchAreas(mappedAreas);
+                        }
+
+                        submissionRepository.save(txSubmission);
+
+                        log.info("AI analysis COMPLETED for insight {} (submission: {})",
+                                insightId, txSubmission.getId());
+
+                        recommendationService.precomputeForSubmission(txSubmission);
+                    } catch (Exception ex) {
+                        throw new RuntimeException(ex);
                     }
-
-                    log.info("AI analysis COMPLETED for insight {} (submission: {})",
-                            insightId, finalSub.getId());
-
-                    recommendationService.precomputeForSubmission(finalSub);
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
+                    return null;
+                });
             });
 
             try {

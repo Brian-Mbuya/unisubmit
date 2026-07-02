@@ -6,6 +6,8 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
 
 /**
  * Stores the result of the AI analysis pipeline for a Submission.
@@ -42,7 +44,7 @@ public class AIInsight {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "ai_insight_keywords", joinColumns = @JoinColumn(name = "insight_id"))
     @Column(name = "keyword")
-    private List<String> keywords = new ArrayList<>();
+    private Set<String> keywords = new LinkedHashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -58,5 +60,5 @@ public class AIInsight {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "ai_insight_objectives", joinColumns = @JoinColumn(name = "insight_id"))
     @Column(name = "objective", columnDefinition = "TEXT")
-    private List<String> objectives = new ArrayList<>();
+    private Set<String> objectives = new LinkedHashSet<>();
 }

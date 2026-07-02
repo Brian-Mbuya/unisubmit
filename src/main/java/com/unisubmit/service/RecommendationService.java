@@ -97,9 +97,9 @@ public class RecommendationService {
             .map(m -> {
                 Submission target = m.getSubmissionA().getId().equals(current.getId()) ? m.getSubmissionB() : m.getSubmissionA();
                 String label;
-                if (m.getSimilarityScore() >= 0.6) label = "🔥 Strong Match";
-                else if (m.getSimilarityScore() >= 0.3) label = "🧠 Related";
-                else label = "📘 Possible Match";
+                if (m.getSimilarityScore() >= 0.6) label = "Strong Match";
+                else if (m.getSimilarityScore() >= 0.3) label = "Related Work";
+                else label = "Possible Match";
                 
                 return new SimilarSubmission(target, label, m.getMatchedKeywords(), m.getSimilarityScore(), m.getReason());
             })
@@ -132,8 +132,8 @@ public class RecommendationService {
 
     private List<String> getKeywords(AIInsight insight) {
         if (insight == null || insight.getStatus() != AIInsightStatus.COMPLETED) return List.of();
-        List<String> kws = insight.getKeywords();
-        return kws != null ? kws : List.of();
+        Set<String> kws = insight.getKeywords();
+        return kws != null ? new ArrayList<>(kws) : List.of();
     }
 
     private List<String> intersection(List<String> a, List<String> b) {

@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,19 +20,22 @@ public class AnnouncementService {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final UnitRepository unitRepository;
+    private final StudentProfileRepository studentProfileRepository;
 
     public AnnouncementService(AnnouncementRepository announcementRepository,
                                EnrollmentRepository enrollmentRepository,
                                CurriculumRepository curriculumRepository,
                                NotificationService notificationService,
                                UserRepository userRepository,
-                               UnitRepository unitRepository) {
+                               UnitRepository unitRepository,
+                               StudentProfileRepository studentProfileRepository) {
         this.announcementRepository = announcementRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.curriculumRepository = curriculumRepository;
         this.notificationService = notificationService;
         this.userRepository = userRepository;
         this.unitRepository = unitRepository;
+        this.studentProfileRepository = studentProfileRepository;
     }
 
     @Transactional
@@ -60,12 +65,30 @@ public class AnnouncementService {
         String noticeText = (type == AnnouncementType.ASSIGNMENT) ?
                 "New assignment in [" + unit.getUnitName() + "]: " + title + " (Deadline: " + deadline + ")" :
                 "New announcement in [" + unit.getUnitName() + "]: " + title;
+        Set<Long> notifiedUserIds = new HashSet<>();
         for (Curriculum curriculum : curricula) {
+            // A. Explicit enrollments
             List<Enrollment> enrollments = enrollmentRepository.findByCurriculumId(curriculum.getId());
             for (Enrollment enrollment : enrollments) {
                 if ("ENROLLED".equalsIgnoreCase(enrollment.getStatus()) && enrollment.getStudent() != null) {
                     User studentUser = enrollment.getStudent().getUser();
-                    if (studentUser != null) {
+                    if (studentUser != null && notifiedUserIds.add(studentUser.getId())) {
+                        notificationService.createNotification(
+                                studentUser,
+                                NotificationType.SYSTEM_NOTICE,
+                                noticeText,
+                                null
+                        );
+                    }
+                }
+            }
+
+            // B. Academic programme students
+            if (curriculum.getProgramme() != null) {
+                List<StudentProfile> programmeStudents = studentProfileRepository.findByProgrammeId(curriculum.getProgramme().getId());
+                for (StudentProfile studentProfile : programmeStudents) {
+                    User studentUser = studentProfile.getUser();
+                    if (studentUser != null && !studentUser.isDeleted() && notifiedUserIds.add(studentUser.getId())) {
                         notificationService.createNotification(
                                 studentUser,
                                 NotificationType.SYSTEM_NOTICE,
@@ -90,21 +113,38 @@ public class AnnouncementService {
             return List.of();
         }
 
+        List<Long> unitIds = new ArrayList<>();
+
+        // 1. Get units from explicit enrollments
         List<Enrollment> enrollments = enrollmentRepository.findByStudentId(user.getStudentProfile().getId());
-        List<Long> unitIds = enrollments.stream()
-                .filter(e -> "ENROLLED".equalsIgnoreCase(e.getStatus()))
-                .map(e -> e.getCurriculum().getUnit().getId())
-                .distinct()
-                .collect(Collectors.toList());
+        for (Enrollment e : enrollments) {
+            if ("ENROLLED".equalsIgnoreCase(e.getStatus()) && e.getCurriculum() != null && e.getCurriculum().getUnit() != null) {
+                unitIds.add(e.getCurriculum().getUnit().getId());
+            }
+        }
+
+        // 2. Get units from academic programme curriculum
+        if (user.getStudentProfile().getProgramme() != null) {
+            Long progId = user.getStudentProfile().getProgramme().getId();
+            List<Curriculum> curricula = curriculumRepository.findByProgrammeId(progId);
+            for (Curriculum c : curricula) {
+                if (c.getUnit() != null) {
+                    unitIds.add(c.getUnit().getId());
+                }
+            }
+        }
+
+        // Deduplicate unit IDs
+        unitIds = unitIds.stream().distinct().collect(Collectors.toList());
 
         List<Announcement> allAnnouncements = new ArrayList<>();
         for (Long unitId : unitIds) {
             allAnnouncements.addAll(announcementRepository.findByUnitIdOrderByCreatedAtDesc(unitId));
         }
 
-        // Sort by createdAt desc
+        // Sort by createdAt desc and deduplicate announcements
         allAnnouncements.sort((a1, a2) -> a2.getCreatedAt().compareTo(a1.getCreatedAt()));
-        return allAnnouncements;
+        return allAnnouncements.stream().distinct().collect(Collectors.toList());
     }
 
     public List<Announcement> getAnnouncementsByLecturer(Long lecturerId) {

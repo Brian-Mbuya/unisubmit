@@ -48,7 +48,9 @@ public class FileController {
         } catch (RuntimeException ex) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Uploaded file is no longer available");
         }
-        return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION,
-                "attachment; filename=\"" + file.getFilename() + "\"").body(file);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + version.getOriginalFileName() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, version.getFileType())
+                .body(file);
     }
 }

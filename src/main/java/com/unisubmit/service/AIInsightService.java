@@ -62,7 +62,7 @@ public class AIInsightService {
         if (existingInsight != null) {
             existingInsight.setStatus(AIInsightStatus.PENDING);
             existingInsight.setSummary(null);
-            existingInsight.setKeywords(new ArrayList<>());
+            existingInsight.setKeywords(new java.util.LinkedHashSet<>());
             existingInsight.setErrorMessage(null);
             aiInsightRepository.save(existingInsight);
 
@@ -113,7 +113,7 @@ public class AIInsightService {
         }
         insight.setStatus(AIInsightStatus.PENDING);
         insight.setSummary(null);
-        insight.setKeywords(new ArrayList<>());
+        insight.setKeywords(new java.util.LinkedHashSet<>());
         insight.setErrorMessage(null);
         aiInsightRepository.save(insight);
         aiInsightProcessingService.performAnalysisAsync(insightId);

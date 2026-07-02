@@ -107,6 +107,22 @@
                 </div>
             </div>
         </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                var typeSelect = document.getElementById('typeSelect');
+                var deadlineInput = document.getElementById('deadlineInput');
+                if (typeSelect && deadlineInput) {
+                    deadlineInput.disabled = (typeSelect.value !== 'ASSIGNMENT');
+                    typeSelect.addEventListener('change', function() {
+                        deadlineInput.disabled = (this.value !== 'ASSIGNMENT');
+                        if (this.value !== 'ASSIGNMENT') {
+                            deadlineInput.value = '';
+                        }
+                    });
+                }
+            });
+        </script>
     </div>
 </body>
 </html>

@@ -13,6 +13,9 @@
             <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
         </div>
 
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
+        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
+
         <div class="detail-grid">
             <div class="col">
                 <div class="card">
@@ -31,6 +34,27 @@
                         <div class="eyebrow">Key topics</div>
                         <div class="flex flex-wrap gap-2">
                             <span th:each="kw : ${submission.aiInsight.keywords}" class="chip" th:text="${kw}">Keyword</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Activity timeline (Phase 4 — append-only audit history) ── -->
+                <div class="card">
+                    <div class="card-head"><h2>Activity timeline</h2></div>
+
+                    <div th:if="${#lists.isEmpty(timeline)}" class="empty-state empty-state-compact text-sm">
+                        No recorded activity yet.
+                    </div>
+
+                    <div class="timeline" th:if="${not #lists.isEmpty(timeline)}">
+                        <div class="timeline-item" th:each="event : ${timeline}">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <strong class="text-sm" th:text="${event.detail}">Event</strong>
+                                <span class="text-xs text-subtle"
+                                      th:text="${#temporals.format(event.createdAt, 'dd MMM yyyy, HH:mm')}">Time</span>
+                            </div>
+                            <div class="text-xs text-muted" th:if="${event.actor != null}"
+                                 th:text="'by ' + ${event.actor.name}">by User</div>
                         </div>
                     </div>
                 </div>
@@ -65,6 +89,58 @@
                     <div th:if="${not canAccessFile}" class="empty-state text-sm ai-empty">
                         Files unlock after the project is approved, or once you collaborate on it.
                     </div>
+                </div>
+
+                <!-- ── Related projects (Phase 4 — curated lineage, distinct from Similar work) ── -->
+                <div class="card">
+                    <div class="card-head"><h2>Related projects</h2></div>
+                    <p class="field-hint">Curated lineage links — separate from automatic keyword matches.</p>
+
+                    <div th:if="${#lists.isEmpty(relations)}" class="empty-state empty-state-compact text-sm mt-2">
+                        No linked projects yet.
+                    </div>
+
+                    <div class="mt-2" th:if="${not #lists.isEmpty(relations)}">
+                        <div class="info-row" th:each="rel : ${relations}"
+                             th:with="outgoing=${rel.submissionA.id == submission.id},
+                                      other=${rel.submissionA.id == submission.id ? rel.submissionB : rel.submissionA},
+                                      verb=${rel.relationType.name() == 'INSPIRED_BY' ? 'inspired by' : (rel.relationType.name() == 'EXTENDS' ? 'extends' : 'related to')}">
+                            <span class="text-sm">
+                                <span class="text-muted" th:text="${outgoing ? ('This project ' + verb + ' ') : ''}">This project</span>
+                                <a th:href="@{'/projects/' + ${other.id}}" th:text="${other.title}">Other project</a>
+                                <span class="text-muted" th:text="${outgoing ? '' : (' ' + verb + ' this project')}"></span>
+                            </span>
+                            <form th:if="${canManageRelations}" method="post"
+                                  th:action="@{'/projects/' + ${submission.id} + '/relations/' + ${rel.id} + '/delete'}"
+                                  class="inline-form">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-secondary btn-sm">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Staff-only: add a lineage link -->
+                    <form th:if="${canManageRelations}" method="post"
+                          th:action="@{'/projects/' + ${submission.id} + '/relations'}" class="mt-4">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <div class="eyebrow">Add a link</div>
+                        <div class="form-group">
+                            <label class="form-label">This project…</label>
+                            <select name="relationType" class="form-control" required>
+                                <option th:each="rt : ${relationTypes}" th:value="${rt.name()}"
+                                        th:text="${rt.name() == 'INSPIRED_BY' ? 'was inspired by' : (rt.name() == 'EXTENDS' ? 'extends' : 'is related to')}">type</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Target project</label>
+                            <select name="targetSubmissionId" class="form-control" required>
+                                <option value="" disabled selected>Select a project…</option>
+                                <option th:each="cand : ${relationCandidates}" th:value="${cand.id}"
+                                        th:text="${cand.title + ' — ' + cand.student.name}">Candidate</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-block">Link project</button>
+                    </form>
                 </div>
             </div>
         </div>
