@@ -1,6 +1,6 @@
 # UniSubmit
 
-UniSubmit is a Spring Boot academic submission platform for students, lecturers, and administrators. It combines project submission, version history, lecturer review, AI-assisted summaries, similar-project discovery, collaboration requests, and academic unit management in one server-rendered application.
+UniSubmit is a Spring Boot academic submission platform for students, lecturers, and administrators. It models a full university hierarchy (faculty → department → programme → unit → curriculum), and combines project/group submission, version history, lecturer review, LLM-backed document analysis, a structured knowledge model (technologies, research areas, frameworks, databases, languages, skills), a multi-signal recommendation engine, lecturer matching, collaboration requests, announcements, notifications, and an append-only audit trail — all in one server-rendered application.
 
 The application is intentionally built as a full-stack Spring Boot + Thymeleaf system. It should be deployed as a Java backend service, not as a static frontend on Vercel.
 
@@ -25,24 +25,51 @@ The application is intentionally built as a full-stack Spring Boot + Thymeleaf s
 
 ## Features
 
-- Student registration, sign-in, project creation, and version uploads.
-- Lecturer review queues grouped by unit, with feedback and status decisions.
-- AI workspace for summary, keywords, processing states, retry handling, and similar-project discovery.
-- Collaboration request inbox with incoming, outgoing, and accepted collaboration views.
-- Admin management for users, roles, student/staff identifiers, units, lecturer assignments, and activity.
-- PostgreSQL persistence with file uploads stored on disk or a mounted volume.
-- Docker and Docker Compose support for local and production-like environments.
+### Academic structure
+- Full hierarchy: Faculty → Department → Programme → Unit → Curriculum, with Academic Year / Semester scoping and admin CRUD for every level.
+- Group projects (`ProjectGroup`) with a leader and members, alongside individual submissions.
+- Multiple supervisors per submission and per-curriculum teaching assignments.
+- Project lifecycle statuses (`DRAFT → SUBMITTED → UNDER_REVIEW → APPROVED/REJECTED`, plus `PROPOSAL/FINAL/ARCHIVED`) with deadline enforcement per unit.
+
+### Document intelligence
+- Apache Tika text extraction with an optional GROBID pipeline for structured PDF parsing (introduction/methodology/conclusion + reference extraction).
+- LLM-backed analysis (OpenAI-compatible, defaults to OpenRouter) producing a strict JSON contract: summary, keywords, objectives, problem statement, technologies, and research areas — with a deterministic local-heuristic fallback if the LLM call fails.
+- Structured output is mapped onto the knowledge-model lookup tables (`Technology`, `ResearchArea`, `Framework`, `Database`, `ProgrammingLanguage`, `Skill`) instead of stored as free text, with admin screens to manage/merge tags.
+- Optional SPECTER2 embedding service for semantic similarity between submissions (pgvector-backed).
+
+### Recommendation engine (Phase 5)
+- Multi-signal similarity scoring blending free-text keyword overlap, title similarity, unit/department proximity, embedding cosine similarity, and structured Technology/ResearchArea tag overlap — weights are configurable via `application.yml`, not hardcoded.
+- Every match stores a full per-signal breakdown so the UI can show "why this match" instead of a single opaque score.
+- Lecturer matching: recommends reviewers based on the technologies/research areas of submissions they have previously reviewed — pure SQL/Java aggregation, no LLM involved.
+- Discovery-level access control: recommendation candidate pools are filtered against submission visibility rules so a student never sees a match that exposes another student's private draft.
+
+### Collaboration & communication
+- Collaboration request inbox (incoming, outgoing, accepted) tied directly into the recommendation engine's similar-work results.
+- Lecturer announcements and assignment notices per unit, with automatic deadline propagation and in-app notification fan-out to enrolled/programme students.
+- In-app notification bell with unread counts for feedback, status changes, and deadlines.
+
+### Academic memory
+- Append-only audit log (status changes, feedback, uploads) rendered as a visual timeline on each project page.
+- Curated `SubmissionRelation` links (inspired-by / extends / related) for manual research lineage, kept distinct from the automatic similarity engine.
+
+### Platform
+- Student registration, sign-in, project creation, and version uploads with file-type/size validation.
+- Lecturer review queues grouped by unit, with feedback, grading, and status decisions.
+- Admin console for users, roles, student/staff identifiers, faculties, departments, programmes, units, curricula, lecturer assignments, and knowledge-model tags.
+- PostgreSQL persistence (with pgvector) and Flyway-managed schema migrations; file uploads stored on disk or a mounted volume.
+- Docker and Docker Compose support, including optional GROBID and SPECTER services for local development.
 
 ## Architecture
 
 UniSubmit is a conventional layered Spring application:
 
-- `controller`: Spring MVC routes for auth, student, lecturer, admin, files, AI insight API, and health checks.
-- `service`: business workflows for submissions, access control, AI analysis, recommendations, users, units, and collaboration.
+- `controller` / `controller.admin`: Spring MVC routes for auth, student, lecturer, admin, projects, groups, files, AI insight API, and health checks.
+- `service`: business workflows — submissions, access control, AI analysis (`AIInsightProcessingService`), recommendations (`RecommendationService`, `LecturerRecommendationService`), academic hierarchy, groups, announcements, notifications, and audit logging.
 - `repository`: Spring Data JPA repositories.
-- `domain`: JPA entities and enums.
-- `templates`: Thymeleaf pages and shared fragments.
-- `static`: global CSS, JavaScript, and favicon assets.
+- `domain`: JPA entities and enums covering the academic hierarchy, knowledge model, and audit/relation tables.
+- `db/migration`: Flyway SQL migrations (`V2`–`V16`) tracking schema evolution from the flat original model to the current academic/knowledge-model/recommendation schema.
+- `templates`: Thymeleaf pages and shared fragments (`fragments/components.html` holds the AI insight panel, similarity/lecturer-match widgets, and timeline components).
+- `static`: global CSS design system (`base.css`), JavaScript, and favicon assets.
 
 The UI is server-rendered with Thymeleaf and enhanced with a small amount of dependency-free JavaScript for navigation, filtering, AI polling, review actions, table search, and confirmations.
 
@@ -52,7 +79,11 @@ The UI is server-rendered with Thymeleaf and enhanced with a small amount of dep
 - Spring Boot 4
 - Spring MVC, Spring Security, Spring Data JPA
 - Thymeleaf
-- PostgreSQL
+- PostgreSQL + pgvector
+- Flyway
+- Apache Tika (with optional GROBID for structured academic PDF parsing)
+- OpenAI-compatible LLM client (OpenRouter by default) for document analysis
+- Optional SPECTER2 microservice for semantic embeddings
 - Maven
 - Docker
 
@@ -99,6 +130,20 @@ $env:APP_UPLOAD_DIR="uploads"
 .\mvnw.cmd spring-boot:run
 ```
 
+### Option 3: Maven + H2 (no PostgreSQL required)
+
+For quick local iteration without Docker or PostgreSQL, run with the `local` profile. It uses an embedded, file-backed H2 database (`unisubmit-db.mv.db` in the project root) and disables Flyway in favour of Hibernate `ddl-auto: update`:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+```
+
+On first run, `UnisubmitApplication` seeds three demo accounts (all `password123`): admin username `admin`, lecturer staff ID `L001`, and student ID `S001`, plus starter technology/research-area/framework/database/language/skill lookup rows. This profile is for local development only — it is never used in production or Docker deployments.
+
 ## Environment Variables
 
 | Variable | Required | Default | Description |
@@ -114,6 +159,14 @@ $env:APP_UPLOAD_DIR="uploads"
 | `DB_MAX_POOL_SIZE` | No | `5` | Maximum Hikari database connections. |
 | `DB_MIN_IDLE` | No | `1` | Minimum idle Hikari connections. |
 | `DB_CONNECTION_TIMEOUT_MS` | No | `30000` | Database connection timeout in milliseconds. |
+| `OPENAI_API_KEY` | Yes, for AI analysis | — | API key for the OpenAI-compatible LLM used to summarise submissions. Without it, analysis falls back to a local keyword/heuristic summary. |
+| `OPENAI_BASE_URL` | No | `https://openrouter.ai/api/v1` | Base URL for the OpenAI-compatible chat completions endpoint. |
+| `OPENAI_MODEL` | No | `openai/gpt-4o-mini` | Model identifier passed to the LLM provider. |
+| `GROBID_ENABLED` | No | `false` | Enables structured academic PDF parsing (introduction/methodology/conclusion + references) via a GROBID service. |
+| `GROBID_URL` | No | `http://localhost:8070` | URL of the GROBID service (see `docker-compose.yml`). |
+| `SPECTER_ENABLED` | No | `false` | Enables SPECTER2 embedding generation for semantic similarity scoring. |
+| `SPECTER_URL` | No | `http://localhost:5001` | URL of the SPECTER embedding microservice (see `specter-service/`). |
+| `unisubmit.recommendation.weight.*` | No | see `application.yml` | Relative weights (keyword, title, unit, semantic, technology, research-area) for the recommendation engine's blended score — tune per demo/report without a code change. |
 
 ## Supabase PostgreSQL
 
@@ -186,12 +239,16 @@ Some integration tests may require a reachable PostgreSQL database, depending on
 
 ## Roadmap
 
-- Add first-class pagination and server-side search for large admin datasets.
-- Add rubric-aware AI review support once backend fields are available.
-- Add richer audit logging instead of deriving recent activity from current records.
-- Add object storage support for uploaded files.
-- Add database migrations with Flyway or Liquibase.
-- Add screenshot-based UI regression tests for lecturer and admin workflows.
+Current build implements the "Feasible Roadmap" through Phase 5 (recommendation engine expansion). See `UniSubmit-Feasible-Roadmap.md` for full phase details. Remaining/open items:
+
+- Phase 6 — Explainable Academic Assistant: an LLM endpoint that narrates the already-computed recommendation/DNA data (never computes its own similarity), plus a scoped Q&A box limited to a submission's own extracted text.
+- First-class pagination and server-side search for large admin datasets.
+- Rubric-aware AI review support once backend fields are available.
+- Object storage support for uploaded files (currently disk/volume-backed).
+- Screenshot-based UI regression tests for lecturer and admin workflows.
+- Login throttling / brute-force protection on `/login`.
+
+Multi-university support, knowledge-graph/vector-database infrastructure beyond pgvector, citation tracking across institutions, autonomous agents, and a plugin marketplace are deliberately out of scope for this solo-buildable project.
 
 ## Contributing
 
