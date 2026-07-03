@@ -24,6 +24,7 @@
 > adaptive score normalisation, suspension enforcement (login block + live-session
 > eject), admin programme edit fix, announcements include submitted-to units,
 > lecturer doc preview rebuilt, login brute-force throttling. 30 unit tests green.
+> **Next**: Phase 8 — AI-Powered Collaboration Discovery (planned, not yet started).
 
 This roadmap keeps only what one student, working alone on the current Spring Boot
 codebase, can realistically build and demo. Each phase is self-contained: goal, tasks,
@@ -375,6 +376,157 @@ Do these AFTER 5.5/6; each is independent. Priority order:
 7. **Blind review mode** (no ML): hide student identity from lecturers until a grade is
    submitted — genuine fairness feature, small change to review-split.html + a config
    flag.
+
+---
+
+## Phase 8 — AI-Powered Collaboration Discovery
+
+> **Goal**: Replace the "same unit = match" noise with a genuine cross-disciplinary
+> collaboration engine that uses AI to surface high-value partnerships — upperclassmen
+> who can mentor, students from other departments working on the same real-world problem,
+> and complementary-skill pairings where one student's limitation is another's strength.
+
+### The core insight
+
+The current similarity engine conflates **integrity detection** ("is someone copying?")
+with **collaboration discovery** ("who could I learn from?"). These have opposite
+signals: same-unit is a red flag for integrity but worthless for collaboration. A
+student in Computer Science building a traffic-prediction ML model and a Civil
+Engineering student optimising traffic-light timings share zero keywords and zero units,
+but they are a *perfect* collaboration pair. Phase 8 splits these concerns and adds an
+LLM reasoning layer that no amount of keyword matching can replicate.
+
+### Architecture: two-stage pipeline
+
+**Stage 1 — Mechanical pre-filter (fast, cheap).** A collaboration-specific scoring
+path in `RecommendationService` that:
+- Sets the unit weight to **zero** (same class ≠ interesting).
+- Pulls candidates from the **entire submission corpus**, not just same-unit + recent.
+- Boosts semantic (SPECTER embedding) + technology + research-area + problem-domain
+  signals.
+- Explicitly **deprioritises or excludes same-unit matches** (that's your classmate
+  doing the same assignment).
+- Favours **completed/archived submissions** (mentorship value) and
+  **cross-department** pairs (interdisciplinary value).
+- Outputs the **top ~15 candidates** per submission.
+
+**Stage 2 — LLM collaboration assessment (smart, targeted).** For each shortlisted
+pair, call Gemini with both submissions' AI insight context and ask it to produce a
+structured collaboration assessment:
+
+```
+{
+  "collaboration_value": "HIGH | MEDIUM | LOW | NONE",
+  "collaboration_type": "mentorship | skill_exchange | interdisciplinary | scale_up | data_sharing",
+  "what_a_gains": "What Project A's student gains from this collaboration (1 sentence)",
+  "what_b_gains": "What Project B's student gains (1 sentence)",
+  "pitch": "A 2-sentence natural language explanation of why these two should connect",
+  "complementary_gaps": "Specific limitations in one project that the other addresses"
+}
+```
+
+This is persisted alongside the similarity record so it's computed once (async, like the
+existing AI pipeline) and displayed instantly on subsequent page loads. Only HIGH and
+MEDIUM results are shown to users.
+
+### What the LLM enables that scoring alone cannot
+
+1. **Complementary gap detection.** The LLM reads both project descriptions and notices
+   that Project A says "our limitation is the lack of real-world sensor data" while
+   Project B collected 6 months of IoT sensor data. No keyword overlap, no tag match —
+   only an LLM reading the actual text connects those dots.
+
+2. **Collaboration type classification.** Each match is tagged as one of:
+   - **Mentorship** — an upperclassman completed a similar project and can guide a
+     junior starting one.
+   - **Skill exchange** — one has ML expertise, the other has domain knowledge and
+     field data.
+   - **Interdisciplinary** — different departments, different tools, same real-world
+     problem (CS + EE on IoT, Architecture + Civil on structural analysis).
+   - **Scale-up** — one built a prototype, the other has access to a real deployment
+     environment.
+   - **Data sharing** — one collected a dataset the other needs.
+
+3. **Natural language pitch.** Instead of "12% Possible match — Same structural domain
+   (Unit)", the student sees:
+   > 🤝 **High-value collaboration** — *Interdisciplinary match, Electrical Engineering*
+   >
+   > Jane (3rd year) built an IoT sensor network for campus environmental monitoring
+   > but needs help with the data analytics pipeline. Your ML-based anomaly detection
+   > project could provide exactly that, while her deployed sensor network gives you
+   > access to real-world time-series data you currently lack.
+
+4. **Noise rejection.** The LLM filters out pairs that look similar mechanically but
+   aren't useful: two students doing the exact same assignment (not collaboration,
+   that's the syllabus), projects that share keywords but differ completely in scope, or
+   early-stage work too immature to offer anything.
+
+### Tasks
+
+1. **Add `problemDomain` to the LLM extraction prompt.** One line change in the
+   existing AI pipeline prompt template — ask Gemini to also extract 1–3 broad
+   application domains (healthcare, transportation, agriculture, energy, education,
+   manufacturing, finance, environment, security). Store as a new `@ElementCollection`
+   on `AIInsight`. These are deliberately broad and cross-disciplinary.
+
+2. **New entity: `CollaborationMatch`.** Separate from `SubmissionSimilarity` (which
+   stays for integrity). Fields: submissionA, submissionB, mechanicalScore,
+   collaborationValue (enum HIGH/MEDIUM/LOW/NONE), collaborationType (enum),
+   whatAGains, whatBGains, pitch, complementaryGaps, computedAt. Flyway migration V18.
+
+3. **Collaboration scoring path in `RecommendationService`.** A new method
+   `precomputeCollaborationMatches(Submission)` that:
+   - Builds a candidate pool from ALL submissions (not just same-unit).
+   - Scores with unit weight = 0, high semantic/tech/area/domain weights.
+   - Excludes same-unit candidates.
+   - Returns top 15 by mechanical score.
+
+4. **LLM collaboration assessment service.** A new `CollaborationAssessmentService`
+   that takes the top 15 candidates and calls Gemini for each pair. Uses the same
+   OpenAI-compatible endpoint and rate-limit patterns as `AIInsightProcessingService`.
+   Runs async. Persists results to `CollaborationMatch`. Only keeps HIGH and MEDIUM
+   results.
+
+5. **Opt-in visibility.** Add a boolean `discoverableForCollaboration` to
+   `StudentProfile` (default true). Students can toggle this in their profile settings.
+   The collaboration scoring path respects this flag.
+
+6. **Contact request flow.** A "Request to Connect" button on each collaboration match
+   that sends an `AppNotification` to the other student with a pre-filled message
+   referencing both projects. The recipient can accept (which reveals contact info) or
+   decline. Uses the existing notification infrastructure.
+
+7. **"Discover Collaborators" page.** A new student-facing page (`/collaborations` or
+   `/discover`) separate from the similarity panel on submission-detail. Shows
+   AI-enriched matches grouped by collaboration type, with the LLM pitch text,
+   type badges, and the "Request to Connect" button. Filters by department and
+   collaboration type.
+
+8. **Admin analytics.** Extend the evaluation harness to track collaboration match
+   acceptance rate (how often students click "Request to Connect" and get accepted).
+   This is the ground truth for tuning the collaboration weights, just as accepted
+   `CollaborationRequest` records are ground truth for the similarity engine.
+
+### Starter prompt
+
+```
+Phase 8 — AI-Powered Collaboration Discovery. Read Phase 8 in UniSubmit-Feasible-Roadmap.md.
+
+The current similarity engine conflates integrity detection and collaboration discovery.
+Phase 8 splits them: a new collaboration-specific scoring path (unit weight = 0,
+cross-department candidate pool, semantic/tech/domain signals boosted) pre-filters to
+~15 candidates, then an LLM (Gemini, same endpoint as the AI pipeline) assesses each
+pair for collaboration value, type, complementary gaps, and generates a natural-language
+pitch. Results are persisted in a new CollaborationMatch entity (V18 migration).
+
+UI: a "Discover Collaborators" page for students showing AI-enriched matches with type
+badges and a "Request to Connect" button (sends AppNotification). Students can opt out
+via a profile toggle. Admin evaluation tracks acceptance rates.
+
+Key constraint: the LLM call is expensive — only the top 15 pre-filtered candidates
+per submission go through Stage 2. Cache aggressively in CollaborationMatch.
+Compile must pass.
+```
 
 ---
 
