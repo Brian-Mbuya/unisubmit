@@ -118,9 +118,9 @@
             <div th:if="${insight.status.name() == 'COMPLETED'}" class="ai-complete">
                 <!-- Tabs Navigation -->
                 <div class="ai-tabs">
-                    <button class="ai-tab-btn active" onclick="switchAiTab(event, 'tab-summary')">Summary</button>
-                    <button class="ai-tab-btn" th:if="${insight.problemStatement != null}" onclick="switchAiTab(event, 'tab-problem')">Problem</button>
-                    <button class="ai-tab-btn" th:if="${not #lists.isEmpty(insight.objectives)}" onclick="switchAiTab(event, 'tab-objectives')">Objectives</button>
+                    <button type="button" class="ai-tab-btn active" data-ai-tab="tab-summary">Summary</button>
+                    <button type="button" class="ai-tab-btn" th:if="${insight.problemStatement != null}" data-ai-tab="tab-problem">Problem</button>
+                    <button type="button" class="ai-tab-btn" th:if="${not #lists.isEmpty(insight.objectives)}" data-ai-tab="tab-objectives">Objectives</button>
                 </div>
 
                 <!-- Tab Contents -->
@@ -165,24 +165,7 @@
                 </div>
 
 
-                <!-- Tab Switching Javascript -->
-                <script>
-                    function switchAiTab(event, tabId) {
-                        event.preventDefault();
-                        const container = event.currentTarget.closest('.ai-complete');
-                        if (!container) return;
-                        
-                        container.querySelectorAll('.ai-tab-btn').forEach(btn => btn.classList.remove('active'));
-                        event.currentTarget.classList.add('active');
-                        
-                        container.querySelectorAll('.ai-tab-content').forEach(content => content.classList.remove('active'));
-                        
-                        const target = container.querySelector('#' + tabId);
-                        if (target) {
-                            target.classList.add('active');
-                        }
-                    }
-                </script>
+<!-- Tab switching handled by app.js (initAiTabs, event delegation) -->
             </div>
 
             <!-- FAILED -->

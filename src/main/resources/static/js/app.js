@@ -169,86 +169,21 @@
     });
   }
 
-  /* Phase 6 — Explainable Academic Assistant.
-     Both calls hit /api/assistant/{id}/... with the CSRF header; the server
-     enforces access control and the per-submission hourly rate limit. */
-  function initAssistant() {
-    const panel = document.querySelector("[data-assistant-panel]");
-    if (!panel) return;
-    const submissionId = panel.getAttribute("data-assistant-panel");
-    const token = csrf.token();
-    const header = csrf.header();
-
-    function post(path, body) {
-      const headers = { "Content-Type": "application/json" };
-      if (token && header) headers[header] = token;
-      return fetch(`/api/assistant/${submissionId}/${path}`, {
-        method: "POST",
-        headers,
-        body: body ? JSON.stringify(body) : "{}",
-      }).then((res) => {
-        if (res.status === 404) {
-          return { available: false, text: "The assistant is not available for this submission." };
-        }
-        return res.json();
-      });
-    }
-
-    function show(calloutSel, textSel, data) {
-      const callout = panel.querySelector(calloutSel);
-      const text = panel.querySelector(textSel);
-      if (!callout || !text) return;
-      callout.hidden = false;
-      callout.classList.toggle("assistant-callout-muted", !data.available);
-      text.textContent = data.text || "No answer received.";
-    }
-
-    const explainBtn = panel.querySelector("[data-assistant-explain]");
-    if (explainBtn) {
-      explainBtn.addEventListener("click", () => {
-        const original = explainBtn.textContent;
-        explainBtn.disabled = true;
-        explainBtn.textContent = "Thinking...";
-        post("explain")
-          .then((data) => show("[data-assistant-explanation]", "[data-assistant-explanation-text]", data))
-          .catch(() => show("[data-assistant-explanation]", "[data-assistant-explanation-text]",
-            { available: false, text: "Something went wrong — please try again." }))
-          .finally(() => {
-            explainBtn.disabled = false;
-            explainBtn.textContent = original;
-          });
-      });
-    }
-
-    const askBtn = panel.querySelector("[data-assistant-ask]");
-    const questionInput = panel.querySelector("[data-assistant-question]");
-    if (askBtn && questionInput) {
-      const ask = () => {
-        const question = questionInput.value.trim();
-        if (!question) {
-          questionInput.focus();
-          return;
-        }
-        const original = askBtn.textContent;
-        askBtn.disabled = true;
-        askBtn.textContent = "Thinking...";
-        post("ask", { question })
-          .then((data) => show("[data-assistant-answer]", "[data-assistant-answer-text]", data))
-          .catch(() => show("[data-assistant-answer]", "[data-assistant-answer-text]",
-            { available: false, text: "Something went wrong — please try again." }))
-          .finally(() => {
-            askBtn.disabled = false;
-            askBtn.textContent = original;
-          });
-      };
-      askBtn.addEventListener("click", ask);
-      questionInput.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") {
-          event.preventDefault();
-          ask();
-        }
-      });
-    }
+  /* AI insight tabs (Summary / Problem / Objectives) — event delegation, so
+     it works no matter when or where the fragment is rendered. */
+  function initAiTabs() {
+    document.addEventListener("click", function (event) {
+      const btn = event.target.closest(".ai-tab-btn[data-ai-tab]");
+      if (!btn) return;
+      event.preventDefault();
+      const container = btn.closest(".ai-complete");
+      if (!container) return;
+      container.querySelectorAll(".ai-tab-btn").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      container.querySelectorAll(".ai-tab-content").forEach((c) => c.classList.remove("active"));
+      const target = container.querySelector("#" + btn.dataset.aiTab);
+      if (target) target.classList.add("active");
+    });
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -260,6 +195,6 @@
     initAdminForms();
     initTableSearch();
     initSubmissionFilters();
-    initAssistant();
+    initAiTabs();
   });
 })();
