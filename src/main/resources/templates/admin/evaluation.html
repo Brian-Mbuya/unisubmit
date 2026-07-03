@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='evaluation')}">
+<body>
+<div>
+    <div class="page-head mb-6">
+        <div>
+            <div class="eyebrow">Admin console</div>
+            <h1>Recommender Evaluation</h1>
+            <p class="subtitle">
+                Measured retrieval quality of the similarity engine under different signal weightings.
+            </p>
+        </div>
+    </div>
+
+    <div class="card mb-6">
+        <div class="card-head">
+            <h2>How this is measured</h2>
+            <span class="badge badge-submitted"
+                  th:text="${report.groundTruthPairs} + ' ground-truth pairs'">0 pairs</span>
+        </div>
+        <p class="text-sm text-muted readable">
+            Every <strong>accepted collaboration request</strong> is treated as proof that the
+            requested project was genuinely relevant to that student. For each weight
+            configuration the engine re-ranks each student's candidate pool live and records
+            where the accepted project actually landed.
+            <strong>Precision@5</strong> is the share of pairs ranked in the top five;
+            <strong>MRR</strong> (mean reciprocal rank) rewards ranking relevant work near the top.
+            Nothing here is persisted — it is a what-if replay over real usage data.
+        </p>
+    </div>
+
+    <div th:if="${report.groundTruthPairs == 0}" class="empty-state">
+        <h3>No ground truth yet</h3>
+        <p>Metrics appear once students have accepted collaboration requests —
+           each acceptance becomes a relevance judgement the engine is scored against.</p>
+    </div>
+
+    <div th:if="${report.groundTruthPairs > 0}" class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Configuration</th>
+                    <th>Weights</th>
+                    <th>Retrieved</th>
+                    <th>Precision@5</th>
+                    <th>MRR</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="r, iter : ${report.results}"
+                    th:classappend="${iter.first} ? 'row-current' : ''">
+                    <td>
+                        <strong th:text="${r.name}">Config</strong>
+                        <span th:if="${iter.first}" class="badge badge-approved ml-2">live</span>
+                    </td>
+                    <td class="mono text-xs text-muted" th:text="${r.weightsSummary}">weights</td>
+                    <td th:text="${r.retrieved} + ' / ' + ${r.pairs}">0 / 0</td>
+                    <td>
+                        <strong th:text="${#numbers.formatDecimal(r.precisionAtK * 100, 1, 0)} + '%'">0%</strong>
+                    </td>
+                    <td class="mono" th:text="${#numbers.formatDecimal(r.mrr, 1, 3)}">0.000</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <p th:if="${report.groundTruthPairs > 0}" class="field-hint mt-4">
+        Weights are configurable under <code class="mono">unisubmit.recommendation.weight.*</code>
+        in application.yml — if an ablation above beats the live configuration, tune accordingly.
+    </p>
+</div>
+</body>
+</html>
