@@ -42,7 +42,7 @@ public class StudentProfile {
      * work is excluded from BOTH sides of collaboration matching (never surfaced
      * to others, never shown other people's matches). Defaults to true.
      */
-    @Column(name = "discoverable_for_collaboration", nullable = false)
+    @Column(name = "discoverable_for_collaboration", nullable = false, columnDefinition = "boolean default true")
     private boolean discoverableForCollaboration = true;
 
     @OneToMany(mappedBy = "student", cascade = CascadeType.ALL, orphanRemoval = true)
