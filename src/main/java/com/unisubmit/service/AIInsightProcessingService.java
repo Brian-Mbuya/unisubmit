@@ -188,9 +188,14 @@ public class AIInsightProcessingService {
             }
             """.formatted(model, escapedPrompt);
 
-        java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+        // Bounded timeouts so a slow / rate-limited provider fails fast into the
+        // local fallback instead of blocking the pipeline up to its 120s limit.
+        java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                .connectTimeout(java.time.Duration.ofSeconds(10))
+                .build();
         java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create(getCompletionsUrl()))
+                .timeout(java.time.Duration.ofSeconds(45))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + apiKey)
                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestBody, java.nio.charset.StandardCharsets.UTF_8))

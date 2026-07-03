@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface LecturerProfileRepository extends JpaRepository<LecturerProfile, Long> {
     Optional<LecturerProfile> findByStaffNumber(String staffNumber);
+    Optional<LecturerProfile> findByStaffNumberIgnoreCase(String staffNumber);
     Optional<LecturerProfile> findByUser_Username(String username);
     List<LecturerProfile> findByUser_DeletedFalse();
 }
