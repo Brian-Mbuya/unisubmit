@@ -107,7 +107,7 @@
                         <span class="text-xs text-subtle"
                               th:text="${#lists.size(submission.versions)} + ' total'">0 total</span>
                     </div>
-                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
+                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions}, false)}"></div>
                 </div>
 
                 <!-- Recommended reviewers (Phase 5 — lecturer matching) -->

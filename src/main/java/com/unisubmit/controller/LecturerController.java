@@ -28,6 +28,10 @@ public class LecturerController {
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final com.unisubmit.service.RecommendationService recommendationService;
 
+    /** Phase 7 — blind review: hide student identity until a grade is given. */
+    @org.springframework.beans.factory.annotation.Value("${unisubmit.review.blind-mode:false}")
+    private boolean blindReviewMode;
+
     public LecturerController(SubmissionService submissionService,
                               com.unisubmit.service.AnnouncementService announcementService,
                               com.unisubmit.service.KnowledgeTagService tagService,
@@ -138,6 +142,11 @@ public class LecturerController {
         // read-only, so overlapping submissions surface during review.
         model.addAttribute("similarSubmissions",
                 recommendationService.findSimilarSubmissions(submission, userDetails.getUser()));
+        // Blind review holds until the first graded feedback exists.
+        boolean graded = submission.getVersions().stream()
+                .flatMap(v -> v.getFeedbacks().stream())
+                .anyMatch(f -> f.getGrade() != null);
+        model.addAttribute("blindReview", blindReviewMode && !graded);
         return "lecturer/review-split";
     }
 

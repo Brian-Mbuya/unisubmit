@@ -12,7 +12,8 @@
     <!-- ════════════════════════════════════════════════════════════════════ -->
     <!-- Version & feedback timeline                                           -->
     <!-- ════════════════════════════════════════════════════════════════════ -->
-    <div th:fragment="feedbackTimeline(versions)">
+    <!-- maskUploaders=true hides student identity (blind review mode) -->
+    <div th:fragment="feedbackTimeline(versions, maskUploaders)">
 
         <div th:if="${#lists.isEmpty(versions)}" class="empty-state empty-state-compact">
             No activity yet — waiting for the first upload.
@@ -34,7 +35,7 @@
                         <span class="meta-item text-subtle"
                               th:text="${#numbers.formatDecimal(version.fileSize / 1024.0, 1, 1)} + ' KB'">0 KB</span>
                         <span th:if="${version.uploadedBy != null}" class="meta-item text-xs text-muted"
-                              th:text="'Uploaded by: ' + ${version.uploadedBy.name}">Uploaded by User</span>
+                              th:text="'Uploaded by: ' + (${maskUploaders} ? 'Anonymous student' : ${version.uploadedBy.name})">Uploaded by User</span>
                     </div>
                 </div>
 

@@ -7,7 +7,7 @@
                 <div class="eyebrow">Lecturer review</div>
                 <h1 th:text="${submission.title}">Submission title</h1>
                 <p class="subtitle">
-                    By <span th:text="${submission.student.name}">Student</span>
+                    By <span th:text="${blindReview} ? 'Anonymous student' : ${submission.student.name}">Student</span>
                     <span aria-hidden="true">/</span>
                     <span th:text="${submission.unit.unitName}">Unit</span>
                 </p>
@@ -88,16 +88,18 @@
                 <section class="card">
                     <div class="card-head">
                         <h2>Submission details</h2>
+                        <span th:if="${blindReview}" class="badge badge-review" title="Student identity is hidden until you submit a grade — the document itself may still contain identifying details.">Blind review</span>
                     </div>
                     <div class="info-row">
                         <span class="label">Student</span>
-                        <span th:text="${submission.student.name}">Name</span>
+                        <span th:if="${!blindReview}" th:text="${submission.student.name}">Name</span>
+                        <span th:if="${blindReview}" class="text-muted italic">Anonymous until graded</span>
                     </div>
-                    <div class="info-row" th:if="${submission.projectGroup != null}">
+                    <div class="info-row" th:if="${submission.projectGroup != null and !blindReview}">
                         <span class="label">Project Group</span>
                         <strong th:text="${submission.projectGroup.name}">Group Name</strong>
                     </div>
-                    <div class="info-row" th:if="${submission.projectGroup != null}">
+                    <div class="info-row" th:if="${submission.projectGroup != null and !blindReview}">
                         <span class="label">Group Members</span>
                         <span>
                             <span th:each="m, iter : ${submission.projectGroup.members}" 
@@ -189,7 +191,7 @@
                     <div class="card-head">
                         <h2>Activity timeline</h2>
                     </div>
-                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions})}"></div>
+                    <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions}, ${blindReview})}"></div>
                 </section>
 
             </aside>
