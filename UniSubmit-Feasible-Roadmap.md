@@ -1,16 +1,29 @@
 # UniSubmit — Feasible Roadmap (Solo-Buildable Edition)
 
-> Status as of **3 July 2026**: Phases 1–6 complete, plus Phase 7 item 3 (near-duplicate
-> integrity check via SHA-256 content hashes, V17 migration). Full UI redesign shipped
-> ("Nocturne Laurel" dark theme). Phase 5.5 backlog done. Phase 6 assistant exists as
-> guarded API endpoints only (/api/assistant/*) — its UI card was removed at the owner's
-> request. Owner-driven changes beyond the roadmap: knowledge-tag UI removed everywhere
-> (engine still uses LLM-populated tags internally; admin console at /admin/tags is
-> unlinked but functional), adaptive score normalisation (unfireable signals excluded
-> from the denominator; identical documents now read 100%), suspension actually blocks
-> login + ejects live sessions, admin programme edit fixed, student announcements
-> include units the student has submitted to, lecturer doc preview rebuilt, login
-> brute-force throttling added. Remaining stretch: Phase 7 items 1–2, 4–7.
+> Status as of **3 July 2026**: ALL PHASES COMPLETE (1–7). Full UI redesign shipped
+> ("Nocturne Laurel" dark theme). Phase 7 delivery notes:
+> (1) Evaluation harness — /admin/evaluation, precision@5 + MRR over accepted
+>     collaboration requests as ground truth, 6 weight configs compared live.
+> (2) Hybrid search — /search for all roles: BM25 keyword ranking (works on H2) +
+>     optional pgvector semantic channel (unisubmit.search.semantic-enabled, Postgres
+>     only), fused with Reciprocal Rank Fusion; visibility-filtered.
+> (3) Near-duplicate integrity check — SHA-256 content hashes (V17), identical files
+>     score 100% with an "Identical document" label.
+> (4) Research landscape — /admin/landscape, plain-Java k-means + PCA over embeddings
+>     (fallback: keyword/tag vectors on H2), SVG dot map with cluster legends.
+> (5) BM25 upgrade applied to search retrieval (recommender's keyword signal kept
+>     as-is deliberately — owner had just approved its behaviour).
+> (6) OCR fallback — unisubmit.ocr.* config + /ocr route in specter-service
+>     (pytesseract; returns 501 when deps missing so Java degrades cleanly);
+>     triggers when Tika extracts <200 chars.
+> (7) Blind review — unisubmit.review.blind-mode flag; identity hidden until the
+>     first graded feedback.
+> Phase 6 assistant exists as guarded API endpoints only (/api/assistant/*) — UI
+> removed at owner's request. Other owner-driven changes: knowledge-tag UI removed
+> everywhere (engine still uses LLM tags internally; /admin/tags unlinked but works),
+> adaptive score normalisation, suspension enforcement (login block + live-session
+> eject), admin programme edit fix, announcements include submitted-to units,
+> lecturer doc preview rebuilt, login brute-force throttling. 30 unit tests green.
 
 This roadmap keeps only what one student, working alone on the current Spring Boot
 codebase, can realistically build and demo. Each phase is self-contained: goal, tasks,
