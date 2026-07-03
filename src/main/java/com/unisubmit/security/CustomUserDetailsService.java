@@ -50,11 +50,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         Optional<User> userOpt = userRepository.findByUsername(normalized);
         
         if (userOpt.isEmpty()) {
-            Optional<StudentProfile> sp = studentProfileRepository.findByAdmissionNumber(normalized);
+            // Case-insensitive so "d-cs-1" matches admission "D-CS-1" and staff IDs
+            // are not case-sensitive to log in with.
+            Optional<StudentProfile> sp = studentProfileRepository.findByAdmissionNumberIgnoreCase(normalized);
             if (sp.isPresent()) {
                 userOpt = Optional.of(sp.get().getUser());
             } else {
-                Optional<LecturerProfile> lp = lecturerProfileRepository.findByStaffNumber(normalized);
+                Optional<LecturerProfile> lp = lecturerProfileRepository.findByStaffNumberIgnoreCase(normalized);
                 if (lp.isPresent()) {
                     userOpt = Optional.of(lp.get().getUser());
                 }
