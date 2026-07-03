@@ -59,6 +59,18 @@ unisubmit:
   specter:
     enabled: ${SPECTER_ENABLED:false}
     url: ${SPECTER_URL:http://localhost:5001}
+  ocr:
+    # OCR fallback for scanned PDFs — needs the sidecar's /ocr route
+    # (pytesseract + pdf2image installed in specter-service).
+    enabled: ${OCR_ENABLED:false}
+    url: ${OCR_URL:http://localhost:5001}
+  search:
+    # pgvector semantic channel of /search — PostgreSQL-only; keyword BM25
+    # works everywhere regardless of this flag.
+    semantic-enabled: ${SEARCH_SEMANTIC_ENABLED:false}
+  review:
+    # Blind review: lecturers see "Anonymous student" until a grade is given.
+    blind-mode: ${BLIND_REVIEW:false}
   recommendation:
     # Scoring weights are relative — the final score is normalised by their sum,
     # so you can tune each signal independently for the report/viva demos.

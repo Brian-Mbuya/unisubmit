@@ -64,6 +64,7 @@ public class AIInsightProcessingService {
     private final GrobidService grobidService;
     private final ReferenceRepository referenceRepository;
     private final SpecterService specterService;
+    private final OcrService ocrService;
     private final SubmissionRepository submissionRepository;
     private final TransactionTemplate transactionTemplate;
     private final Path uploadRoot;
@@ -88,6 +89,7 @@ public class AIInsightProcessingService {
                                       GrobidService grobidService,
                                       ReferenceRepository referenceRepository,
                                       SpecterService specterService,
+                                      OcrService ocrService,
                                       SubmissionRepository submissionRepository,
                                       PlatformTransactionManager transactionManager,
                                       @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
@@ -98,6 +100,7 @@ public class AIInsightProcessingService {
         this.grobidService = grobidService;
         this.referenceRepository = referenceRepository;
         this.specterService = specterService;
+        this.ocrService = ocrService;
         this.submissionRepository = submissionRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
@@ -305,8 +308,19 @@ public class AIInsightProcessingService {
                         // If GROBID fails/disabled or yields no text, fall back to Tika
                         if (promptInputText.isBlank()) {
                             rawText = extractText(filePath);
+                            // Scanned-document case: Tika sees (almost) nothing.
+                            // Try the OCR sidecar before giving up.
+                            if (rawText == null || rawText.strip().length() < 200) {
+                                String ocrText = ocrService.extractText(filePath.toFile()).orElse(null);
+                                if (ocrText != null && ocrText.strip().length() >= 200) {
+                                    rawText = ocrText;
+                                }
+                            }
                             if (rawText == null || rawText.isBlank()) {
-                                throw new IllegalStateException("Document appears to be empty or unreadable.");
+                                throw new IllegalStateException(ocrService.isEnabled()
+                                        ? "Document appears to be empty or unreadable, and OCR found no text either."
+                                        : "Document appears to be empty or scanned. OCR fallback is disabled "
+                                          + "(enable it with UNISUBMIT OCR settings) — upload a text-based file instead.");
                             }
                             promptInputText = trimFrontMatter(rawText);
                         } else {
