@@ -46,6 +46,15 @@
             <span>Accounts</span>
         </a>
 
+        <a th:href="@{/admin/evaluation}" th:classappend="${activeMenu == 'evaluation' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><path d="M3 3v18h18M7 16l4-6 4 3 5-8"/></svg>
+            <span>Evaluation</span>
+        </a>
+
+        <a th:href="@{/admin/landscape}" th:classappend="${activeMenu == 'landscape' ? 'active' : ''}">
+            <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="16" height="16"><circle cx="6" cy="16" r="2"/><circle cx="12" cy="7" r="2"/><circle cx="18" cy="13" r="2"/><path d="M7.5 14.5 10.5 9M13.7 8.2l2.8 3.3"/></svg>
+            <span>Landscape</span>
+        </a>
     </aside>
 
     <main class="admin-content">
