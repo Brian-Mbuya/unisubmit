@@ -157,12 +157,32 @@ public class SubmissionService {
         version.setFileSize(file.getSize());
         version.setVersionNumber(nextVersionNum);
         version.setUploadedBy(uploadedBy);
+        version.setContentHash(sha256Hex(file));
 
         submission.getVersions().add(version);
         versionRepository.save(version);
 
         auditService.record(submission, AuditAction.VERSION_UPLOADED,
                 "Version " + version.getVersionNumber() + " uploaded", uploadedBy);
+    }
+
+    /** SHA-256 fingerprint of an upload; null (not a failure) when unreadable. */
+    private String sha256Hex(MultipartFile file) {
+        try (java.io.InputStream in = file.getInputStream()) {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                digest.update(buffer, 0, read);
+            }
+            StringBuilder sb = new StringBuilder(64);
+            for (byte b : digest.digest()) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     public List<Submission> getSubmissionsForStudent(User student) {

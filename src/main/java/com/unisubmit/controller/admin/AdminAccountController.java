@@ -101,6 +101,17 @@ public class AdminAccountController {
                 profile.setAcademicStatus(academicStatus.trim());
             }
             studentProfileRepository.save(profile);
+
+            // Academic status must reach the ACCOUNT — previously "Suspended"
+            // was only a cosmetic label and the student could still log in.
+            User account = profile.getUser();
+            if (account != null) {
+                if ("SUSPENDED".equalsIgnoreCase(academicStatus)) {
+                    userService.suspendUser(account.getId(), "Suspended by administrator (academic status)");
+                } else if (account.isSuspended()) {
+                    userService.unsuspendUser(account.getId());
+                }
+            }
             ra.addFlashAttribute("success", "Student profile updated successfully.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Could not update student: " + e.getMessage());

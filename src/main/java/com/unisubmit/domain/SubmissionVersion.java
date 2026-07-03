@@ -44,6 +44,10 @@ public class SubmissionVersion {
     @Column(length = 500)
     private String changesSummary;
 
+    /** SHA-256 of the uploaded file — powers identical-document detection. */
+    @Column(length = 64)
+    private String contentHash;
+
     @ManyToOne(optional = true)
     @JoinColumn(name = "uploaded_by_id")
     private User uploadedBy;

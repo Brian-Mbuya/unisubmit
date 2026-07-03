@@ -146,9 +146,18 @@ public class RecommendationService {
                     + (researchAreaScore * weights.getResearchArea());
             double finalScore = effectiveWeight > 0 ? weightedSum / effectiveWeight : 0.0;
 
+            // Integrity signal: byte-identical latest files are a duplicate
+            // submission, not merely "similar work" — flag at full score.
+            boolean identicalDocument = isIdenticalDocument(current, candidate);
+            if (identicalDocument) {
+                finalScore = 1.0;
+            }
+
             if (finalScore >= 0.05 || sameUnitFlag || !sharedTechs.isEmpty()) {
-                String reason = determineReason(keywordScore, titleScore, sameUnitFlag, sameCourse,
-                        sharedTechs, sharedAreas);
+                String reason = identicalDocument
+                        ? "Identical document uploaded — possible duplicate submission"
+                        : determineReason(keywordScore, titleScore, sameUnitFlag, sameCourse,
+                                sharedTechs, sharedAreas);
 
                 SubmissionSimilarity sim = new SubmissionSimilarity();
                 sim.setSubmissionA(current);
@@ -187,7 +196,8 @@ public class RecommendationService {
                     return null;
                 }
                 String label;
-                if (m.getSimilarityScore() >= 0.45) label = "Strong match";
+                if (m.getSimilarityScore() >= 0.995) label = "Identical document";
+                else if (m.getSimilarityScore() >= 0.45) label = "Strong match";
                 else if (m.getSimilarityScore() >= 0.2) label = "Related work";
                 else label = "Possible match";
 
@@ -296,6 +306,20 @@ public class RecommendationService {
 
     private static List<String> listOrEmpty(List<String> list) {
         return list != null ? list : List.of();
+    }
+
+    /** True when both submissions' latest uploaded files carry the same SHA-256. */
+    private static boolean isIdenticalDocument(Submission a, Submission b) {
+        String hashA = latestContentHash(a);
+        String hashB = latestContentHash(b);
+        return hashA != null && hashA.equals(hashB);
+    }
+
+    private static String latestContentHash(Submission s) {
+        if (s.getVersions() == null || s.getVersions().isEmpty()) {
+            return null;
+        }
+        return s.getVersions().get(s.getVersions().size() - 1).getContentHash();
     }
 
     private double semanticSimilarity(Submission a, Submission b) {
