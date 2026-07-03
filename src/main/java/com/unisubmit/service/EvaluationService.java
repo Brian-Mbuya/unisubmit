@@ -1,0 +1,143 @@
+package com.unisubmit.service;
+
+import com.unisubmit.config.RecommendationWeights;
+import com.unisubmit.domain.CollaborationRequest;
+import com.unisubmit.domain.CollaborationRequestStatus;
+import com.unisubmit.domain.Submission;
+import com.unisubmit.domain.User;
+import com.unisubmit.repository.CollaborationRequestRepository;
+import com.unisubmit.repository.SubmissionRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Phase 7 — evaluation harness for the recommendation engine.
+ * <p>
+ * Ground truth: every ACCEPTED collaboration request proves that the target
+ * submission was genuinely relevant to the requesting student. For each such
+ * pair the harness replays the recommender under several weight
+ * configurations and measures where the accepted target actually ranked:
+ * <ul>
+ *   <li><b>precision@5</b> — fraction of ground-truth targets inside the top 5</li>
+ *   <li><b>MRR</b> — mean reciprocal rank (1/rank, 0 when never retrieved)</li>
+ * </ul>
+ * A pair's rank is the BEST rank across all of the requester's own
+ * submissions, since the request may have originated from any of them.
+ * Nothing is persisted — rankings are computed live per configuration.
+ */
+@Service
+public class EvaluationService {
+
+    /** Rank cut-off for the precision metric. */
+    static final int PRECISION_CUTOFF = 5;
+
+    public record ConfigResult(String name, String weightsSummary, int pairs,
+                               int retrieved, double precisionAtK, double mrr) {}
+
+    public record EvaluationReport(int groundTruthPairs, List<ConfigResult> results) {}
+
+    private final CollaborationRequestRepository requestRepository;
+    private final SubmissionRepository submissionRepository;
+    private final RecommendationService recommendationService;
+    private final RecommendationWeights currentWeights;
+
+    public EvaluationService(CollaborationRequestRepository requestRepository,
+                             SubmissionRepository submissionRepository,
+                             RecommendationService recommendationService,
+                             RecommendationWeights currentWeights) {
+        this.requestRepository = requestRepository;
+        this.submissionRepository = submissionRepository;
+        this.recommendationService = recommendationService;
+        this.currentWeights = currentWeights;
+    }
+
+    @Transactional(readOnly = true)
+    public EvaluationReport evaluate() {
+        // Ground truth: (requesting student, accepted target submission)
+        record GroundTruth(User requester, Long targetSubmissionId) {}
+        List<GroundTruth> truths = requestRepository.findByStatus(CollaborationRequestStatus.ACCEPTED).stream()
+                .filter(r -> r.getSubmission() != null && r.getSender() != null)
+                .map(r -> new GroundTruth(r.getSender(), r.getSubmission().getId()))
+                .distinct()
+                .toList();
+
+        List<ConfigResult> results = new ArrayList<>();
+        for (Map.Entry<String, RecommendationWeights> config : configurations().entrySet()) {
+            RecommendationWeights w = config.getValue();
+            int retrieved = 0;
+            int hitsAtK = 0;
+            double reciprocalSum = 0.0;
+
+            for (GroundTruth truth : truths) {
+                int bestRank = Integer.MAX_VALUE;
+                for (Submission own : submissionRepository.findByStudent(truth.requester())) {
+                    if (own.getId().equals(truth.targetSubmissionId())) {
+                        continue;
+                    }
+                    List<Long> ranked = recommendationService.rankCandidateIds(own, w);
+                    int rank = ranked.indexOf(truth.targetSubmissionId());
+                    if (rank >= 0) {
+                        bestRank = Math.min(bestRank, rank + 1);
+                    }
+                }
+                if (bestRank != Integer.MAX_VALUE) {
+                    retrieved++;
+                    reciprocalSum += 1.0 / bestRank;
+                    if (bestRank <= PRECISION_CUTOFF) {
+                        hitsAtK++;
+                    }
+                }
+            }
+
+            int pairs = truths.size();
+            results.add(new ConfigResult(
+                    config.getKey(),
+                    summarize(w),
+                    pairs,
+                    retrieved,
+                    pairs == 0 ? 0.0 : (double) hitsAtK / pairs,
+                    pairs == 0 ? 0.0 : reciprocalSum / pairs));
+        }
+        return new EvaluationReport(truths.size(), results);
+    }
+
+    /**
+     * The weight configurations under comparison. First entry is whatever is
+     * live in application.yml, the rest are ablations that show what each
+     * signal family contributes — exactly why the weights were made
+     * configurable in Phase 5.
+     */
+    private Map<String, RecommendationWeights> configurations() {
+        Map<String, RecommendationWeights> configs = new LinkedHashMap<>();
+        configs.put("Current (application.yml)", currentWeights);
+        configs.put("Keywords only", weights(1.0, 0, 0, 0, 0, 0));
+        configs.put("Structured tags only", weights(0, 0, 0, 0, 0.6, 0.4));
+        configs.put("Title + unit only", weights(0, 0.6, 0.4, 0, 0, 0));
+        configs.put("Uniform blend", weights(1, 1, 1, 1, 1, 1));
+        configs.put("No structural bias (unit=0)", weights(0.5, 0.3, 0, 0.3, 0.35, 0.25));
+        return configs;
+    }
+
+    private static RecommendationWeights weights(double keyword, double title, double unit,
+                                                 double semantic, double technology, double researchArea) {
+        RecommendationWeights w = new RecommendationWeights();
+        w.setKeyword(keyword);
+        w.setTitle(title);
+        w.setUnit(unit);
+        w.setSemantic(semantic);
+        w.setTechnology(technology);
+        w.setResearchArea(researchArea);
+        return w;
+    }
+
+    private static String summarize(RecommendationWeights w) {
+        return String.format(Locale.ROOT, "kw %.2f · title %.2f · unit %.2f · sem %.2f · tech %.2f · area %.2f",
+                w.getKeyword(), w.getTitle(), w.getUnit(), w.getSemantic(), w.getTechnology(), w.getResearchArea());
+    }
+}

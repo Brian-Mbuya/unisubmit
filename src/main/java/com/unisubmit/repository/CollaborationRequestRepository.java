@@ -21,5 +21,8 @@ public interface CollaborationRequestRepository extends JpaRepository<Collaborat
 
     long countByRecipientAndStatus(User recipient, CollaborationRequestStatus status);
 
+    /** Evaluation-harness ground truth: accepted requests prove relevance. */
+    List<CollaborationRequest> findByStatus(CollaborationRequestStatus status);
+
     boolean existsBySenderOrRecipient(User sender, User recipient);
 }

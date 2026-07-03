@@ -103,82 +103,143 @@ public class RecommendationService {
                 continue;
             }
 
-            AIInsight candidateInsight = candidate.getAiInsight();
-            List<String> candidateKeywords = getKeywords(candidateInsight);
+            PairSignals signals = scorePair(current, currentKeywords, currentTechs, currentAreas,
+                    candidate, weights);
 
-            List<String> sharedKeywords = intersection(currentKeywords, candidateKeywords);
-            int maxKeywords = Math.max(Math.max(currentKeywords.size(), candidateKeywords.size()), 1);
-            double keywordScore = (double) sharedKeywords.size() / maxKeywords;
-
-            double titleScore = calculateTitleSimilarity(current.getTitle(), candidate.getTitle());
-            boolean sameCourse = current.getCurriculum().getUnit().getDepartment().getId().equals(candidate.getCurriculum().getUnit().getDepartment().getId());
-            boolean sameUnitFlag = current.getCurriculum().getUnit().getId().equals(candidate.getCurriculum().getUnit().getId());
-            double unitScore = sameUnitFlag ? 1.0 : (sameCourse ? 0.5 : 0.0);
-            double semanticScore = semanticSimilarity(current, candidate);
-
-            // Structured knowledge-model overlap (Phase 2/3 tags, not free text)
-            Map<String, String> candTechs = tagNameMap(candidate.getTechnologies().stream()
-                    .map(Technology::getName).collect(Collectors.toList()));
-            Map<String, String> candAreas = tagNameMap(candidate.getResearchAreas().stream()
-                    .map(ResearchArea::getName).collect(Collectors.toList()));
-            List<String> sharedTechs = sharedDisplayNames(currentTechs, candTechs);
-            List<String> sharedAreas = sharedDisplayNames(currentAreas, candAreas);
-            double technologyScore = jaccard(currentTechs.keySet(), candTechs.keySet());
-            double researchAreaScore = jaccard(currentAreas.keySet(), candAreas.keySet());
-
-            // Adaptive normalisation: a signal that CANNOT fire for this pair
-            // (no embeddings stored, no extracted keywords) is excluded from the
-            // denominator instead of silently dragging every score down.
-            // Without this, two identical documents could never exceed ~84%
-            // whenever the SPECTER sidecar is off.
-            boolean semanticEvaluable = current.getEmbedding() != null && candidate.getEmbedding() != null;
-            boolean keywordEvaluable = !currentKeywords.isEmpty() && !candidateKeywords.isEmpty();
-            double effectiveWeight = weights.getTitle() + weights.getUnit()
-                    + weights.getTechnology() + weights.getResearchArea()
-                    + (keywordEvaluable ? weights.getKeyword() : 0.0)
-                    + (semanticEvaluable ? weights.getSemantic() : 0.0);
-
-            double weightedSum = (keywordScore * weights.getKeyword())
-                    + (titleScore * weights.getTitle())
-                    + (unitScore * weights.getUnit())
-                    + (semanticScore * weights.getSemantic())
-                    + (technologyScore * weights.getTechnology())
-                    + (researchAreaScore * weights.getResearchArea());
-            double finalScore = effectiveWeight > 0 ? weightedSum / effectiveWeight : 0.0;
-
-            // Integrity signal: byte-identical latest files are a duplicate
-            // submission, not merely "similar work" — flag at full score.
-            boolean identicalDocument = isIdenticalDocument(current, candidate);
-            if (identicalDocument) {
-                finalScore = 1.0;
-            }
-
-            if (finalScore >= 0.05 || sameUnitFlag || !sharedTechs.isEmpty()) {
-                String reason = identicalDocument
+            if (signals.finalScore() >= 0.05 || signals.sameUnit() || !signals.sharedTechs().isEmpty()) {
+                String reason = signals.identicalDocument()
                         ? "Identical document uploaded — possible duplicate submission"
-                        : determineReason(keywordScore, titleScore, sameUnitFlag, sameCourse,
-                                sharedTechs, sharedAreas);
+                        : determineReason(signals.keyword(), signals.title(), signals.sameUnit(),
+                                signals.sameCourse(), signals.sharedTechs(), signals.sharedAreas());
 
                 SubmissionSimilarity sim = new SubmissionSimilarity();
                 sim.setSubmissionA(current);
                 sim.setSubmissionB(candidate);
-                sim.setSimilarityScore(finalScore);
-                sim.setMatchedKeywords(sharedKeywords);
-                sim.setMatchedTechnologies(sharedTechs);
-                sim.setMatchedResearchAreas(sharedAreas);
-                sim.setKeywordScore(keywordScore);
-                sim.setTitleScore(titleScore);
-                sim.setUnitScore(unitScore);
-                sim.setSemanticScore(semanticScore);
-                sim.setTechnologyScore(technologyScore);
-                sim.setResearchAreaScore(researchAreaScore);
-                sim.setSameUnit(sameUnitFlag);
+                sim.setSimilarityScore(signals.finalScore());
+                sim.setMatchedKeywords(signals.sharedKeywords());
+                sim.setMatchedTechnologies(signals.sharedTechs());
+                sim.setMatchedResearchAreas(signals.sharedAreas());
+                sim.setKeywordScore(signals.keyword());
+                sim.setTitleScore(signals.title());
+                sim.setUnitScore(signals.unit());
+                sim.setSemanticScore(signals.semantic());
+                sim.setTechnologyScore(signals.technology());
+                sim.setResearchAreaScore(signals.researchArea());
+                sim.setSameUnit(signals.sameUnit());
                 sim.setReason(reason);
                 newSims.add(sim);
             }
         }
 
         similarityRepository.saveAll(newSims);
+    }
+
+    /** All six signals + derived final score for one submission pair. */
+    public record PairSignals(double keyword, double title, double unit, double semantic,
+                              double technology, double researchArea,
+                              List<String> sharedKeywords, List<String> sharedTechs,
+                              List<String> sharedAreas, boolean sameUnit, boolean sameCourse,
+                              boolean identicalDocument, double finalScore) {}
+
+    /**
+     * Scores one candidate against the current submission using the GIVEN
+     * weight set — the single source of truth for both the persisted
+     * precompute and the evaluation harness's what-if rankings.
+     */
+    private PairSignals scorePair(Submission current, List<String> currentKeywords,
+                                  Map<String, String> currentTechs, Map<String, String> currentAreas,
+                                  Submission candidate, com.unisubmit.config.RecommendationWeights w) {
+        AIInsight candidateInsight = candidate.getAiInsight();
+        List<String> candidateKeywords = getKeywords(candidateInsight);
+
+        List<String> sharedKeywords = intersection(currentKeywords, candidateKeywords);
+        int maxKeywords = Math.max(Math.max(currentKeywords.size(), candidateKeywords.size()), 1);
+        double keywordScore = (double) sharedKeywords.size() / maxKeywords;
+
+        double titleScore = calculateTitleSimilarity(current.getTitle(), candidate.getTitle());
+        boolean sameCourse = current.getCurriculum().getUnit().getDepartment().getId().equals(candidate.getCurriculum().getUnit().getDepartment().getId());
+        boolean sameUnitFlag = current.getCurriculum().getUnit().getId().equals(candidate.getCurriculum().getUnit().getId());
+        double unitScore = sameUnitFlag ? 1.0 : (sameCourse ? 0.5 : 0.0);
+        double semanticScore = semanticSimilarity(current, candidate);
+
+        // Structured knowledge-model overlap (Phase 2/3 tags, not free text)
+        Map<String, String> candTechs = tagNameMap(candidate.getTechnologies().stream()
+                .map(Technology::getName).collect(Collectors.toList()));
+        Map<String, String> candAreas = tagNameMap(candidate.getResearchAreas().stream()
+                .map(ResearchArea::getName).collect(Collectors.toList()));
+        List<String> sharedTechs = sharedDisplayNames(currentTechs, candTechs);
+        List<String> sharedAreas = sharedDisplayNames(currentAreas, candAreas);
+        double technologyScore = jaccard(currentTechs.keySet(), candTechs.keySet());
+        double researchAreaScore = jaccard(currentAreas.keySet(), candAreas.keySet());
+
+        // Adaptive normalisation: a signal that CANNOT fire for this pair
+        // (no embeddings stored, no extracted keywords) is excluded from the
+        // denominator instead of silently dragging every score down.
+        // Without this, two identical documents could never exceed ~84%
+        // whenever the SPECTER sidecar is off.
+        boolean semanticEvaluable = current.getEmbedding() != null && candidate.getEmbedding() != null;
+        boolean keywordEvaluable = !currentKeywords.isEmpty() && !candidateKeywords.isEmpty();
+        double effectiveWeight = w.getTitle() + w.getUnit()
+                + w.getTechnology() + w.getResearchArea()
+                + (keywordEvaluable ? w.getKeyword() : 0.0)
+                + (semanticEvaluable ? w.getSemantic() : 0.0);
+
+        double weightedSum = (keywordScore * w.getKeyword())
+                + (titleScore * w.getTitle())
+                + (unitScore * w.getUnit())
+                + (semanticScore * w.getSemantic())
+                + (technologyScore * w.getTechnology())
+                + (researchAreaScore * w.getResearchArea());
+        double finalScore = effectiveWeight > 0 ? weightedSum / effectiveWeight : 0.0;
+
+        // Integrity signal: byte-identical latest files are a duplicate
+        // submission, not merely "similar work" — flag at full score.
+        boolean identicalDocument = isIdenticalDocument(current, candidate);
+        if (identicalDocument) {
+            finalScore = 1.0;
+        }
+
+        return new PairSignals(keywordScore, titleScore, unitScore, semanticScore,
+                technologyScore, researchAreaScore, sharedKeywords, sharedTechs, sharedAreas,
+                sameUnitFlag, sameCourse, identicalDocument, finalScore);
+    }
+
+    /**
+     * Live what-if ranking for the evaluation harness: scores the current
+     * submission's candidate pool under an ARBITRARY weight configuration and
+     * returns candidate submission IDs, best first. Nothing is persisted.
+     */
+    @Transactional
+    public List<Long> rankCandidateIds(Submission current, com.unisubmit.config.RecommendationWeights whatIfWeights) {
+        if (current.getCurriculum() == null || current.getCurriculum().getUnit() == null) {
+            return List.of();
+        }
+        List<String> currentKeywords = getKeywords(current.getAiInsight());
+        Map<String, String> currentTechs = tagNameMap(current.getTechnologies().stream()
+                .map(Technology::getName).collect(Collectors.toList()));
+        Map<String, String> currentAreas = tagNameMap(current.getResearchAreas().stream()
+                .map(ResearchArea::getName).collect(Collectors.toList()));
+
+        List<Submission> sameUnit = submissionRepository.findByCurriculum_UnitAndStudentNot(current.getCurriculum().getUnit(), current.getStudent());
+        List<Submission> recentOthers = submissionRepository.findByStudentNotOrderByCreatedAtDesc(current.getStudent(), PageRequest.of(0, CANDIDATE_LIMIT));
+
+        Set<Long> poolIds = new LinkedHashSet<>();
+        for (Submission s : sameUnit) poolIds.add(s.getId());
+        for (Submission s : recentOthers) poolIds.add(s.getId());
+        poolIds.remove(current.getId());
+        if (poolIds.isEmpty()) {
+            return List.of();
+        }
+
+        record Ranked(Long id, double score) {}
+        return submissionRepository.findWithRecommendationDataByIdIn(poolIds).stream()
+                .filter(candidate -> accessService.canDiscoverSubmission(current.getStudent(), candidate))
+                .map(candidate -> new Ranked(candidate.getId(),
+                        scorePair(current, currentKeywords, currentTechs, currentAreas,
+                                candidate, whatIfWeights).finalScore()))
+                .sorted(Comparator.comparingDouble(Ranked::score).reversed())
+                .map(Ranked::id)
+                .collect(Collectors.toList());
     }
 
     /**
