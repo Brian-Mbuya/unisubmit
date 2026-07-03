@@ -2171,3 +2171,46 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 .member-search-wrap .member-search-results-box {
     max-width: none;   /* dropdown matches the input width exactly */
 }
+
+/* ── Phase 7: hybrid search page ── */
+.search-page-form {
+    display: flex;
+    gap: 0.6rem;
+    max-width: 640px;
+}
+.search-page-form .search-page-input { flex: 1; font-size: 0.95rem; padding: 0.7rem 1rem; }
+.search-page-form .btn { padding: 0.7rem 1.4rem; }
+
+/* ── Phase 7: evaluation table ── */
+.row-current td { background: rgba(95, 191, 171, 0.05); }
+
+/* ── Phase 7: research landscape ── */
+.landscape-svg-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    padding: 1rem;
+}
+.landscape-svg-wrap svg { width: 100%; height: auto; display: block; }
+.landscape-dot { transition: r 0.15s ease; cursor: pointer; }
+.landscape-dot:hover { stroke: var(--text); stroke-width: 1.5; }
+.landscape-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.4rem;
+    margin-top: 1rem;
+}
+.landscape-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.landscape-legend-swatch {
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
