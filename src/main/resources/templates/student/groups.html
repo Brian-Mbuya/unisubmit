@@ -88,18 +88,20 @@
                 </div>
 
                 <!-- Add member: Smart Auto-Suggest Search -->
-                <div class="mt-6 relative" th:data-group-id="${group.id}">
-                    <label class="form-label text-xs text-muted mb-2">Add Member</label>
-                    <div class="relative">
+                <div class="add-member-block mt-6" th:data-group-id="${group.id}">
+                    <label class="form-label text-xs text-muted mb-2">Add member</label>
+                    <div class="member-search-wrap">
                         <input type="text" class="form-control member-search-input member-search-input-field"
                                placeholder="Type student name or ID to search…" autocomplete="off">
                         <div class="search-icon-inside">
-                            🔍
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                            </svg>
                         </div>
+                        <!-- Search Results Box — anchored to the input width -->
+                        <div class="member-search-results-box search-dropdown" style="display:none;"></div>
                     </div>
-                    
-                    <!-- Search Results Box -->
-                    <div class="member-search-results-box search-dropdown" style="display:none;"></div>
+                    <div class="field-hint">Search results appear as you type — click a student to add them instantly.</div>
                 </div>
             </div>
         </div>

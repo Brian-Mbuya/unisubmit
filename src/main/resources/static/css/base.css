@@ -2161,3 +2161,13 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     gap: 0.6rem;
     flex-wrap: wrap;
 }
+
+/* ── Groups page polish ── */
+.add-member-block {
+    border-top: 1px solid var(--border-muted);
+    padding-top: 1.1rem;
+}
+.search-icon-inside { color: var(--text-subtle); display: flex; }
+.member-search-wrap .member-search-results-box {
+    max-width: none;   /* dropdown matches the input width exactly */
+}

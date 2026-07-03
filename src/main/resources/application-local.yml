@@ -43,5 +43,11 @@ app:
   storage:
     upload-dir: uploads-local
 
+unisubmit:
+  recommendation:
+    # Recompute persisted similarity scores at startup so scoring changes
+    # apply to existing local data immediately.
+    refresh-on-startup: true
+
 server:
   port: 8080

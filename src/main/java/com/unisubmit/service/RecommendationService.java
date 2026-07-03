@@ -57,6 +57,16 @@ public class RecommendationService {
         this.weights = weights;
     }
 
+    /**
+     * ID-based entry point for callers outside an open session (e.g. the
+     * startup refresh runner) — reloads the submission inside this
+     * transaction so lazy collections are initialisable.
+     */
+    @Transactional
+    public void precomputeForSubmissionId(Long submissionId) {
+        submissionRepository.findById(submissionId).ifPresent(this::precomputeForSubmission);
+    }
+
     @Transactional
     public void precomputeForSubmission(Submission current) {
         log.debug("Recommendation compute triggered for submission {}", current.getId());
