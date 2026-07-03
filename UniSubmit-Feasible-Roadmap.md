@@ -1,8 +1,16 @@
 # UniSubmit — Feasible Roadmap (Solo-Buildable Edition)
 
-> Status as of **2 July 2026**: Phases 1–4 complete. Phase 5 ~90% complete (backend done,
-> compiled clean; UI built but not browser-verified). Phase 5.5 (fix backlog) and Phase 6
-> are next. Phase 7 is the stretch goal that makes the final report strong.
+> Status as of **3 July 2026**: Phases 1–6 complete, plus Phase 7 item 3 (near-duplicate
+> integrity check via SHA-256 content hashes, V17 migration). Full UI redesign shipped
+> ("Nocturne Laurel" dark theme). Phase 5.5 backlog done. Phase 6 assistant exists as
+> guarded API endpoints only (/api/assistant/*) — its UI card was removed at the owner's
+> request. Owner-driven changes beyond the roadmap: knowledge-tag UI removed everywhere
+> (engine still uses LLM-populated tags internally; admin console at /admin/tags is
+> unlinked but functional), adaptive score normalisation (unfireable signals excluded
+> from the denominator; identical documents now read 100%), suspension actually blocks
+> login + ejects live sessions, admin programme edit fixed, student announcements
+> include units the student has submitted to, lecturer doc preview rebuilt, login
+> brute-force throttling added. Remaining stretch: Phase 7 items 1–2, 4–7.
 
 This roadmap keeps only what one student, working alone on the current Spring Boot
 codebase, can realistically build and demo. Each phase is self-contained: goal, tasks,
