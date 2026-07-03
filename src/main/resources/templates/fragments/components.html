@@ -242,12 +242,11 @@
                 <p class="text-sm mt-2 recommendation-summary" th:if="${sim.submission.aiInsight != null}"
                    th:text="${sim.submission.aiInsight.summary}">Summary</p>
 
-                <!-- Shared structured tags + free-text topics -->
-                <div th:if="${not #lists.isEmpty(sim.sharedTechnologies) or not #lists.isEmpty(sim.sharedResearchAreas) or not #lists.isEmpty(sim.sharedKeywords)}" class="mt-2">
+                <!-- Shared focus tags — kept minimal; the reason line carries the story -->
+                <div th:if="${not #lists.isEmpty(sim.sharedTechnologies) or not #lists.isEmpty(sim.sharedResearchAreas)}" class="mt-2">
                     <div class="topic-list">
                         <span th:each="area : ${sim.sharedResearchAreas}" class="chip chip-gold" th:text="${area}">area</span>
                         <span th:each="tech : ${sim.sharedTechnologies}" class="chip chip-match" th:text="${tech}">tech</span>
-                        <span th:each="kw : ${sim.sharedKeywords}" class="chip" th:text="${kw}">topic</span>
                     </div>
                 </div>
 
