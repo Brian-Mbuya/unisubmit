@@ -36,69 +36,108 @@ Snapshot" section below together with the phase's starter prompt.**
 
 ## Current State Snapshot (paste this with any starter prompt)
 
+> Updated 3 Jul 2026 for handoff to the next agent. Read this whole block before
+> touching anything — it reflects the machine and codebase as they are NOW.
+
 ```
 UniSubmit is a Spring Boot 4 / Java 17 / Thymeleaf / PostgreSQL academic submission
-platform at C:\Users\BOM\Downloads\unisubmit-main\unisubmit-main (a git repo, branch main).
+platform at C:\Users\mbuya\OneDrive\Desktop\unisubmit-main (1)\unisubmit-main\unisubmit-main
+(NOT a git repo on this machine — no commits, no branches; edit files directly).
 
-TECH: Spring Boot 4.0.5, Spring Security, Spring Data JPA, Thymeleaf 3.1, Lombok,
-Flyway (V2–V16 in src/main/resources/db/migration), PostgreSQL + pgvector in prod,
-H2 file DB via the `local` profile (Flyway OFF, ddl-auto: update — run with
-`mvnw spring-boot:run -Dspring-boot.run.profiles=local`; seeds accounts
-admin / L001 / S001, all password123). Compile check: `mvnw -q compile -DskipTests`
-(on Windows use mvnw.cmd; the bash ./mvnw wrapper script is broken on this machine).
+TOOLCHAIN (this machine has no system Java/Maven): portable Temurin JDK 17 lives at
+C:\Users\mbuya\.jdks\jdk-17.0.19+10. Set JAVA_HOME to it before any mvnw.cmd call:
+  $env:JAVA_HOME = "C:\Users\mbuya\.jdks\jdk-17.0.19+10"
+  $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+Compile check: .\mvnw.cmd -q compile -DskipTests   (must exit 0)
+Unit tests:    .\mvnw.cmd test                      (30 green as of handoff)
+Run the app:   .\run-local.ps1  (finds the JDK itself; H2 file DB, port 8080,
+local profile: Flyway OFF, ddl-auto update). Seeded logins: admin / L001 (lecturer,
+"Dr. Smith") / S001 (student, username "student"), all password123. The bash ./mvnw
+script is broken; always use mvnw.cmd. A .claude/launch.json config named
+"unisubmit-local" starts the app for browser preview.
 
-DOMAIN (src/main/java/com/unisubmit/domain): User (STUDENT/LECTURER/ADMIN) with
+OWNER'S WORKING AGREEMENT (learned over many feedback rounds — do not relitigate):
+- The owner does ALL manual/browser testing personally. Your job ends at: compile
+  clean, unit tests green, app running on :8080. Report what to test, then stop.
+- Dark theme ONLY ("Nocturne Laurel" in base.css: deep ink surfaces, jade laurel
+  primary, brass gold accent, Inter + Fraunces). A light theme was shipped once and
+  rejected as eye-straining. :root has color-scheme: dark (needed for native pickers).
+- Minimal UI. Removed at the owner's request and MUST NOT be re-added: knowledge-tag
+  cards/editors on student+lecturer pages (admin /admin/tags still works, unlinked),
+  the Phase 6 assistant UI (endpoints /api/assistant/* remain, backend-only),
+  keyword chips in match cards. Before adding ANY visible UI ask whether it serves
+  the submit→review→match flow; prefer removing over collapsing.
+- One natural page scroll — no nested scrollbars (review page doc panel is sticky).
+- Match scores must feel intuitive: identical documents = 100% "Identical document"
+  (SHA-256 contentHash on SubmissionVersion, V17), adaptive normalisation excludes
+  unfireable signals (no embeddings / no keywords) from the denominator.
+
+DOMAIN (src/main/java/com/unisubmit/domain): User (STUDENT/LECTURER/ADMIN, suspended
+flag enforced at login AND per-request by security/SuspensionEnforcementFilter) with
 StudentProfile/LecturerProfile, hierarchy Faculty→Department→Programme→Unit→Curriculum,
 AcademicYear/Semester, TeachingAssignment (lecturer↔curriculum), Enrollment,
 Submission (student, curriculum, projectGroup, supervisors, status enum
 DRAFT/SUBMITTED/UNDER_REVIEW/APPROVED/REJECTED/PROPOSAL/FINAL/ARCHIVED,
-float[] embedding via VectorConverter, ManyToMany tag sets: technologies,
-researchAreas, frameworks, databases, programmingLanguages, skills),
-SubmissionVersion (+Feedback with optional grade), AIInsight (summary, keywords,
-objectives, problemStatement, status PENDING/PROCESSING/COMPLETED/FAILED),
-SubmissionSimilarity (score + per-signal breakdown columns + matched keyword/tech/area
-element collections), SubmissionRelation (INSPIRED_BY/EXTENDS/RELATED), AuditLog
-(append-only), Announcement (ANNOUNCEMENT/ASSIGNMENT + deadline), AppNotification,
-Collaboration/CollaborationRequest, ProjectGroup, Reference (GROBID citations),
-lookup entities Technology/ResearchArea/Framework/Database/ProgrammingLanguage/Skill.
+float[] embedding via VectorConverter, ManyToMany tag sets), SubmissionVersion
+(+contentHash SHA-256, +Feedback with optional grade, changesSummary column exists but
+is UNUSED — Phase 9 item), AIInsight (summary/keywords/objectives/problemStatement,
+PENDING/PROCESSING/COMPLETED/FAILED), SubmissionSimilarity (score + six-signal
+breakdown + matched lists), SubmissionRelation, AuditLog (append-only, submission
+events only), Announcement (deadline recomputed as nearest-future on create/delete),
+AppNotification, Collaboration/CollaborationRequest (accepted = evaluation ground
+truth), ProjectGroup, Reference, lookup entities Technology/ResearchArea/Framework/
+Database/ProgrammingLanguage/Skill (LLM-populated; no student/lecturer editing UI).
 
-AI PIPELINE (service/AIInsightProcessingService): Tika text extraction → optional
-GROBID structured parsing (GROBID_ENABLED, http://localhost:8070) → LLM call to an
-OpenAI-compatible endpoint (OPENAI_API_KEY / OPENAI_BASE_URL, default OpenRouter,
-model default openai/gpt-4o-mini) returning strict JSON {summary, keywords, objectives,
-technologies, researchAreas, problemStatement} → maps technologies/researchAreas onto
-lookup tables (find-or-create, case-insensitive) → optional SPECTER2 embedding via a
-Flask sidecar (specter-service/, SPECTER_ENABLED, http://localhost:5001, model
-allenai/specter2_base) stored on Submission.embedding → triggers
-RecommendationService.precomputeForSubmission().
+AI PIPELINE (service/AIInsightProcessingService): Tika → optional GROBID → LLM call
+to an OpenAI-compatible endpoint (OPENAI_API_KEY / OPENAI_BASE_URL, default
+OpenRouter, model default openai/gpt-4o-mini; NO key configured locally → honest
+fallback: TF keywords + extractive summary, NO fabricated tags) → maps tech/areas
+to lookup tables → optional SPECTER2 embedding (specter-service/ Flask sidecar,
+SPECTER_ENABLED, :5001; also has /ocr route for scanned PDFs, unisubmit.ocr.*,
+default off) → RecommendationService.precomputeForSubmission(). Transaction shape:
+short PROCESSING tx → pipeline in its own tx → short FAILED tx; timeout
+unisubmit.ai.timeout-seconds (120).
 
-RECOMMENDATION ENGINE (Phase 5, service/RecommendationService): blends SIX signals —
-keyword overlap, title Jaccard, unit/department proximity, embedding cosine similarity,
-structured Technology tag Jaccard, structured ResearchArea tag Jaccard — weights
-configurable under unisubmit.recommendation.weight.* in application.yml
-(config/RecommendationWeights.java), final score normalised by weight sum. Per-signal
-breakdown persisted on SubmissionSimilarity (V16 migration). Read side
-findSimilarSubmissions(submission, viewer) re-checks visibility per viewer.
-service/LecturerRecommendationService recommends reviewers by aggregating each
-lecturer's Feedback history tags vs the current submission (no LLM). Access rules in
-service/SubmissionAccessService: canAccessSubmissionFile (strict) and
-canDiscoverSubmission (discovery level — peers may see non-DRAFT work only).
+RECOMMENDATION ENGINE (service/RecommendationService): six signals (keyword, title,
+unit proximity, semantic cosine, technology Jaccard, research-area Jaccard), weights
+under unisubmit.recommendation.weight.*, ADAPTIVE normalisation (unfireable signals
+leave the denominator), identical-document override → score 1.0. scorePair() is the
+single scoring source; rankCandidateIds(submission, weights) gives live what-if
+rankings for the evaluation harness. Startup: config/RecommendationRefreshRunner
+(local profile: unisubmit.recommendation.refresh-on-startup=true) backfills content
+hashes + recomputes all similarity rows. Read side findSimilarSubmissions(sub, viewer)
+re-checks canDiscoverSubmission per viewer. LecturerRecommendationService = reviewer
+matching from feedback history (no LLM). KNOWN OWNER COMPLAINT (→ Phase 8): same-unit
+proximity creates noise matches ("Same unit: Yes" with all content signals 0%);
+collaboration discovery must NOT reward same-unit.
 
-UI: server-rendered Thymeleaf; design system in static/css/base.css ("Scholarly Dark":
-ink charcoal surfaces, laurel green primary --primary/--brand, brass gold accent
---gold, Inter body + Fraunces display headings, mortarboard logo). Shared fragments in
-templates/fragments/components.html: statusBadge, feedbackTimeline, aiInsightPanel,
-similarProjectsPanel (with expandable per-signal "why this match" breakdown),
-lecturerMatchesPanel. Key pages: student/dashboard, student/submission-detail (AI
-insights + similar work + suggested reviewers + tags), student/announcements,
-lecturer/dashboard, lecturer/review-split, lecturer/announcements, admin/* console,
-notifications, login/register. Small dependency-free JS in static/js/app.js
-(nav, AI status polling of /api/ai-insights/{id}, filters).
+PHASE 7 FEATURES (all live): /admin/evaluation (precision@5 + MRR over accepted
+collaboration requests, 6 weight configs, service/EvaluationService), /search for all
+roles (BM25 keyword ranking everywhere + optional pgvector semantic channel behind
+unisubmit.search.semantic-enabled, RRF fusion, service/SearchService), /admin/landscape
+(k-means + power-iteration PCA over embeddings or keyword/tag fallback vectors, SVG
+dot map, service/AnalyticsService), OCR fallback trigger (<200 chars extracted),
+blind review (unisubmit.review.blind-mode, identity hidden until first graded
+feedback). Login throttling: security/LoginAttemptService (5 fails per user+IP →
+15 min lock, /login?locked).
+
+UI: server-rendered Thymeleaf; ALL styling tokens in static/css/base.css — restyle
+there, never in markup. Fragments in templates/fragments/components.html:
+statusBadge, feedbackTimeline(versions, maskUploaders), aiInsightPanel (tabs via
+data-ai-tab + delegated JS in app.js), similarProjectsPanel(sims, requestStatuses,
+readOnly), lecturerMatchesPanel. Lecturer review-split: sticky doc-preview panel
+(PDF iframe / fetched+typeset TXT / download fallback), review action on top, whole
+page scrolls. app.js is dependency-free (nav, AI polling, review actions, filters,
+AI tabs, table search).
+
+MIGRATIONS: V2–V17 (V16 breakdown, V17 content_hash). Every schema change ships a
+V18+ Flyway migration for Postgres AND relies on H2 ddl-auto locally.
 
 RULES FOR EVERY CHANGE: never break existing flows; new entity fields nullable or
-defaulted; ship a Flyway migration (V17+) for every schema change AND remember the
-local H2 profile applies schema via ddl-auto instead; match existing Lombok/JPA/
-Thymeleaf patterns; finish by running `mvnw.cmd -q compile -DskipTests` (zero errors).
+defaulted; match existing Lombok/JPA/Thymeleaf patterns; template property paths must
+exist on the entity (a bad SpEL path truncates the page mid-render — this bug class
+happened; Phase 9 adds rendering smoke tests); finish with mvnw.cmd compile (exit 0)
++ unit tests green; leave the app running and hand the manual test list to the owner.
 ```
 
 ---
@@ -410,9 +449,11 @@ path in `RecommendationService` that:
   **cross-department** pairs (interdisciplinary value).
 - Outputs the **top ~15 candidates** per submission.
 
-**Stage 2 — LLM collaboration assessment (smart, targeted).** For each shortlisted
-pair, call Gemini with both submissions' AI insight context and ask it to produce a
-structured collaboration assessment:
+**Stage 2 — LLM collaboration assessment (smart, targeted).** ONE batched call per
+submission to the configured OpenAI-compatible endpoint (same api-key/base-url/model
+config as the AI pipeline — provider-agnostic, not hardwired to any vendor): send all
+~15 shortlisted candidates' insight contexts in a single prompt and get a JSON array
+back — 1 call instead of 15, ~90% cheaper. Each element is a structured assessment:
 
 ```
 {
@@ -428,6 +469,30 @@ structured collaboration assessment:
 This is persisted alongside the similarity record so it's computed once (async, like the
 existing AI pipeline) and displayed instantly on subsequent page loads. Only HIGH and
 MEDIUM results are shown to users.
+
+**Amendments locked in after design review (build these, they are not optional):**
+- **Keyless degradation**: no OPENAI_API_KEY (the local machine's default state) must
+  NOT mean an empty page. Persist Stage 1's shortlist as CollaborationMatch rows with
+  collaborationValue = UNASSESSED and show them honestly labelled "mechanical match —
+  AI assessment pending"; upgrade rows in place when a key appears.
+- **Assessment caching**: skip re-assessing a pair when neither side's latest
+  contentHash nor insight has changed since computedAt — re-uploads must not re-bill
+  unchanged pairs.
+- **Pair canonicalisation**: store one row per unordered pair (lower submission id =
+  A); both students see the same row, rendered viewer-relative ("what YOU gain"
+  first). Precompute from either side must not create a duplicate.
+- **Exclusions**: same student's other submissions, same project-group members, and
+  same-unit candidates never enter the shortlist.
+- **Privacy gates Stage 1**: discoverableForCollaboration=false means the student's
+  data is never sent to the LLM at all — not merely hidden from results.
+- **Grounding guardrail**: the LLM sees only already-extracted insight fields (never
+  raw documents), the system prompt declares that text untrusted data, and if it
+  cannot name a CONCRETE gain for both sides it must return NONE — an empty page
+  beats hallucinated flattery. Pitches carry a small "AI-generated interpretation"
+  label (same convention as Phase 6).
+- **Prefilled connect message**: the pitch pre-populates the connect request so the
+  recipient understands why a stranger from another department is reaching out —
+  this should directly lift the acceptance-rate metric.
 
 ### What the LLM enables that scoring alone cannot
 
@@ -482,19 +547,23 @@ MEDIUM results are shown to users.
    - Returns top 15 by mechanical score.
 
 4. **LLM collaboration assessment service.** A new `CollaborationAssessmentService`
-   that takes the top 15 candidates and calls Gemini for each pair. Uses the same
-   OpenAI-compatible endpoint and rate-limit patterns as `AIInsightProcessingService`.
-   Runs async. Persists results to `CollaborationMatch`. Only keeps HIGH and MEDIUM
-   results.
+   that takes the top 15 candidates and makes ONE batched call for all pairs (JSON
+   array in, JSON array out). Uses the same OpenAI-compatible endpoint config as
+   `AIInsightProcessingService`. Runs async after AI analysis completes. Persists to
+   `CollaborationMatch`: HIGH/MEDIUM kept and shown, LOW/NONE kept but hidden (they
+   suppress re-assessment), UNASSESSED tier when keyless. Honours the caching and
+   grounding amendments above.
 
 5. **Opt-in visibility.** Add a boolean `discoverableForCollaboration` to
    `StudentProfile` (default true). Students can toggle this in their profile settings.
    The collaboration scoring path respects this flag.
 
-6. **Contact request flow.** A "Request to Connect" button on each collaboration match
-   that sends an `AppNotification` to the other student with a pre-filled message
-   referencing both projects. The recipient can accept (which reveals contact info) or
-   decline. Uses the existing notification infrastructure.
+6. **Contact request flow — REUSE `CollaborationRequest`, do not build a parallel
+   mechanism.** The existing request/accept/decline flow, inbox UI, and notifications
+   already work, and accepted requests are the evaluation harness's ground truth — a
+   second flow would split that signal. "Request to Connect" creates a
+   CollaborationRequest with the LLM pitch prefilled as the message. The only new
+   behaviour: acceptance reveals the counterpart's contact email on the match card.
 
 7. **"Discover Collaborators" page.** A new student-facing page (`/collaborations` or
    `/discover`) separate from the similarity panel on submission-detail. Shows
@@ -507,25 +576,130 @@ MEDIUM results are shown to users.
    This is the ground truth for tuning the collaboration weights, just as accepted
    `CollaborationRequest` records are ground truth for the similarity engine.
 
+9. **Cross-department demo seed data.** The feature is invisible on a corpus of seven
+   same-unit submissions (same-unit is excluded by design!). Ship a seeder (local
+   profile only) with ~12 submissions across 3–4 departments/programmes with distinct
+   but overlapping topics and varied student years, so mentorship and
+   interdisciplinary matches actually appear during the owner's manual test and demo.
+
 ### Starter prompt
 
 ```
-Phase 8 — AI-Powered Collaboration Discovery. Read Phase 8 in UniSubmit-Feasible-Roadmap.md.
+[Paste the Current State Snapshot first — it contains the toolchain setup, the owner's
+working agreement, and the rules. Then:]
 
-The current similarity engine conflates integrity detection and collaboration discovery.
-Phase 8 splits them: a new collaboration-specific scoring path (unit weight = 0,
-cross-department candidate pool, semantic/tech/domain signals boosted) pre-filters to
-~15 candidates, then an LLM (Gemini, same endpoint as the AI pipeline) assesses each
-pair for collaboration value, type, complementary gaps, and generates a natural-language
-pitch. Results are persisted in a new CollaborationMatch entity (V18 migration).
+Implement Phase 8 — AI-Powered Collaboration Discovery — from
+UniSubmit-Feasible-Roadmap.md, including ALL the "Amendments locked in after design
+review". Summary: the similarity engine conflates integrity detection with
+collaboration discovery. Split them. Stage 1: precomputeCollaborationMatches() in
+RecommendationService — candidate pool from the WHOLE corpus, unit weight zero,
+same-unit/same-student/same-group EXCLUDED, semantic/tech/area/problemDomain boosted,
+top ~15. Stage 2: CollaborationAssessmentService — ONE batched call to the configured
+OpenAI-compatible endpoint per submission returning a JSON array of
+{collaboration_value, collaboration_type, what_a_gains, what_b_gains, pitch,
+complementary_gaps}; grounding guardrail (insight fields only, untrusted-data clause,
+NONE over invention). Persist in CollaborationMatch (V18 migration; canonical pair
+ordering, UNASSESSED tier when keyless, hash-based re-assessment skip). Also: add
+problemDomain to the AIInsight extraction prompt + @ElementCollection;
+discoverableForCollaboration opt-out on StudentProfile gating Stage 1; /discover page
+(dark, minimal — matches grouped by type, viewer-relative "what you gain", AI label
+on pitches, Request to Connect = existing CollaborationRequest with pitch prefilled,
+contact email revealed on accept); acceptance-rate row on /admin/evaluation;
+cross-department seed data (local profile) so the page is demonstrable.
 
-UI: a "Discover Collaborators" page for students showing AI-enriched matches with type
-badges and a "Request to Connect" button (sends AppNotification). Students can opt out
-via a profile toggle. Admin evaluation tracks acceptance rates.
+Finish: mvnw.cmd compile exit 0, unit tests green (add tests for the Stage 1
+exclusions and the batched-response parsing), app running on :8080, then hand the
+owner a manual test list. Do NOT browser-test on their behalf.
+```
 
-Key constraint: the LLM call is expensive — only the top 15 pre-filtered candidates
-per submission go through Stage 2. Cache aggressively in CollaborationMatch.
-Compile must pass.
+---
+
+## Phase 9 — Hardening & Completion (gap fixes from the 3 Jul review)
+
+> **Goal**: close the engineering and product gaps found after Phase 7 shipped. Items
+> are independent — do them in the order listed (highest value-for-effort first).
+> None of them add new visible surface area beyond what is listed; remember the
+> owner's minimal-UI rule.
+
+### Tasks
+
+1. **Page-rendering smoke tests (do this first).** The worst historical bug was a
+   Thymeleaf template referencing a property that didn't exist
+   (`sim.submission.student.studentId`) — the page silently truncated mid-render and
+   was only caught by the owner clicking around. Add MockMvc tests that seed a small
+   H2 dataset (student with submission+insight+similarity, lecturer with assignment,
+   admin), log in as each role, and GET every major page (student dashboard,
+   submission-detail, announcements, groups, inbox, search, lecturer dashboard,
+   review-split, notifications, admin dashboard/accounts/evaluation/landscape)
+   asserting 200 + a marker string near the END of each template — that end-marker is
+   what catches mid-render truncation. This test class is the safety net every later
+   phase runs against.
+
+2. **Deadline reminder scheduler.** NotificationType.DEADLINE and the ⏰ icon exist
+   but NOTHING creates deadline notifications — the feature is half-built. Add a
+   @Scheduled job (@EnableScheduling; run hourly) that notifies enrolled/programme
+   students of ASSIGNMENT announcements due within 3 days and again within 1 day.
+   Persist sent-marker state (simplest: a small reminder log table, V19, or a
+   deterministic "already notified?" check against AppNotification content) so
+   reminders never duplicate. Reuse getAnnouncementsForStudent's unit-resolution
+   logic (enrollments + programme + submitted-to units).
+
+3. **Version change notes.** SubmissionVersion.changesSummary exists in the schema
+   and is rendered nowhere. Add an optional "What changed in this version?" text
+   input to the student re-upload form, save it, show it in feedbackTimeline under
+   the version row. No migration needed (column exists). Lecturers get a changelog
+   for free.
+
+4. **Admin password reset.** The login page says "Forgot password? Contact your
+   administrator" but the admin console has no reset action — a forgotten password
+   is a dead end. Add a "Reset password" button to the accounts table (modal: new
+   password, confirm; BCrypt-encode; audit-log it). No email infrastructure yet, so
+   the admin communicates the new password out-of-band.
+
+5. **Final grade + CSV export.** Grades live only on per-version Feedback. Add a
+   lecturer "Export marks (CSV)" per unit: one row per submission — student
+   admission number, name (respect blind-mode: omit if ungraded), title, status,
+   latest grade, graded-by, date. Content-Disposition attachment; no schema change
+   (derive latest grade from feedback).
+
+6. **Audit coverage for admin/security events.** AuditService only logs submission
+   lifecycle. Also record: account suspension/unsuspension (who, why), account
+   deletion, announcement create/delete, password reset (event, never the value),
+   login lockouts (from LoginAttemptService). Where an event has no submission,
+   allow a null submission on AuditLog (nullable column change → V20 if the column
+   is currently NOT NULL; check first).
+
+7. **README + report alignment.** README.md predates the redesign and Phases 5.5–9.
+   Rewrite: what the platform does now, architecture sketch (pipeline → engine →
+   evaluation), the intelligence story (six signals, adaptive normalisation,
+   identical-document integrity, evaluation harness numbers), toolchain/run
+   instructions from the snapshot, config-flag table (grobid/specter/ocr/search
+   semantic/blind-mode/refresh-on-startup), honest scale ceilings (in-memory
+   search/landscape/evaluation — fine for hundreds of submissions; in-memory
+   throttling — single node).
+
+### Operational notes for the owner (no code)
+
+- The single biggest quality jump needs zero code: set OPENAI_API_KEY (real analysis
+  instead of fallback) and run the SPECTER sidecar (semantic signal + landscape
+  embeddings + semantic search all light up).
+- Move the project out of the OneDrive-synced folder (or exclude unisubmit-db* and
+  uploads-local from sync) — cloud sync file-locking is a classic cause of H2
+  corruption.
+
+### Starter prompt
+
+```
+[Paste the Current State Snapshot first — toolchain, owner's working agreement, rules.]
+
+Work through Phase 9 — Hardening & Completion — in UniSubmit-Feasible-Roadmap.md, in
+task order (1→7). Each task names the file/feature, the gap, and the intended fix —
+implement exactly those; no extra UI surface. Task 1's smoke tests are the safety net:
+write them first and keep them green through every later task. Schema changes ship
+V19+/V20+ Flyway migrations AND must work on the H2 ddl-auto local profile.
+
+Finish: mvnw.cmd compile exit 0, ALL tests green, app running on :8080, and a short
+manual test list for the owner (they do all browser testing themselves).
 ```
 
 ---
