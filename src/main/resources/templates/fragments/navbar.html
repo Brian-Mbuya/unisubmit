@@ -23,6 +23,7 @@
                 <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/student/announcements}">Announcements</a>
                 <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/groups}">Groups</a>
                 <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/student/inbox}">Collaboration</a>
+                <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/discover}">Discover</a>
                 <a sec:authorize="hasRole('LECTURER')" class="nav-link" th:href="@{/lecturer/dashboard}">Review queue</a>
                 <a sec:authorize="hasRole('LECTURER')" class="nav-link" th:href="@{/lecturer/announcements}">Announcements</a>
                 <a sec:authorize="hasRole('ADMIN')"    class="nav-link" th:href="@{/admin/dashboard}">Administration</a>

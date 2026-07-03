@@ -65,6 +65,8 @@ public class AIInsightProcessingService {
     private final ReferenceRepository referenceRepository;
     private final SpecterService specterService;
     private final OcrService ocrService;
+    private final CollaborationDiscoveryService collaborationDiscoveryService;
+    private final CollaborationAssessmentService collaborationAssessmentService;
     private final SubmissionRepository submissionRepository;
     private final TransactionTemplate transactionTemplate;
     private final Path uploadRoot;
@@ -90,6 +92,8 @@ public class AIInsightProcessingService {
                                       ReferenceRepository referenceRepository,
                                       SpecterService specterService,
                                       OcrService ocrService,
+                                      CollaborationDiscoveryService collaborationDiscoveryService,
+                                      CollaborationAssessmentService collaborationAssessmentService,
                                       SubmissionRepository submissionRepository,
                                       PlatformTransactionManager transactionManager,
                                       @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
@@ -101,6 +105,8 @@ public class AIInsightProcessingService {
         this.referenceRepository = referenceRepository;
         this.specterService = specterService;
         this.ocrService = ocrService;
+        this.collaborationDiscoveryService = collaborationDiscoveryService;
+        this.collaborationAssessmentService = collaborationAssessmentService;
         this.submissionRepository = submissionRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
@@ -112,6 +118,7 @@ public class AIInsightProcessingService {
         public List<String> objectives = new ArrayList<>();
         public List<String> technologies = new ArrayList<>();
         public List<String> researchAreas = new ArrayList<>();
+        public List<String> problemDomains = new ArrayList<>();
         public String problemStatement;
     }
 
@@ -157,6 +164,7 @@ public class AIInsightProcessingService {
               "objectives": ["2-4 clear objectives or goals of the project"],
               "technologies": ["Technologies, frameworks, databases, or programming languages mentioned or recommended for implementation"],
               "researchAreas": ["1-3 academic research areas or fields of study (e.g. Distributed Systems, Computer Vision, Cybersecurity)"],
+              "problemDomains": ["1-3 broad real-world application domains this project touches, chosen to be cross-disciplinary (e.g. transportation, healthcare, agriculture, energy, education, manufacturing, finance, environment, security, urban planning)"],
               "problemStatement": "A concise description of the problem this project intends to solve."
             }
             Do not include any markdown styling like ```json or ```. Return only the raw JSON.
@@ -229,6 +237,10 @@ public class AIInsightProcessingService {
      */
     @org.springframework.scheduling.annotation.Async
     public void performAnalysisAsync(Long insightId) {
+        // Captured inside the pipeline tx so Stage 2 collaboration assessment can
+        // be triggered AFTER commit (the async reader must see the UNASSESSED rows).
+        final java.util.concurrent.atomic.AtomicReference<Long> analysedSubmissionId =
+                new java.util.concurrent.atomic.AtomicReference<>();
         final Path filePath;
         try {
             filePath = transactionTemplate.execute(status -> {
@@ -348,6 +360,7 @@ public class AIInsightProcessingService {
                                     + extractSummary(rawText != null ? rawText : promptInputText, keywords, 3);
                             result.keywords = keywords;
                             result.objectives = List.of();
+                            result.problemDomains = List.of();
                             result.problemStatement = null;
                             // null (not empty) = leave any existing submission tags untouched
                             result.technologies = null;
@@ -357,6 +370,7 @@ public class AIInsightProcessingService {
                         // Deduplicate lists before saving/mapping (null = skip tag mapping)
                         result.keywords = dedupeCaseInsensitive(result.keywords, 10);
                         result.objectives = dedupeCaseInsensitive(result.objectives, 6);
+                        result.problemDomains = dedupeCaseInsensitive(result.problemDomains, 5);
                         result.technologies = result.technologies == null ? null
                                 : dedupeCaseInsensitive(result.technologies, Integer.MAX_VALUE);
                         result.researchAreas = result.researchAreas == null ? null
@@ -374,7 +388,13 @@ public class AIInsightProcessingService {
                         if (result.objectives != null) {
                             txInsight.getObjectives().addAll(result.objectives);
                         }
-                        
+
+                        // Phase 8 — broad application domains for cross-disciplinary matching
+                        txInsight.getProblemDomains().clear();
+                        if (result.problemDomains != null) {
+                            txInsight.getProblemDomains().addAll(result.problemDomains);
+                        }
+
                         txInsight.setProblemStatement(result.problemStatement);
                         txInsight.setStatus(AIInsightStatus.COMPLETED);
                         aiInsightRepository.save(txInsight);
@@ -441,6 +461,10 @@ public class AIInsightProcessingService {
                                 insightId, txSubmission.getId());
 
                         recommendationService.precomputeForSubmission(txSubmission);
+                        // Phase 8 Stage 1 — refresh this submission's collaboration
+                        // shortlist (whole-corpus, cross-disciplinary, unit excluded).
+                        collaborationDiscoveryService.precomputeForSubmission(txSubmission);
+                        analysedSubmissionId.set(txSubmission.getId());
                     } catch (Exception ex) {
                         throw new RuntimeException(ex);
                     }
@@ -454,6 +478,13 @@ public class AIInsightProcessingService {
                 future.cancel(true);
                 throw new java.util.concurrent.TimeoutException(
                         "AI analysis execution timed out after " + timeoutSeconds + " seconds.");
+            }
+
+            // Phase 8 Stage 2 — assess the shortlisted pairs with the LLM, AFTER
+            // the Stage 1 rows are committed and visible. Async + no-op without a key.
+            Long submissionId = analysedSubmissionId.get();
+            if (submissionId != null) {
+                collaborationAssessmentService.assessForSubmission(submissionId);
             }
         } catch (Exception ex) {
             markFailed(insightId, ex);

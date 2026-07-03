@@ -36,6 +36,9 @@ class EvaluationServiceTest {
     @Mock
     private RecommendationService recommendationService;
 
+    @Mock
+    private com.unisubmit.repository.CollaborationMatchRepository matchRepository;
+
     private EvaluationService evaluationService;
 
     private User requester;
@@ -45,7 +48,7 @@ class EvaluationServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         evaluationService = new EvaluationService(requestRepository, submissionRepository,
-                recommendationService, new RecommendationWeights());
+                recommendationService, new RecommendationWeights(), matchRepository);
 
         requester = new User();
         requester.setId(1L);

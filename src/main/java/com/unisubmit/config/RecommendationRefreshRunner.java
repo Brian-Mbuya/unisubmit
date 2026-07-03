@@ -39,15 +39,21 @@ public class RecommendationRefreshRunner implements CommandLineRunner {
     private final SubmissionRepository submissionRepository;
     private final SubmissionVersionRepository versionRepository;
     private final RecommendationService recommendationService;
+    private final com.unisubmit.service.CollaborationDiscoveryService collaborationDiscoveryService;
+    private final com.unisubmit.service.CollaborationAssessmentService collaborationAssessmentService;
     private final Path uploadRoot;
 
     public RecommendationRefreshRunner(SubmissionRepository submissionRepository,
                                        SubmissionVersionRepository versionRepository,
                                        RecommendationService recommendationService,
+                                       com.unisubmit.service.CollaborationDiscoveryService collaborationDiscoveryService,
+                                       com.unisubmit.service.CollaborationAssessmentService collaborationAssessmentService,
                                        @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.submissionRepository = submissionRepository;
         this.versionRepository = versionRepository;
         this.recommendationService = recommendationService;
+        this.collaborationDiscoveryService = collaborationDiscoveryService;
+        this.collaborationAssessmentService = collaborationAssessmentService;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -63,12 +69,22 @@ public class RecommendationRefreshRunner implements CommandLineRunner {
         for (Long id : ids) {
             try {
                 recommendationService.precomputeForSubmissionId(id);
+                // Phase 8 Stage 1 — rebuild the cross-disciplinary collaboration shortlist.
+                collaborationDiscoveryService.precomputeForSubmissionId(id);
                 refreshed++;
             } catch (Exception ex) {
-                log.warn("Similarity refresh failed for submission {}: {}", id, ex.getMessage());
+                log.warn("Similarity/collaboration refresh failed for submission {}: {}", id, ex.getMessage());
             }
         }
-        log.info("Startup similarity refresh complete: {}/{} submissions recomputed", refreshed, ids.size());
+        // Phase 8 Stage 2 — assess the freshly-built shortlists (no-op without an API key).
+        for (Long id : ids) {
+            try {
+                collaborationAssessmentService.assessForSubmission(id);
+            } catch (Exception ex) {
+                log.warn("Collaboration assessment trigger failed for submission {}: {}", id, ex.getMessage());
+            }
+        }
+        log.info("Startup similarity + collaboration refresh complete: {}/{} submissions recomputed", refreshed, ids.size());
     }
 
     /**

@@ -24,7 +24,10 @@
 > adaptive score normalisation, suspension enforcement (login block + live-session
 > eject), admin programme edit fix, announcements include submitted-to units,
 > lecturer doc preview rebuilt, login brute-force throttling. 30 unit tests green.
-> **Next**: Phase 8 — AI-Powered Collaboration Discovery (planned, not yet started).
+> **Next**: Phase 8 — AI-Powered Collaboration Discovery (specced + design-reviewed,
+> amendments folded in, not yet started), then Phase 9 — Hardening & Completion.
+> This file is the handoff: a fresh agent needs only the Current State Snapshot below
+> plus a phase's starter prompt. The owner does all manual/browser testing.
 
 This roadmap keeps only what one student, working alone on the current Spring Boot
 codebase, can realistically build and demo. Each phase is self-contained: goal, tasks,
@@ -176,7 +179,7 @@ timeline on project-detail, "Related projects" section kept distinct from automa
 
 ---
 
-## Phase 5 — Recommendation Engine — 🔨 ~90% DONE
+## Phase 5 — Recommendation Engine — ✅ DONE
 
 **Already shipped (do not redo):**
 - Six-signal weighted scoring with structured Technology/ResearchArea Jaccard overlap.
@@ -336,7 +339,7 @@ context. Do not refactor beyond what an item asks.
 
 ---
 
-## Phase 6 — Explainable Academic Assistant
+## Phase 6 — Explainable Academic Assistant — ✅ DONE (endpoints only; UI removed at owner's request)
 
 **Goal:** the one remaining LLM touchpoint — turn already-computed recommendation/DNA
 data into natural language. The LLM explains; it never computes the match itself.
@@ -384,7 +387,7 @@ CSRF header pattern from static/js/app.js. Compile must pass.
 
 ---
 
-## Phase 7 — Measured Intelligence (stretch — strongest report material)
+## Phase 7 — Measured Intelligence — ✅ DONE (see status header for delivery notes)
 
 Do these AFTER 5.5/6; each is independent. Priority order:
 
@@ -418,7 +421,7 @@ Do these AFTER 5.5/6; each is independent. Priority order:
 
 ---
 
-## Phase 8 — AI-Powered Collaboration Discovery
+## Phase 8 — AI-Powered Collaboration Discovery — 📋 NEXT UP
 
 > **Goal**: Replace the "same unit = match" noise with a genuine cross-disciplinary
 > collaboration engine that uses AI to surface high-value partnerships — upperclassmen
@@ -614,7 +617,7 @@ owner a manual test list. Do NOT browser-test on their behalf.
 
 ---
 
-## Phase 9 — Hardening & Completion (gap fixes from the 3 Jul review)
+## Phase 9 — Hardening & Completion (gap fixes from the 3 Jul review) — 📋 PLANNED
 
 > **Goal**: close the engineering and product gaps found after Phase 7 shipped. Items
 > are independent — do them in the order listed (highest value-for-effort first).

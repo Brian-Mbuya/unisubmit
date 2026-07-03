@@ -48,6 +48,11 @@ unisubmit:
     # Recompute persisted similarity scores at startup so scoring changes
     # apply to existing local data immediately.
     refresh-on-startup: true
+  demo:
+    # Phase 8 — seed cross-department demo projects once, so the Discover page
+    # shows real cross-disciplinary matches without an API key. Safe: it never
+    # touches existing data and runs at most once (marker-guarded).
+    seed-collaboration: true
 
 server:
   port: 8080

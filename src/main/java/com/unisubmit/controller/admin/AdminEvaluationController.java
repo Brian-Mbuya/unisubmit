@@ -24,6 +24,7 @@ public class AdminEvaluationController {
     public String evaluation(Model model) {
         EvaluationService.EvaluationReport report = evaluationService.evaluate();
         model.addAttribute("report", report);
+        model.addAttribute("collab", evaluationService.collaborationStats());
         return "admin/evaluation";
     }
 }

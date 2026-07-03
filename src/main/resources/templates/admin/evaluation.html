@@ -13,6 +13,42 @@
         </div>
     </div>
 
+    <!-- Phase 8 — collaboration engine health -->
+    <div class="card mb-6">
+        <div class="card-head">
+            <h2>Collaboration discovery (Phase 8)</h2>
+            <span class="badge badge-approved"
+                  th:text="${#numbers.formatDecimal(collab.acceptanceRate * 100, 1, 0)} + '% accepted'">0%</span>
+        </div>
+        <div class="stat-strip">
+            <div class="stat">
+                <div class="stat-label">High-value matches</div>
+                <div class="stat-value is-accent" th:text="${collab.highValueMatches}">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Medium-value</div>
+                <div class="stat-value" th:text="${collab.mediumValueMatches}">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Shortlisted pairs</div>
+                <div class="stat-value" th:text="${collab.shortlistedPairs}">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Connect requests</div>
+                <div class="stat-value" th:text="${collab.connectRequests}">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Accepted / declined</div>
+                <div class="stat-value" th:text="${collab.accepted} + ' / ' + ${collab.declined}">0 / 0</div>
+            </div>
+        </div>
+        <p class="field-hint mt-2">
+            Acceptance rate over decided "Request to connect" outcomes is the ground truth for tuning
+            <code class="mono">unisubmit.collaboration.weight.*</code>. Shortlisted pairs are Stage 1
+            (mechanical, cross-disciplinary); High/Medium are Stage 2 (LLM-assessed).
+        </p>
+    </div>
+
     <div class="card mb-6">
         <div class="card-head">
             <h2>How this is measured</h2>

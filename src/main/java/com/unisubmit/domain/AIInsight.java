@@ -61,4 +61,15 @@ public class AIInsight {
     @CollectionTable(name = "ai_insight_objectives", joinColumns = @JoinColumn(name = "insight_id"))
     @Column(name = "objective", columnDefinition = "TEXT")
     private Set<String> objectives = new LinkedHashSet<>();
+
+    /**
+     * Phase 8 — broad real-world application domains (healthcare, transportation,
+     * agriculture, energy, education, etc.). Deliberately cross-disciplinary so a
+     * CS traffic-ML project and a Civil traffic-lights project can be matched on
+     * "transportation" despite sharing zero keywords or units.
+     */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "ai_insight_domains", joinColumns = @JoinColumn(name = "insight_id"))
+    @Column(name = "domain")
+    private Set<String> problemDomains = new LinkedHashSet<>();
 }

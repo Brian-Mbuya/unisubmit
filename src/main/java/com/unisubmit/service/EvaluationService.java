@@ -42,19 +42,52 @@ public class EvaluationService {
 
     public record EvaluationReport(int groundTruthPairs, List<ConfigResult> results) {}
 
+    /** Phase 8 — collaboration engine health: shortlist volume + connect acceptance. */
+    public record CollaborationStats(long highValueMatches, long mediumValueMatches,
+                                     long shortlistedPairs, long connectRequests,
+                                     long accepted, long declined, long pending,
+                                     double acceptanceRate) {}
+
     private final CollaborationRequestRepository requestRepository;
     private final SubmissionRepository submissionRepository;
     private final RecommendationService recommendationService;
     private final RecommendationWeights currentWeights;
+    private final com.unisubmit.repository.CollaborationMatchRepository matchRepository;
 
     public EvaluationService(CollaborationRequestRepository requestRepository,
                              SubmissionRepository submissionRepository,
                              RecommendationService recommendationService,
-                             RecommendationWeights currentWeights) {
+                             RecommendationWeights currentWeights,
+                             com.unisubmit.repository.CollaborationMatchRepository matchRepository) {
         this.requestRepository = requestRepository;
         this.submissionRepository = submissionRepository;
         this.recommendationService = recommendationService;
         this.currentWeights = currentWeights;
+        this.matchRepository = matchRepository;
+    }
+
+    /**
+     * Ground truth for the collaboration engine: how often "Request to connect"
+     * gets accepted. Because Discover reuses the collaboration-request flow, this
+     * is the acceptance rate over all connect/collaborate requests — exactly the
+     * signal for tuning the collaboration weights.
+     */
+    @Transactional(readOnly = true)
+    public CollaborationStats collaborationStats() {
+        long high = matchRepository.countByCollaborationValueIn(
+                List.of(com.unisubmit.domain.CollaborationValue.HIGH));
+        long medium = matchRepository.countByCollaborationValueIn(
+                List.of(com.unisubmit.domain.CollaborationValue.MEDIUM));
+        long shortlisted = matchRepository.count();
+
+        long accepted = requestRepository.findByStatus(CollaborationRequestStatus.ACCEPTED).size();
+        long declined = requestRepository.findByStatus(CollaborationRequestStatus.DECLINED).size();
+        long pending = requestRepository.findByStatus(CollaborationRequestStatus.PENDING).size();
+        long decided = accepted + declined;
+        double rate = decided == 0 ? 0.0 : (double) accepted / decided;
+
+        return new CollaborationStats(high, medium, shortlisted,
+                accepted + declined + pending, accepted, declined, pending, rate);
     }
 
     @Transactional(readOnly = true)
