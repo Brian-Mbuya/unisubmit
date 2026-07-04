@@ -23,6 +23,7 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -709,6 +710,108 @@ public class AIInsightProcessingService {
 
         } catch (Exception ex) {
             log.warn("Title suggestion failed: {}", ex.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Stateless title suggestion: parses a raw uploaded MultipartFile and calls the LLM
+     * to suggest 3 titles based on the extracted text. Does not write to database.
+     */
+    public List<String> suggestTitlesForDraft(MultipartFile file) {
+        if (apiKey == null || apiKey.isBlank() || "NO_KEY".equals(apiKey)) {
+            return List.of();
+        }
+        try {
+            AutoDetectParser parser = new AutoDetectParser();
+            BodyContentHandler handler = new BodyContentHandler(-1);
+            Metadata metadata = new Metadata();
+            ParseContext context = new ParseContext();
+            
+            try (InputStream stream = file.getInputStream()) {
+                parser.parse(stream, handler, metadata, context);
+            }
+            String rawText = handler.toString();
+            if (rawText == null || rawText.isBlank()) {
+                return List.of();
+            }
+            
+            String trimmedText = trimFrontMatter(rawText);
+            
+            // Now call LLM to generate 3 suggested titles
+            String prompt = """
+                You are an academic project naming expert.
+                Based on the following extracted text snippet from a student's project draft document,
+                suggest exactly 3 creative, professional, and academic project titles.
+                The titles should capture the key technical keywords, objectives, and domain of the project.
+
+                Extracted text:
+                %s
+
+                Return ONLY a JSON array of 3 strings, no markdown fences.
+                Example: ["Title One", "Title Two", "Title Three"]
+                """.formatted(trimmedText.substring(0, Math.min(trimmedText.length(), 2000)));
+
+            ObjectMapper mapper = new ObjectMapper();
+            String escapedPrompt = mapper.writeValueAsString(prompt);
+
+            String requestBody = """
+                {
+                  "model": "%s",
+                  "max_tokens": 300,
+                  "temperature": 0.7,
+                  "messages": [
+                    {
+                      "role": "user",
+                      "content": %s
+                    }
+                  ]
+                }
+                """.formatted(model, escapedPrompt);
+
+            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(10))
+                    .build();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(getCompletionsUrl()))
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestBody, java.nio.charset.StandardCharsets.UTF_8))
+                    .build();
+
+            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                log.warn("Draft title suggestion LLM call failed with status {}", response.statusCode());
+                return List.of();
+            }
+
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.body());
+            com.fasterxml.jackson.databind.JsonNode choices = root.get("choices");
+            if (choices == null || !choices.isArray() || choices.isEmpty()) {
+                return List.of();
+            }
+            String content = choices.get(0).get("message").get("content").asText("").trim();
+
+            if (content.contains("```")) {
+                int start = content.indexOf('[');
+                int end = content.lastIndexOf(']');
+                if (start >= 0 && end > start) {
+                    content = content.substring(start, end + 1);
+                }
+            }
+
+            com.fasterxml.jackson.databind.JsonNode array = mapper.readTree(content);
+            if (!array.isArray()) {
+                return List.of();
+            }
+            List<String> titles = new ArrayList<>();
+            for (com.fasterxml.jackson.databind.JsonNode n : array) {
+                titles.add(n.asText());
+            }
+            return titles;
+        } catch (Exception e) {
+            log.warn("Draft title suggestion failed: {}", e.getMessage());
             return List.of();
         }
     }
