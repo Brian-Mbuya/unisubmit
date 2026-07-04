@@ -11,6 +11,7 @@ import com.unisubmit.service.SubmissionAccessService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -128,5 +129,25 @@ public class AIInsightApiController {
         submission.setTitle(newTitle.trim());
         submissionRepository.save(submission);
         return ResponseEntity.ok(Map.of("status", "OK", "title", newTitle.trim()));
+    }
+
+    /**
+     * Stateless endpoint: analyzes a chosen draft file from the student's local computer
+     * and suggests 3 creative titles before the project submission is officially created.
+     */
+    @PostMapping("/api/ai/analyze-draft-file")
+    public ResponseEntity<Map<String, Object>> analyzeDraftFile(
+            @RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File is empty or not provided"));
+        }
+        List<String> suggestions = aiProcessingService.suggestTitlesForDraft(file);
+        if (suggestions.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "suggestions", List.of(),
+                    "message", "No suggestions could be generated. Make sure your OpenAI/OpenRouter key is configured."
+            ));
+        }
+        return ResponseEntity.ok(Map.of("suggestions", suggestions));
     }
 }

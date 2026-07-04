@@ -186,101 +186,78 @@
     });
   }
 
-  function initTitleSuggestions() {
-    const btn = document.getElementById("btn-suggest-titles");
-    if (!btn) return;
-    const container = document.getElementById("title-suggestions-container");
-    const list = document.getElementById("title-suggestions-list");
-    const submissionId = btn.getAttribute("data-submission-id");
+  function initDraftTitleSuggestions() {
+    const fileInput = document.getElementById("file");
+    const container = document.getElementById("new-title-suggestions-container");
+    const spinner = document.getElementById("suggestions-spinner");
+    const statusText = document.getElementById("suggestions-status-text");
+    const list = document.getElementById("new-title-suggestions-list");
+    const titleInput = document.getElementById("title");
 
-    btn.addEventListener("click", () => {
-      btn.disabled = true;
-      const originalText = btn.textContent;
-      btn.textContent = "✨ Generating titles...";
+    if (!fileInput || !container || !spinner || !statusText || !list || !titleInput) return;
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      // Show spinner, loading text, and container
+      container.style.display = "block";
+      spinner.style.display = "inline-block";
+      statusText.textContent = "AI is analyzing document and generating title suggestions...";
       list.innerHTML = "";
-      container.style.display = "none";
 
-      fetch(`/api/ai/suggest-title/${submissionId}`)
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const token = csrf.token();
+      const header = csrf.header();
+
+      fetch("/api/ai/analyze-draft-file", {
+        method: "POST",
+        headers: token && header ? { [header]: token } : {},
+        body: formData,
+      })
         .then((res) => res.json())
         .then((data) => {
-          btn.disabled = false;
-          btn.textContent = originalText;
+          spinner.style.display = "none";
           if (data.error) {
-            alert(data.error);
-            return;
-          }
-          if (data.message) {
-            alert(data.message);
+            statusText.textContent = "⚠️ Could not generate suggestions: " + data.error;
             return;
           }
           if (data.suggestions && data.suggestions.length > 0) {
-            container.style.display = "block";
-            data.suggestions.forEach((title) => {
+            // Auto-populate the first suggestion directly into the input field
+            const firstSuggestion = data.suggestions[0];
+            titleInput.value = firstSuggestion;
+            titleInput.style.borderColor = "var(--primary)";
+            setTimeout(() => { titleInput.style.borderColor = ""; }, 1500);
+
+            statusText.textContent = "✨ AI auto-populated title. Click an alternative below to swap:";
+            data.suggestions.forEach((title, index) => {
               const item = document.createElement("button");
               item.type = "button";
               item.className = "btn btn-secondary btn-sm text-left w-full justify-start py-2 px-3 mt-1";
               item.style.textAlign = "left";
               item.style.whiteSpace = "normal";
-              item.textContent = title;
+              item.style.display = "block";
+              item.textContent = `Option ${index + 1}: ${title}`;
               item.addEventListener("click", () => {
-                if (confirm(`Do you want to rename your project to "${title}"?`)) {
-                  renameProject(submissionId, title, item);
-                }
+                titleInput.value = title;
+                titleInput.focus();
+                titleInput.style.borderColor = "var(--primary)";
+                setTimeout(() => { titleInput.style.borderColor = ""; }, 1500);
               });
               list.appendChild(item);
             });
           } else {
-            alert("No suggestions returned.");
+            statusText.textContent = "⚠️ " + (data.message || "No suggestions returned.");
           }
         })
         .catch((err) => {
-          btn.disabled = false;
-          btn.textContent = originalText;
-          console.error("Error fetching title suggestions:", err);
-          alert("Error generating title suggestions.");
+          spinner.style.display = "none";
+          statusText.textContent = "⚠️ Error generating title suggestions.";
+          console.error("Error fetching draft title suggestions:", err);
         });
     });
-  }
-
-  function renameProject(submissionId, newTitle, itemBtn) {
-    const token = csrf.token();
-    const header = csrf.header();
-    itemBtn.disabled = true;
-    const originalText = itemBtn.textContent;
-    itemBtn.textContent = "Renaming...";
-
-    fetch(`/api/ai/rename/${submissionId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && header ? { [header]: token } : {})
-      },
-      body: JSON.stringify({ title: newTitle }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        itemBtn.disabled = false;
-        itemBtn.textContent = originalText;
-        if (data.error) {
-          alert(data.error);
-        } else if (data.status === "OK") {
-          const titleEl = document.querySelector(".page-head h1");
-          if (titleEl) {
-            titleEl.textContent = newTitle;
-          }
-          const container = document.getElementById("title-suggestions-container");
-          if (container) {
-            container.style.display = "none";
-          }
-          alert("Project renamed successfully!");
-        }
-      })
-      .catch((err) => {
-        itemBtn.disabled = false;
-        itemBtn.textContent = originalText;
-        console.error("Error renaming project:", err);
-        alert("Error renaming project.");
-      });
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -293,6 +270,6 @@
     initTableSearch();
     initSubmissionFilters();
     initAiTabs();
-    initTitleSuggestions();
+    initDraftTitleSuggestions();
   });
 })();
