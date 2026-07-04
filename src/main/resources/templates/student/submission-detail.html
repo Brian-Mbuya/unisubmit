@@ -64,10 +64,16 @@
                     <p class="text-muted text-sm no-margin">No further uploads are required.</p>
                 </div>
 
-                <!-- Similar projects -->
+                <!-- Similar work (related / integrity signal — NOT collaboration) -->
                 <div class="card">
-                    <div class="card-head"><h2>Similar work & collaborators</h2></div>
-                    <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${requestStatusesBySubmissionId}, false)}"></div>
+                    <div class="card-head"><h2>Similar work</h2></div>
+                    <p class="field-hint mb-2">
+                        Related projects by topic, tags and content — useful for spotting prior work
+                        and avoiding duplication. Looking for people to work with? See
+                        <a th:href="@{/discover}">Discover collaborators</a>, which finds
+                        cross-disciplinary partners instead of classmates on the same unit.
+                    </p>
+                    <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${requestStatusesBySubmissionId}, true)}"></div>
                 </div>
 
             </div>

@@ -6,26 +6,34 @@ import com.unisubmit.service.KnowledgeTagService;
 import com.unisubmit.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
- * Phase 8 — opt-in cross-department demo data so collaboration discovery is
- * visible immediately (even with no API key / no SPECTER sidecar).
+ * Phase 8 — opt-in cross-department demo data so the whole platform is testable
+ * end-to-end without hand-building a hierarchy: three departments, a reviewing
+ * lecturer with teaching assignments, enrolled students, and six analysed
+ * submissions with real (unique) attached documents that share broad problem
+ * domains across different units — exactly the cross-disciplinary pairings the
+ * collaboration engine surfaces.
  * <p>
- * Gated behind {@code unisubmit.demo.seed-collaboration=true} (set in the local
- * profile) AND a marker check, so it runs at most once and never touches an
- * existing dataset. Creates three departments whose projects share broad
- * problem domains (transportation, healthcare, energy) across different units —
- * exactly the cross-disciplinary pairings Stage 1 is built to surface.
- * Runs before {@link RecommendationRefreshRunner} (@Order 20) so the startup
- * refresh then builds the collaboration shortlist over this data.
+ * Gated behind {@code unisubmit.demo.seed-collaboration=true} and a marker check
+ * so it runs at most once and never touches an existing dataset. Runs before
+ * {@link RecommendationRefreshRunner} (@Order 20) so the startup refresh then
+ * builds the collaboration shortlist over this data.
  */
 @Component
 @Order(10)
@@ -43,8 +51,13 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
     private final UnitRepository unitRepository;
     private final CurriculumRepository curriculumRepository;
     private final SubmissionRepository submissionRepository;
+    private final SubmissionVersionRepository versionRepository;
     private final AIInsightRepository aiInsightRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final LecturerProfileRepository lecturerProfileRepository;
+    private final TeachingAssignmentRepository teachingAssignmentRepository;
+    private final EnrollmentRepository enrollmentRepository;
+    private final Path uploadRoot;
 
     public CollaborationDemoSeeder(UserService userService, KnowledgeTagService tagService,
                                    FacultyRepository facultyRepository,
@@ -53,8 +66,13 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                                    UnitRepository unitRepository,
                                    CurriculumRepository curriculumRepository,
                                    SubmissionRepository submissionRepository,
+                                   SubmissionVersionRepository versionRepository,
                                    AIInsightRepository aiInsightRepository,
-                                   StudentProfileRepository studentProfileRepository) {
+                                   StudentProfileRepository studentProfileRepository,
+                                   LecturerProfileRepository lecturerProfileRepository,
+                                   TeachingAssignmentRepository teachingAssignmentRepository,
+                                   EnrollmentRepository enrollmentRepository,
+                                   @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.userService = userService;
         this.tagService = tagService;
         this.facultyRepository = facultyRepository;
@@ -63,14 +81,20 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         this.unitRepository = unitRepository;
         this.curriculumRepository = curriculumRepository;
         this.submissionRepository = submissionRepository;
+        this.versionRepository = versionRepository;
         this.aiInsightRepository = aiInsightRepository;
         this.studentProfileRepository = studentProfileRepository;
+        this.lecturerProfileRepository = lecturerProfileRepository;
+        this.teachingAssignmentRepository = teachingAssignmentRepository;
+        this.enrollmentRepository = enrollmentRepository;
+        this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
     /** dept 0=Computer Science, 1=Electrical Engineering, 2=Public Health. */
     private record DemoProject(int dept, String admission, String studentName, int year,
                                SubmissionStatus status, String title, String summary,
-                               List<String> domains, List<String> techs, List<String> areas) {}
+                               List<String> objectives, List<String> domains,
+                               List<String> techs, List<String> areas) {}
 
     @Override
     public void run(String... args) {
@@ -79,13 +103,16 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         }
         try {
             seed();
-            log.info("Collaboration demo data seeded (3 departments, cross-disciplinary projects).");
+            log.info("Collaboration demo data seeded: 3 departments, 1 lecturer, 6 students + "
+                    + "analysed submissions with documents.");
         } catch (Exception ex) {
-            log.warn("Collaboration demo seeding skipped due to error: {}", ex.getMessage());
+            log.warn("Collaboration demo seeding skipped due to error: {}", ex.getMessage(), ex);
         }
     }
 
-    private void seed() {
+    private void seed() throws Exception {
+        Files.createDirectories(uploadRoot);
+
         Faculty faculty = new Faculty();
         faculty.setName("Faculty of Applied Sciences (Demo)");
         faculty.setCode("DEMO-AS");
@@ -101,11 +128,35 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                 programme(depts[1], "BSc Electrical Engineering (Demo)", "DEMO-BEE"),
                 programme(depts[2], "BSc Public Health (Demo)", "DEMO-BPH")
         };
-        Curriculum[] curricula = {
-                curriculum(programmes[0], unit(depts[0], "DCS410", "Applied Machine Learning")),
-                curriculum(programmes[1], unit(depts[1], "DEE420", "Embedded Systems Design")),
-                curriculum(programmes[2], unit(depts[2], "DPH430", "Population Health Analytics"))
+        Unit[] units = {
+                unit(depts[0], "DCS410", "Applied Machine Learning"),
+                unit(depts[1], "DEE420", "Embedded Systems Design"),
+                unit(depts[2], "DPH430", "Population Health Analytics")
         };
+        Curriculum[] curricula = {
+                curriculum(programmes[0], units[0]),
+                curriculum(programmes[1], units[1]),
+                curriculum(programmes[2], units[2])
+        };
+
+        // A reviewing lecturer assigned to all three demo units, so the review
+        // queue and blind-review flow are testable against the demo submissions.
+        User lecturer = userService.createUser("demo.lecturer", "password123",
+                "Prof. Ada Demo", Role.LECTURER, null, "D-L-1");
+        LecturerProfile lecturerProfile = lecturerProfileRepository.findByStaffNumber("D-L-1").orElse(null);
+        if (lecturerProfile != null) {
+            lecturerProfile.setDepartment(depts[0]);
+            lecturerProfile.setAcademicRank("Professor");
+            lecturerProfileRepository.save(lecturerProfile);
+            for (Curriculum c : curricula) {
+                TeachingAssignment ta = new TeachingAssignment();
+                ta.setLecturer(lecturerProfile);
+                ta.setCurriculum(c);
+                ta.setRole("PRIMARY");
+                ta.setStatus("ACTIVE");
+                teachingAssignmentRepository.save(ta);
+            }
+        }
 
         List<DemoProject> projects = List.of(
                 // ── Transportation cluster (CS + EE) ──
@@ -113,6 +164,8 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                         "Deep-Learning Traffic Congestion Forecasting",
                         "An LSTM model predicting urban traffic congestion from historical flow data. "
                                 + "Strong on prediction accuracy but lacks real-world sensor data for validation.",
+                        List.of("Build an LSTM congestion predictor", "Benchmark against baseline timers",
+                                "Validate on a real road network"),
                         List.of("transportation", "urban planning"),
                         List.of("TensorFlow", "Python"),
                         List.of("Machine Learning")),
@@ -121,14 +174,18 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                         "A deployed network of street-level IoT sensors and an adaptive traffic-light "
                                 + "controller. Collects six months of real vehicle-count time series but has no "
                                 + "predictive analytics layer.",
+                        List.of("Deploy street-level IoT sensors", "Adaptively time traffic lights",
+                                "Publish a live vehicle-count feed"),
                         List.of("transportation", "urban planning"),
                         List.of("EEG Biosensors", "Kubernetes"),
                         List.of("Renewable Energy")),
-                // ── Healthcare cluster (CS + PH + EE) ──
+                // ── Healthcare cluster (CS + PH) ──
                 new DemoProject(0, "D-CS-2", "Chloe Njeri", 4, SubmissionStatus.APPROVED,
                         "CNN Medical Image Diagnosis",
                         "A convolutional model classifying diagnostic images. Method is mature but the "
                                 + "team needs a labelled clinical dataset and domain validation.",
+                        List.of("Train a CNN image classifier", "Reach clinical-grade accuracy",
+                                "Obtain a labelled validation dataset"),
                         List.of("healthcare"),
                         List.of("TensorFlow", "Python"),
                         List.of("Machine Learning", "Epidemiology")),
@@ -136,6 +193,8 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                         "Epidemic Spread Modelling for County Clinics",
                         "A compartmental model of disease spread using county clinic records. Rich labelled "
                                 + "health data, but the statistical model is simple and could be improved with ML.",
+                        List.of("Model disease spread across clinics", "Curate a labelled health dataset",
+                                "Forecast outbreak hotspots"),
                         List.of("healthcare"),
                         List.of("SPSS Software", "MATLAB Toolkit"),
                         List.of("Epidemiology", "Microbiology")),
@@ -144,6 +203,8 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                         "Solar Micro-Grid Load Optimisation",
                         "An optimisation scheme for a deployed campus solar micro-grid. Has live consumption "
                                 + "telemetry but no forecasting of future demand.",
+                        List.of("Optimise solar micro-grid load", "Stream live consumption telemetry",
+                                "Reduce peak-demand cost"),
                         List.of("energy", "environment"),
                         List.of("MATLAB Toolkit", "Docker"),
                         List.of("Renewable Energy", "Fluid Dynamics")),
@@ -151,21 +212,33 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                         "Energy Consumption Forecasting with Gradient Boosting",
                         "A gradient-boosting forecaster for building energy demand. Good model, but only "
                                 + "tested on synthetic data — needs real building telemetry.",
+                        List.of("Forecast building energy demand", "Compare boosting vs neural models",
+                                "Validate on real telemetry"),
                         List.of("energy", "environment"),
                         List.of("Python", "React"),
-                        List.of("Machine Learning"))
-        );
+                        List.of("Machine Learning")));
 
         for (DemoProject p : projects) {
             User student = userService.createUser(
                     p.admission().toLowerCase() + "@demo.unisubmit", "password123", p.studentName(),
                     Role.STUDENT, p.admission(), null,
                     depts[p.dept()].getId(), programmes[p.dept()].getId(), p.year(), 1);
+
+            // Enrol the student in their curriculum so announcements/review reach them.
+            StudentProfile profile = student.getStudentProfile();
+            if (profile != null) {
+                Enrollment enrollment = new Enrollment();
+                enrollment.setStudent(profile);
+                enrollment.setCurriculum(curricula[p.dept()]);
+                enrollment.setStatus("ENROLLED");
+                enrollmentRepository.save(enrollment);
+            }
+
             createSubmission(student, curricula[p.dept()], p);
         }
     }
 
-    private void createSubmission(User student, Curriculum curriculum, DemoProject p) {
+    private void createSubmission(User student, Curriculum curriculum, DemoProject p) throws Exception {
         Submission submission = new Submission();
         submission.setTitle(p.title());
         submission.setStudent(student);
@@ -175,17 +248,47 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         submission.setResearchAreas(mapResearchAreas(p.areas()));
         submission = submissionRepository.save(submission);
 
+        // Attach a real, UNIQUE document so file preview/download/review work and
+        // identical-document detection does NOT false-flag the demo set.
+        attachDocument(submission, student, p);
+
         AIInsight insight = new AIInsight();
         insight.setSubmission(submission);
         insight.setStatus(AIInsightStatus.COMPLETED);
         insight.setSummary(p.summary());
         insight.setKeywords(new LinkedHashSet<>(p.domains()));
+        insight.setObjectives(new LinkedHashSet<>(p.objectives()));
         insight.setProblemDomains(new LinkedHashSet<>(p.domains()));
         insight.setProblemStatement(p.summary());
         aiInsightRepository.save(insight);
 
         submission.setAiInsight(insight);
         submissionRepository.save(submission);
+    }
+
+    private void attachDocument(Submission submission, User student, DemoProject p) throws Exception {
+        String body = "PROJECT PROPOSAL\n\nTitle: " + p.title() + "\n\n"
+                + "Abstract\n" + p.summary() + "\n\n"
+                + "Objectives\n- " + String.join("\n- ", p.objectives()) + "\n\n"
+                + "Application domains: " + String.join(", ", p.domains()) + "\n"
+                + "Technologies: " + String.join(", ", p.techs()) + "\n";
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+
+        String slug = p.admission().toLowerCase() + "-proposal.txt";
+        String storedName = UUID.randomUUID() + "_" + slug;
+        Files.write(uploadRoot.resolve(storedName), bytes);
+
+        SubmissionVersion version = new SubmissionVersion();
+        version.setSubmission(submission);
+        version.setFilePath(storedName);
+        version.setOriginalFileName(slug);
+        version.setFileType("text/plain");
+        version.setFileSize((long) bytes.length);
+        version.setVersionNumber(1);
+        version.setUploadedBy(student);
+        version.setContentHash(sha256(bytes));
+        versionRepository.save(version);
+        submission.getVersions().add(version);
     }
 
     // ── Builders ─────────────────────────────────────────────────────────────
@@ -233,5 +336,15 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         Set<ResearchArea> set = new LinkedHashSet<>();
         names.forEach(n -> set.add(tagService.findOrCreateResearchArea(n)));
         return set;
+    }
+
+    private static String sha256(byte[] bytes) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(bytes);
+        StringBuilder sb = new StringBuilder(64);
+        for (byte b : hash) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
     }
 }
