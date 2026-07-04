@@ -1,39 +1,48 @@
 package com.unisubmit.controller;
 
 import com.unisubmit.domain.AIInsight;
+import com.unisubmit.domain.Submission;
 import com.unisubmit.repository.AIInsightRepository;
+import com.unisubmit.repository.SubmissionRepository;
 import com.unisubmit.security.CustomUserDetails;
 import com.unisubmit.service.AIInsightService;
+import com.unisubmit.service.AIInsightProcessingService;
 import com.unisubmit.service.SubmissionAccessService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 /**
  * Lightweight REST API used by the polling JavaScript in layout.html.
  * <p>
- * GET  /api/ai-insights/{id}         — returns current insight state (status, summary, keywords)
- * POST /api/ai-insights/{id}/retry   — re-triggers analysis for a FAILED insight
- * <p>
- * Both endpoints enforce {@link SubmissionAccessService} rules and answer 404
- * (never 403) when access is denied, so insight IDs cannot be probed.
+ * GET  /api/ai-insights/{id}                 — returns current insight state
+ * POST /api/ai-insights/{id}/retry           — re-triggers analysis for a FAILED insight
+ * GET  /api/ai/suggest-title/{submissionId}  — generates 3 AI title suggestions
+ * POST /api/ai/rename/{submissionId}         — applies a chosen title to a submission
  */
 @RestController
 public class AIInsightApiController {
 
     private final AIInsightRepository aiInsightRepository;
     private final AIInsightService aiInsightService;
+    private final AIInsightProcessingService aiProcessingService;
     private final SubmissionAccessService accessService;
+    private final SubmissionRepository submissionRepository;
 
     public AIInsightApiController(AIInsightRepository aiInsightRepository,
                                   AIInsightService aiInsightService,
-                                  SubmissionAccessService accessService) {
+                                  AIInsightProcessingService aiProcessingService,
+                                  SubmissionAccessService accessService,
+                                  SubmissionRepository submissionRepository) {
         this.aiInsightRepository = aiInsightRepository;
         this.aiInsightService = aiInsightService;
+        this.aiProcessingService = aiProcessingService;
         this.accessService = accessService;
+        this.submissionRepository = submissionRepository;
     }
 
     @GetMapping("/api/ai-insights/{id}")
@@ -49,7 +58,6 @@ public class AIInsightApiController {
 
     /**
      * Retry endpoint: only succeeds if the insight is in FAILED state.
-     * Returns 409 Conflict if the insight is not retriable.
      */
     @PostMapping("/api/ai-insights/{id}/retry")
     public ResponseEntity<Map<String, String>> retryInsight(@PathVariable Long id,
@@ -66,5 +74,59 @@ public class AIInsightApiController {
             return ResponseEntity.status(409)
                     .body(Map.of("status", "ERROR", "message", "Insight is not in a FAILED state"));
         }
+    }
+
+    /**
+     * Suggest 3 AI-generated project titles based on the AI analysis.
+     * Requires the submission to have a COMPLETED AI insight.
+     */
+    @GetMapping("/api/ai/suggest-title/{submissionId}")
+    public ResponseEntity<Map<String, Object>> suggestTitle(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Optional<Submission> sub = submissionRepository.findById(submissionId);
+        if (sub.isEmpty() || userDetails == null
+                || !accessService.canAccessSubmissionFile(userDetails.getUser(), sub.get())) {
+            return ResponseEntity.notFound().build();
+        }
+        if (sub.get().getAiInsight() == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "AI analysis has not completed for this submission"));
+        }
+
+        List<String> suggestions = aiProcessingService.suggestTitles(submissionId);
+        if (suggestions.isEmpty()) {
+            return ResponseEntity.ok(Map.of(
+                    "suggestions", List.of(),
+                    "message", "Could not generate suggestions. Check that an AI API key is configured."
+            ));
+        }
+        return ResponseEntity.ok(Map.of("suggestions", suggestions));
+    }
+
+    /**
+     * Rename a submission to a chosen AI-suggested title.
+     */
+    @PostMapping("/api/ai/rename/{submissionId}")
+    public ResponseEntity<Map<String, String>> renameSubmission(
+            @PathVariable Long submissionId,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Optional<Submission> sub = submissionRepository.findById(submissionId);
+        if (sub.isEmpty() || userDetails == null
+                || !accessService.canAccessSubmissionFile(userDetails.getUser(), sub.get())) {
+            return ResponseEntity.notFound().build();
+        }
+        String newTitle = body.get("title");
+        if (newTitle == null || newTitle.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Title cannot be empty"));
+        }
+
+        Submission submission = sub.get();
+        submission.setTitle(newTitle.trim());
+        submissionRepository.save(submission);
+        return ResponseEntity.ok(Map.of("status", "OK", "title", newTitle.trim()));
     }
 }

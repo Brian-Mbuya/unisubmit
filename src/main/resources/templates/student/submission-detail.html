@@ -41,6 +41,20 @@
                               th:text="${submission.aiInsight.status.name()}">STATUS</span>
                     </div>
                     <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
+
+                    <!-- AI project naming action -->
+                    <div th:if="${submission.aiInsight != null and submission.aiInsight.status.name() == 'COMPLETED'}"
+                         class="mt-4 pt-4" style="border-top: 1px solid var(--border);">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-suggest-titles" th:attr="data-submission-id=${submission.id}">
+                            ✨ Suggest a project name
+                        </button>
+                        <div id="title-suggestions-container" class="mt-3" style="display: none;">
+                            <p class="text-xs text-muted mb-2">Click a suggested title to rename your project:</p>
+                            <div class="flex flex-col gap-2" id="title-suggestions-list">
+                                <!-- suggestions loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Upload new version (primary action, unless approved) -->

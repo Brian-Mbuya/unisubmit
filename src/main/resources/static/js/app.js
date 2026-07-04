@@ -186,6 +186,103 @@
     });
   }
 
+  function initTitleSuggestions() {
+    const btn = document.getElementById("btn-suggest-titles");
+    if (!btn) return;
+    const container = document.getElementById("title-suggestions-container");
+    const list = document.getElementById("title-suggestions-list");
+    const submissionId = btn.getAttribute("data-submission-id");
+
+    btn.addEventListener("click", () => {
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = "✨ Generating titles...";
+      list.innerHTML = "";
+      container.style.display = "none";
+
+      fetch(`/api/ai/suggest-title/${submissionId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          if (data.error) {
+            alert(data.error);
+            return;
+          }
+          if (data.message) {
+            alert(data.message);
+            return;
+          }
+          if (data.suggestions && data.suggestions.length > 0) {
+            container.style.display = "block";
+            data.suggestions.forEach((title) => {
+              const item = document.createElement("button");
+              item.type = "button";
+              item.className = "btn btn-secondary btn-sm text-left w-full justify-start py-2 px-3 mt-1";
+              item.style.textAlign = "left";
+              item.style.whiteSpace = "normal";
+              item.textContent = title;
+              item.addEventListener("click", () => {
+                if (confirm(`Do you want to rename your project to "${title}"?`)) {
+                  renameProject(submissionId, title, item);
+                }
+              });
+              list.appendChild(item);
+            });
+          } else {
+            alert("No suggestions returned.");
+          }
+        })
+        .catch((err) => {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          console.error("Error fetching title suggestions:", err);
+          alert("Error generating title suggestions.");
+        });
+    });
+  }
+
+  function renameProject(submissionId, newTitle, itemBtn) {
+    const token = csrf.token();
+    const header = csrf.header();
+    itemBtn.disabled = true;
+    const originalText = itemBtn.textContent;
+    itemBtn.textContent = "Renaming...";
+
+    fetch(`/api/ai/rename/${submissionId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && header ? { [header]: token } : {})
+      },
+      body: JSON.stringify({ title: newTitle }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        itemBtn.disabled = false;
+        itemBtn.textContent = originalText;
+        if (data.error) {
+          alert(data.error);
+        } else if (data.status === "OK") {
+          const titleEl = document.querySelector(".page-head h1");
+          if (titleEl) {
+            titleEl.textContent = newTitle;
+          }
+          const container = document.getElementById("title-suggestions-container");
+          if (container) {
+            container.style.display = "none";
+          }
+          alert("Project renamed successfully!");
+        }
+      })
+      .catch((err) => {
+        itemBtn.disabled = false;
+        itemBtn.textContent = originalText;
+        console.error("Error renaming project:", err);
+        alert("Error renaming project.");
+      });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     markActiveNav();
     initMobileNav();
@@ -196,5 +293,6 @@
     initTableSearch();
     initSubmissionFilters();
     initAiTabs();
+    initTitleSuggestions();
   });
 })();
