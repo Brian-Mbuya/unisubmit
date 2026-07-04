@@ -605,4 +605,111 @@ public class AIInsightProcessingService {
             .limit(maxSize)
             .collect(Collectors.toList());
     }
+
+    /**
+     * Uses the LLM to suggest 3 creative, professional project titles based on
+     * the AI insight (summary, keywords, objectives, problem statement).
+     * Returns an empty list if the API key is not configured or the call fails.
+     */
+    public List<String> suggestTitles(Long submissionId) {
+        if (apiKey == null || apiKey.isBlank() || "NO_KEY".equals(apiKey)) {
+            return List.of();
+        }
+
+        Optional<com.unisubmit.domain.Submission> optSub = submissionRepository.findById(submissionId);
+        if (optSub.isEmpty() || optSub.get().getAiInsight() == null) {
+            return List.of();
+        }
+
+        AIInsight insight = optSub.get().getAiInsight();
+        String currentTitle = optSub.get().getTitle();
+
+        String prompt = """
+            You are an academic project naming expert.
+            Based on the following project analysis, suggest exactly 3 creative, professional,
+            and concise project titles. Each title should be clear, academic in tone, and
+            capture the essence of the project.
+
+            Current title: %s
+            Summary: %s
+            Problem statement: %s
+            Keywords: %s
+            Objectives: %s
+
+            Return ONLY a JSON array of 3 strings, no markdown fences.
+            Example: ["Title One", "Title Two", "Title Three"]
+            """.formatted(
+                currentTitle != null ? currentTitle : "Untitled",
+                insight.getSummary() != null ? insight.getSummary() : "No summary",
+                insight.getProblemStatement() != null ? insight.getProblemStatement() : "No problem statement",
+                insight.getKeywords() != null ? String.join(", ", insight.getKeywords()) : "none",
+                insight.getObjectives() != null ? String.join("; ", insight.getObjectives()) : "none"
+        );
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            String escapedPrompt = mapper.writeValueAsString(prompt);
+
+            String requestBody = """
+                {
+                  "model": "%s",
+                  "max_tokens": 300,
+                  "temperature": 0.7,
+                  "messages": [
+                    {
+                      "role": "user",
+                      "content": %s
+                    }
+                  ]
+                }
+                """.formatted(model, escapedPrompt);
+
+            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
+                    .connectTimeout(java.time.Duration.ofSeconds(10))
+                    .build();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(getCompletionsUrl()))
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestBody, java.nio.charset.StandardCharsets.UTF_8))
+                    .build();
+
+            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                log.warn("Title suggestion LLM call failed with status {}", response.statusCode());
+                return List.of();
+            }
+
+            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.body());
+            com.fasterxml.jackson.databind.JsonNode choices = root.get("choices");
+            if (choices == null || !choices.isArray() || choices.isEmpty()) {
+                return List.of();
+            }
+            String content = choices.get(0).get("message").get("content").asText("").trim();
+
+            // Strip markdown fences if present
+            if (content.contains("```")) {
+                int start = content.indexOf('[');
+                int end = content.lastIndexOf(']');
+                if (start >= 0 && end > start) {
+                    content = content.substring(start, end + 1);
+                }
+            }
+
+            com.fasterxml.jackson.databind.JsonNode array = mapper.readTree(content);
+            if (!array.isArray()) {
+                return List.of();
+            }
+            List<String> titles = new ArrayList<>();
+            for (com.fasterxml.jackson.databind.JsonNode n : array) {
+                titles.add(n.asText());
+            }
+            return titles;
+
+        } catch (Exception ex) {
+            log.warn("Title suggestion failed: {}", ex.getMessage());
+            return List.of();
+        }
+    }
 }
