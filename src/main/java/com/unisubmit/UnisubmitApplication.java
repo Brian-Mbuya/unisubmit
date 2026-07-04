@@ -19,6 +19,16 @@ public class UnisubmitApplication {
 		SpringApplication.run(UnisubmitApplication.class, args);
 	}
 
+	/** Creates a core account only if its username is not already taken. */
+	private static void ensureUser(UserService userService, String username, String name,
+								   Role role, String studentId, String staffId) {
+		try {
+			userService.createUser(username, "password123", name, role, studentId, staffId);
+		} catch (Exception alreadyExists) {
+			// Username/ID already present — leave the existing account untouched.
+		}
+	}
+
 	@Bean
 	public CommandLineRunner seedData(
 			UserService userService,
@@ -29,13 +39,12 @@ public class UnisubmitApplication {
 			ProgrammingLanguageRepository programmingLanguageRepository,
 			SkillRepository skillRepository) {
 		return args -> {
-			if (userService.findAll().isEmpty()) {
-				// Default accounts for demonstration
-				// Admin logs in with username; students with studentId; lecturers with staffId
-				userService.createUser("admin", "password123", "System Administrator", Role.ADMIN, null, null);
-				userService.createUser("lecturer", "password123", "Dr. Smith", Role.LECTURER, null, "L001");
-				userService.createUser("student", "password123", "John Doe", Role.STUDENT, "S001", null);
-			}
+			// Default accounts — created idempotently (per-account), so they exist
+			// regardless of seeder ordering. Admin logs in with username; students
+			// with studentId; lecturers with staffId. All password123.
+			ensureUser(userService, "admin", "System Administrator", Role.ADMIN, null, null);
+			ensureUser(userService, "lecturer", "Dr. Smith", Role.LECTURER, null, "L001");
+			ensureUser(userService, "student", "John Doe", Role.STUDENT, "S001", null);
 
 			if (technologyRepository.count() == 0) {
 				List.of("Spring Boot", "React", "Docker", "TensorFlow", "EHR Systems",
