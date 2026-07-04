@@ -48,6 +48,10 @@ public class SubmissionVersion {
     @Column(length = 64)
     private String contentHash;
 
+    /** True when this version was uploaded after the assignment deadline (late-window upload). */
+    @Column(name = "is_late", columnDefinition = "boolean default false")
+    private boolean late = false;
+
     @ManyToOne(optional = true)
     @JoinColumn(name = "uploaded_by_id")
     private User uploadedBy;

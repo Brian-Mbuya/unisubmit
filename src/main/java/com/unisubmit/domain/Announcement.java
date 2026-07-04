@@ -38,6 +38,9 @@ public class Announcement {
     @Column(name = "deadline")
     private LocalDateTime deadline;
 
+    @Column(name = "late_window_open", columnDefinition = "boolean default false")
+    private boolean lateWindowOpen = false;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

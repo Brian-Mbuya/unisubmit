@@ -190,6 +190,32 @@ public class AnnouncementService {
     }
 
     /**
+     * Toggles the late-submission window on an ASSIGNMENT announcement.
+     * When open, students may still upload new versions even past the deadline;
+     * those versions will be flagged as late on both sides.
+     */
+    @Transactional
+    public boolean toggleLateWindow(Long announcementId, User lecturer) {
+        Announcement announcement = announcementRepository.findById(announcementId)
+                .orElseThrow(() -> new IllegalArgumentException("Announcement not found: " + announcementId));
+
+        if (!announcement.getLecturer().getId().equals(lecturer.getId()) && lecturer.getRole() != Role.ADMIN) {
+            throw new IllegalArgumentException("You are not authorized to modify this announcement.");
+        }
+
+        boolean newState = !announcement.isLateWindowOpen();
+        announcement.setLateWindowOpen(newState);
+        announcementRepository.save(announcement);
+        return newState;
+    }
+
+    /** Returns true when at least one assignment for the given unit has its late window open. */
+    public boolean isLateWindowOpen(Long unitId) {
+        return announcementRepository.findByUnitIdOrderByCreatedAtDesc(unitId).stream()
+                .anyMatch(a -> a.getType() == AnnouncementType.ASSIGNMENT && a.isLateWindowOpen());
+    }
+
+    /**
      * Recomputes {@code unit.submissionDeadline} as the nearest FUTURE deadline
      * among the unit's remaining ASSIGNMENT announcements. Multiple assignments
      * on one unit no longer clobber each other's deadline, and deleting one

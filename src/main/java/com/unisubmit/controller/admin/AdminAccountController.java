@@ -61,14 +61,14 @@ public class AdminAccountController {
                                 @RequestParam String password,
                                 @RequestParam Role role,
                                 @RequestParam(required = false) String studentId,
-                                @RequestParam(required = false) String staffId,
+                                @RequestParam(required = false) String staffNumber,
                                 @RequestParam(required = false) Long departmentId,
                                 @RequestParam(required = false) Long courseId,
                                 @RequestParam(required = false) Integer currentYear,
                                 @RequestParam(required = false) Integer currentSemester,
                                 RedirectAttributes ra) {
         try {
-            userService.createUser(email, password, name, role, studentId, staffId, departmentId, courseId, currentYear, currentSemester);
+            userService.createUser(email, password, name, role, studentId, staffNumber, departmentId, courseId, currentYear, currentSemester);
             ra.addFlashAttribute("success", "Account created successfully.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Error creating account: " + e.getMessage());

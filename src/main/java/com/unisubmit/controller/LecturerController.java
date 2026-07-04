@@ -179,4 +179,12 @@ public class LecturerController {
         announcementService.deleteAnnouncement(id, userDetails.getUser());
         return "redirect:/lecturer/announcements?success=Notice removed and deadline reset";
     }
+
+    @PostMapping("/announcements/{id}/toggle-late-window")
+    public String toggleLateWindow(@PathVariable Long id,
+                                   @AuthenticationPrincipal CustomUserDetails userDetails) {
+        boolean isNowOpen = announcementService.toggleLateWindow(id, userDetails.getUser());
+        String msg = isNowOpen ? "Late submission window is now OPEN" : "Late submission window is now CLOSED";
+        return "redirect:/lecturer/announcements?success=" + msg;
+    }
 }
