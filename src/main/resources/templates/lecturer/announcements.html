@@ -5,7 +5,7 @@
         <div class="page-head">
             <div>
                 <div class="eyebrow">Lecturer Portal</div>
-                <h1>Announcements & Assignments</h1>
+                <h1>Announcements &amp; Assignments</h1>
                 <p class="subtitle">Post instructions, assign project deadlines, and manage student alerts.</p>
             </div>
         </div>
@@ -71,10 +71,10 @@
                 </div>
             </div>
 
-            <!-- Right Column: Previously Posted Notices -->
+            <!-- Right Column: Previously Posted Notices (history — never deleted unless you delete) -->
             <div class="card">
                 <div class="card-head">
-                    <h2>Posted Notices</h2>
+                    <h2>Notice History</h2>
                     <span class="badge badge-submitted" th:text="${#lists.size(announcements)} + ' notices'">0</span>
                 </div>
                 
@@ -90,11 +90,28 @@
                                 <span class="badge ml-2"
                                       th:classappend="${ann.type.name() == 'ASSIGNMENT' ? 'badge-under_review' : 'badge-draft'}"
                                       th:text="${ann.type.name()}">Type</span>
+                                <!-- Late window status badge -->
+                                <span th:if="${ann.type.name() == 'ASSIGNMENT' and ann.lateWindowOpen}"
+                                      class="badge badge-approved ml-2" style="font-size:0.72rem;">Late window open</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-subtle" th:text="${#temporals.format(ann.createdAt, 'dd MMM yyyy, HH:mm')}">Date</span>
+                                
+                                <!-- Late submission window toggle (only for past-deadline assignments) -->
+                                <form th:if="${ann.type.name() == 'ASSIGNMENT' and ann.deadline != null and #temporals.createNow().isAfter(ann.deadline)}"
+                                      th:action="@{'/lecturer/announcements/' + ${ann.id} + '/toggle-late-window'}" method="post"
+                                      style="display: inline-block; margin: 0;">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button type="submit"
+                                            th:class="${ann.lateWindowOpen} ? 'btn btn-sm btn-accent py-1 px-2' : 'btn btn-sm btn-secondary py-1 px-2'"
+                                            style="font-size: 0.75rem;"
+                                            th:text="${ann.lateWindowOpen} ? 'Close late window' : 'Open late window'"
+                                            th:title="${ann.lateWindowOpen} ? 'Click to stop accepting late submissions' : 'Click to allow students to submit past the deadline (will be labelled Late)'">
+                                    </button>
+                                </form>
+
                                 <form th:action="@{'/lecturer/announcements/' + ${ann.id} + '/delete'}" method="post" 
-                                      onsubmit="return confirm('Are you sure you want to remove this notice? Deleting an assignment will also remove the submission deadline constraints for this unit.');" 
+                                      onsubmit="return confirm('Are you sure you want to remove this notice from history? This cannot be undone.');" 
                                       style="display: inline-block; margin: 0;">
                                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                                     <button type="submit" class="btn btn-sm btn-danger py-1 px-2" style="font-size: 0.75rem;">Delete</button>
@@ -109,6 +126,10 @@
                              class="deadline-tag w-full"
                              th:classappend="${#temporals.createNow().isAfter(ann.deadline) ? 'overdue' : ''}">
                             ⏳ Due: <strong th:text="${#temporals.format(ann.deadline, 'dd MMM yyyy, HH:mm')}">Date</strong>
+                            <span th:if="${#temporals.createNow().isAfter(ann.deadline) and ann.lateWindowOpen}"
+                                  class="ml-2 text-xs" style="color: var(--color-accent);">
+                                · Late submissions accepted
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -120,14 +141,11 @@
                 var typeSelect = document.getElementById('typeSelect');
                 var deadlineInput = document.getElementById('deadlineInput');
                 if (typeSelect && deadlineInput) {
-                    // The deadline field is always editable; picking a date
-                    // automatically flips the notice type to Assignment.
                     deadlineInput.addEventListener('change', function() {
                         if (this.value) {
                             typeSelect.value = 'ASSIGNMENT';
                         }
                     });
-                    // Switching back to a plain announcement clears the deadline.
                     typeSelect.addEventListener('change', function() {
                         if (this.value !== 'ASSIGNMENT') {
                             deadlineInput.value = '';

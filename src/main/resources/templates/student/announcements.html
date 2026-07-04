@@ -2,10 +2,49 @@
 <html th:replace="~{layout :: html(content=~{::div})}">
 <body>
     <div>
+        <!-- ══ Pop-up modal for newest unread announcement/assignment ══ -->
+        <div th:if="${not #lists.isEmpty(latestNotice)}"
+             id="announcementPopup"
+             class="modal-overlay"
+             style="display:none;"
+             onclick="if(event.target===this) dismissNoticePopup()">
+            <div class="modal-card" style="max-width: 560px;" th:with="notice=${latestNotice[0]}">
+                <div class="modal-header">
+                    <div>
+                        <span class="eyebrow" th:text="${notice.unit.unitCode}">Unit</span>
+                        <h2 class="m-0 mt-1" th:text="${notice.title}">Notice Title</h2>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        <span class="badge"
+                              th:classappend="${notice.type.name() == 'ASSIGNMENT' ? 'badge-under_review' : 'badge-draft'}"
+                              th:text="${notice.type.name()}">Type</span>
+                        <button class="btn btn-sm btn-secondary" onclick="dismissNoticePopup()">✕</button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <p class="readable text-sm" style="white-space: pre-wrap;" th:text="${notice.message}">Message</p>
+                    <div th:if="${notice.type.name() == 'ASSIGNMENT' and notice.deadline != null}"
+                         class="deadline-tag mt-4"
+                         th:classappend="${#temporals.createNow().isAfter(notice.deadline) ? 'overdue' : ''}">
+                        ⏳ Due: <strong th:text="${#temporals.format(notice.deadline, 'dd MMM yyyy, HH:mm')}">Date</strong>
+                    </div>
+                    <!-- Late window notice to student -->
+                    <div th:if="${notice.type.name() == 'ASSIGNMENT' and notice.deadline != null and #temporals.createNow().isAfter(notice.deadline) and notice.lateWindowOpen}"
+                         class="alert alert-info mt-3 text-sm">
+                        ⏰ The deadline has passed, but your lecturer has opened a <strong>late submission window</strong>. You may still submit — your work will be labelled as a late submission.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <span class="text-xs text-muted" th:text="'Posted by ' + ${notice.lecturer.name} + ' · ' + ${#temporals.format(notice.createdAt, 'dd MMM yyyy')}">Info</span>
+                    <button class="btn" onclick="dismissNoticePopup()">Got it</button>
+                </div>
+            </div>
+        </div>
+
         <div class="page-head mb-6">
             <div>
                 <div class="eyebrow">Student Portal</div>
-                <h1>Academic Alerts & Assignments</h1>
+                <h1>Academic Alerts &amp; Assignments</h1>
                 <p class="subtitle">Stay updated with the latest instructions and submissions due from your lecturers.</p>
             </div>
         </div>
@@ -13,12 +52,12 @@
         <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
         <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
 
-        <!-- 1. Assignments Table Card (Inspired by Admin Console Assignments design) -->
+        <!-- 1. Assignments Table Card -->
         <div class="card mb-6 card-pad-0">
             <div class="card-head p-4">
                 <h3>Academic Assignments</h3>
                 <span class="badge badge-submitted"
-                      th:with="open=${assignments.?[deadline == null or #temporals.createNow().isBefore(deadline)]}"
+                      th:with="open=${assignments.?[deadline == null or #temporals.createNow().isBefore(deadline) or lateWindowOpen]}"
                       th:text="${#lists.size(open)} + ' open'">0 open</span>
             </div>
             
@@ -50,14 +89,28 @@
                                      th:classappend="${#temporals.createNow().isAfter(ann.deadline) ? 'overdue' : ''}">
                                     ⏳ <span th:text="${#temporals.format(ann.deadline, 'dd MMM yyyy, HH:mm')}">Date</span>
                                 </div>
+                                <!-- Late window indicator -->
+                                <div th:if="${ann.deadline != null and #temporals.createNow().isAfter(ann.deadline) and ann.lateWindowOpen}"
+                                     class="text-xs mt-1" style="color: var(--color-accent); font-weight: 600;">
+                                    ⚠ Late window open
+                                </div>
                                 <span th:if="${ann.deadline == null}" class="text-muted text-xs italic">No deadline set</span>
                             </td>
                             <td class="text-right">
-                                <span th:if="${ann.deadline != null and #temporals.createNow().isAfter(ann.deadline)}" class="text-danger text-xs fw-600">Submissions closed</span>
+                                <!-- Closed: past deadline, no late window -->
+                                <span th:if="${ann.deadline != null and #temporals.createNow().isAfter(ann.deadline) and !ann.lateWindowOpen}"
+                                      class="text-danger text-xs fw-600">Submissions closed</span>
+                                <!-- Open: no deadline, or before deadline -->
                                 <a th:if="${ann.deadline == null || not #temporals.createNow().isAfter(ann.deadline)}"
                                    th:href="@{/student/submission/new(unitId=${ann.unit.id})}" 
                                    class="btn btn-sm">
                                     Submit Work
+                                </a>
+                                <!-- Open: late window -->
+                                <a th:if="${ann.deadline != null and #temporals.createNow().isAfter(ann.deadline) and ann.lateWindowOpen}"
+                                   th:href="@{/student/submission/new(unitId=${ann.unit.id})}" 
+                                   class="btn btn-sm btn-secondary">
+                                    Submit Late
                                 </a>
                             </td>
                         </tr>
@@ -77,7 +130,7 @@
         <!-- 2. General Notices Card -->
         <div class="card card-pad-0">
             <div class="card-head p-4">
-                <h3>General Notices & Bulletins</h3>
+                <h3>General Notices &amp; Bulletins</h3>
                 <span class="badge badge-draft" th:text="${#lists.size(generalAnnouncements)} + ' notices'">0 notices</span>
             </div>
             
@@ -115,6 +168,34 @@
                 </table>
             </div>
         </div>
+
+        <script th:inline="javascript">
+            (function() {
+                // Show pop-up for the latest notice unless the user already dismissed it in this session
+                var popup = document.getElementById('announcementPopup');
+                if (!popup) return;
+                var latestId = /*[[${not #lists.isEmpty(latestNotice) ? latestNotice[0].id : 0}]]*/ 0;
+                var key = 'unisubmit_notice_seen_' + latestId;
+                if (latestId && !sessionStorage.getItem(key)) {
+                    popup.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
+            })();
+
+            function dismissNoticePopup() {
+                var popup = document.getElementById('announcementPopup');
+                if (!popup) return;
+                // Extract the notice ID from the popup's dataset
+                var latestId = /*[[${not #lists.isEmpty(latestNotice) ? latestNotice[0].id : 0}]]*/ 0;
+                if (latestId) sessionStorage.setItem('unisubmit_notice_seen_' + latestId, '1');
+                popup.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') dismissNoticePopup();
+            });
+        </script>
     </div>
 </body>
 </html>

@@ -68,9 +68,17 @@ public class StudentController {
         List<com.unisubmit.domain.Announcement> generalAnnouncements = all.stream()
                 .filter(a -> a.getType() == com.unisubmit.domain.AnnouncementType.ANNOUNCEMENT)
                 .toList();
+
+        // Latest notice (within last 48 h) to power the pop-up modal
+        java.time.LocalDateTime cutoff = java.time.LocalDateTime.now().minusHours(48);
+        List<com.unisubmit.domain.Announcement> latestNotice = all.stream()
+                .filter(a -> a.getCreatedAt().isAfter(cutoff))
+                .limit(1)
+                .toList();
                 
         model.addAttribute("assignments", assignments);
         model.addAttribute("generalAnnouncements", generalAnnouncements);
+        model.addAttribute("latestNotice", latestNotice);
         return "student/announcements";
     }
 

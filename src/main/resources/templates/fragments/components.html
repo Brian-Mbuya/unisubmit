@@ -25,7 +25,10 @@
                 <!-- Version uploaded -->
                 <div class="timeline-item">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
-                        <strong>Version <span th:text="${version.versionNumber}">1</span></strong>
+                        <div class="flex items-center gap-2">
+                            <strong>Version <span th:text="${version.versionNumber}">1</span></strong>
+                            <span th:if="${version.late}" class="badge" style="background: var(--color-danger, #e05252); color: #fff; font-size: 0.7rem; padding: 0.1rem 0.5rem;">Late submission</span>
+                        </div>
                         <span class="text-xs text-subtle"
                               th:text="${#temporals.format(version.uploadedAt, 'dd MMM yyyy, HH:mm')}">Time</span>
                     </div>
