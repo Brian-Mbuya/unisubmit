@@ -81,10 +81,8 @@
                             </div>
                             <div class="flex flex-col items-end gap-2">
                                 <span class="match-pill"
-                                      th:classappend="${o.value.name() == 'HIGH'} ? 'match-pill-strong' :
-                                                      (${o.value.name() == 'MEDIUM'} ? 'match-pill-related' : 'match-pill-weak')"
-                                      th:text="${o.value.name() == 'UNASSESSED'} ? 'Shortlisted' :
-                                               (${o.value.name() == 'HIGH'} ? 'High-value' : #strings.capitalize(#strings.toLowerCase(o.value.name())))">
+                                      th:classappend="${o.value.name() == 'HIGH' ? 'match-pill-strong' : (o.value.name() == 'MEDIUM' ? 'match-pill-related' : 'match-pill-weak')}"
+                                      th:text="${o.value.name() == 'HIGH' ? 'High-value' : (o.value.name() == 'MEDIUM' ? 'Good match' : 'Shortlisted')}">
                                     value</span>
                                 <span th:if="${o.crossDepartment()}" class="chip chip-gold">Cross-department</span>
                             </div>
