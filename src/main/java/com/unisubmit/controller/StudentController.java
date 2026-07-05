@@ -32,6 +32,7 @@ public class StudentController {
     private final AcademicHierarchyService academicHierarchyService;
     private final com.unisubmit.service.ProjectGroupService groupService;
     private final com.unisubmit.service.AnnouncementService announcementService;
+    private final com.unisubmit.service.AIInsightService aiInsightService;
 
     public StudentController(SubmissionService submissionService,
                              UnitService unitService,
@@ -40,7 +41,8 @@ public class StudentController {
                              CollaborationRequestService collaborationRequestService,
                              AcademicHierarchyService academicHierarchyService,
                              com.unisubmit.service.ProjectGroupService groupService,
-                             com.unisubmit.service.AnnouncementService announcementService) {
+                             com.unisubmit.service.AnnouncementService announcementService,
+                             com.unisubmit.service.AIInsightService aiInsightService) {
         this.submissionService = submissionService;
         this.unitService = unitService;
         this.recommendationService = recommendationService;
@@ -49,6 +51,7 @@ public class StudentController {
         this.academicHierarchyService = academicHierarchyService;
         this.groupService = groupService;
         this.announcementService = announcementService;
+        this.aiInsightService = aiInsightService;
     }
 
     @GetMapping("/dashboard")
@@ -199,5 +202,19 @@ public class StudentController {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
         return "redirect:/student/inbox";
+    }
+
+    @PostMapping("/submission/{id}/retry-analysis")
+    public String retrySubmissionAnalysis(@AuthenticationPrincipal CustomUserDetails userDetails,
+                                          @PathVariable Long id,
+                                          RedirectAttributes ra) {
+        Submission submission = submissionService.getSubmissionForStudent(id, userDetails.getUser());
+        if (submission != null) {
+            aiInsightService.initiateAnalysis(submission);
+            ra.addFlashAttribute("successMessage", "AI analysis has been re-queued using the active model.");
+        } else {
+            ra.addFlashAttribute("errorMessage", "Submission not found.");
+        }
+        return "redirect:/student/submission/" + id;
     }
 }
