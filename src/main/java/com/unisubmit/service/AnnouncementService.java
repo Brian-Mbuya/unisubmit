@@ -22,6 +22,7 @@ public class AnnouncementService {
     private final UnitRepository unitRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final SubmissionRepository submissionRepository;
+    private final com.unisubmit.repository.AppNotificationRepository appNotificationRepository;
 
     public AnnouncementService(AnnouncementRepository announcementRepository,
                                EnrollmentRepository enrollmentRepository,
@@ -30,7 +31,8 @@ public class AnnouncementService {
                                UserRepository userRepository,
                                UnitRepository unitRepository,
                                StudentProfileRepository studentProfileRepository,
-                               SubmissionRepository submissionRepository) {
+                               SubmissionRepository submissionRepository,
+                               com.unisubmit.repository.AppNotificationRepository appNotificationRepository) {
         this.announcementRepository = announcementRepository;
         this.enrollmentRepository = enrollmentRepository;
         this.curriculumRepository = curriculumRepository;
@@ -39,6 +41,64 @@ public class AnnouncementService {
         this.unitRepository = unitRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.submissionRepository = submissionRepository;
+        this.appNotificationRepository = appNotificationRepository;
+    }
+
+    /**
+     * Phase 9 — deadline reminders. For every ASSIGNMENT due within the next
+     * 3 days, notify each enrolled/programme student once per window (3-day and
+     * 1-day). Dedup is by exact message text, so repeated hourly runs never
+     * duplicate a reminder.
+     */
+    @Transactional
+    public int sendDeadlineReminders() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        int sent = 0;
+        for (Announcement ann : announcementRepository.findAll()) {
+            if (ann.getType() != AnnouncementType.ASSIGNMENT || ann.getDeadline() == null
+                    || ann.getUnit() == null) {
+                continue;
+            }
+            long hoursLeft = java.time.temporal.ChronoUnit.HOURS.between(now, ann.getDeadline());
+            if (hoursLeft < 0 || hoursLeft > 72) {
+                continue; // past due or more than 3 days away
+            }
+            String window = hoursLeft <= 24 ? "1 day" : "3 days";
+            String deadlineText = ann.getDeadline().format(
+                    java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm"));
+            String message = "Reminder: '" + ann.getTitle() + "' in [" + ann.getUnit().getUnitName()
+                    + "] is due in " + window + " (by " + deadlineText + ").";
+
+            for (User student : studentsForUnit(ann.getUnit().getId())) {
+                if (!appNotificationRepository.existsByRecipientAndMessage(student, message)) {
+                    notificationService.createNotification(student, NotificationType.DEADLINE, message, null);
+                    sent++;
+                }
+            }
+        }
+        return sent;
+    }
+
+    /** Distinct students of a unit: explicit enrollments + programme mapping. */
+    private List<User> studentsForUnit(Long unitId) {
+        Set<Long> seen = new HashSet<>();
+        List<User> students = new ArrayList<>();
+        for (Curriculum curriculum : curriculumRepository.findByUnitId(unitId)) {
+            for (Enrollment e : enrollmentRepository.findByCurriculumId(curriculum.getId())) {
+                if ("ENROLLED".equalsIgnoreCase(e.getStatus()) && e.getStudent() != null
+                        && e.getStudent().getUser() != null && seen.add(e.getStudent().getUser().getId())) {
+                    students.add(e.getStudent().getUser());
+                }
+            }
+            if (curriculum.getProgramme() != null) {
+                for (StudentProfile sp : studentProfileRepository.findByProgrammeId(curriculum.getProgramme().getId())) {
+                    if (sp.getUser() != null && !sp.getUser().isDeleted() && seen.add(sp.getUser().getId())) {
+                        students.add(sp.getUser());
+                    }
+                }
+            }
+        }
+        return students;
     }
 
     @Transactional
