@@ -180,6 +180,8 @@ public class AIInsightProcessingService {
         String requestBody = """
             {
               "model": "%s",
+              "max_tokens": 1500,
+              "temperature": 0.2,
               "messages": [
                 {
                   "role": "user",
