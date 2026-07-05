@@ -117,6 +117,11 @@ public class SubmissionService {
 
     @Transactional
     public Submission addNewVersion(User student, Long submissionId, MultipartFile file) {
+        return addNewVersion(student, submissionId, file, null);
+    }
+
+    @Transactional
+    public Submission addNewVersion(User student, Long submissionId, MultipartFile file, String changesSummary) {
         Submission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new SubmissionNotFoundException(submissionId));
 
@@ -139,13 +144,17 @@ public class SubmissionService {
 
         submission.setStatus(SubmissionStatus.SUBMITTED);
         submissionRepository.save(submission);
-        appendNewVersion(submission, file, student);
+        appendNewVersion(submission, file, student, changesSummary);
         aiInsightService.initiateAnalysis(submission);
 
         return submission;
     }
 
     private void appendNewVersion(Submission submission, MultipartFile file, User uploadedBy) {
+        appendNewVersion(submission, file, uploadedBy, null);
+    }
+
+    private void appendNewVersion(Submission submission, MultipartFile file, User uploadedBy, String changesSummary) {
         String storedFileName = fileStorageService.storeFile(file);
         int nextVersionNum = submission.getVersions().size() + 1;
 
@@ -158,6 +167,10 @@ public class SubmissionService {
         version.setVersionNumber(nextVersionNum);
         version.setUploadedBy(uploadedBy);
         version.setContentHash(sha256Hex(file));
+        if (changesSummary != null && !changesSummary.isBlank()) {
+            version.setChangesSummary(changesSummary.trim().length() > 500
+                    ? changesSummary.trim().substring(0, 500) : changesSummary.trim());
+        }
 
         submission.getVersions().add(version);
         versionRepository.save(version);

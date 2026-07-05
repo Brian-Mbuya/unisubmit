@@ -151,8 +151,9 @@ public class StudentController {
     @PostMapping("/submission/{id}/version")
     public String addNewVersion(@AuthenticationPrincipal CustomUserDetails userDetails,
                                 @PathVariable Long id,
-                                @RequestParam("file") MultipartFile file) {
-        submissionService.addNewVersion(userDetails.getUser(), id, file);
+                                @RequestParam("file") MultipartFile file,
+                                @RequestParam(required = false) String changesSummary) {
+        submissionService.addNewVersion(userDetails.getUser(), id, file, changesSummary);
         return "redirect:/student/submission/" + id;
     }
 

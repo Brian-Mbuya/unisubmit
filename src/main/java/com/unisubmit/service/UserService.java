@@ -162,6 +162,18 @@ public class UserService {
                 "Your account has been suspended: " + user.getSuspendedReason(), null);
     }
 
+    /** Admin-initiated password reset. BCrypt-encodes the new value. */
+    @Transactional
+    public void resetPassword(Long userId, String newPassword) {
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new com.unisubmit.exception.SubmissionNotFoundException("User not found: " + userId));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
     @Transactional
     public void unsuspendUser(Long userId) {
         User user = userRepository.findById(userId)

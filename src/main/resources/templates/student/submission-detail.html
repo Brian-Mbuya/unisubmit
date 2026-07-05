@@ -62,6 +62,10 @@
                     </p>
                     <form th:action="@{'/student/submission/' + ${submission.id} + '/version'}" method="post" enctype="multipart/form-data">
                         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <div class="form-group">
+                            <input type="text" name="changesSummary" class="form-control" maxlength="500"
+                                   placeholder="What changed in this version? (optional)">
+                        </div>
                         <div class="flex gap-2 items-center flex-wrap">
                             <input type="file" name="file" class="form-control upload-input"
                                    required accept=".pdf,.doc,.docx,.txt,.odt">

@@ -40,6 +40,8 @@
                         <span th:if="${version.uploadedBy != null}" class="meta-item text-xs text-muted"
                               th:text="'Uploaded by: ' + (${maskUploaders} ? 'Anonymous student' : ${version.uploadedBy.name})">Uploaded by User</span>
                     </div>
+                    <div th:if="${version.changesSummary != null and !version.changesSummary.isBlank()}"
+                         class="text-sm text-muted mt-1" th:text="'“' + ${version.changesSummary} + '”'">Change note</div>
                 </div>
 
                 <!-- Feedback on this version -->
