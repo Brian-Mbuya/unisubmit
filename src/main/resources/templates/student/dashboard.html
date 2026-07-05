@@ -7,9 +7,8 @@
 
         <div class="page-head">
             <div>
-                <div class="eyebrow">Student dashboard</div>
-                <h1>Your projects</h1>
-                <p class="subtitle">Submit work, track reviews, and discover collaborators.</p>
+                <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
+                <p class="subtitle">Here's your work at a glance.</p>
             </div>
             <a th:href="@{/student/submission/new}" class="btn" id="newSubmissionBtn">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.25 7.25V1.75a.75.75 0 0 1 1.5 0v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5h-5.5a.75.75 0 0 1 0-1.5z"/></svg>

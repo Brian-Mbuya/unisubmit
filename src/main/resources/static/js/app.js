@@ -245,6 +245,16 @@
                 titleInput.focus();
                 titleInput.style.borderColor = "var(--primary)";
                 setTimeout(() => { titleInput.style.borderColor = ""; }, 1500);
+
+                // Make the suggestions disappear smoothly
+                container.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+                container.style.opacity = "0";
+                container.style.transform = "translateY(-5px)";
+                setTimeout(() => {
+                  container.style.display = "none";
+                  container.style.opacity = "";
+                  container.style.transform = "";
+                }, 300);
               });
               list.appendChild(item);
             });
