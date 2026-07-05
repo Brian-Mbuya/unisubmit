@@ -100,12 +100,7 @@ body {
     line-height: 1.55;
     color: var(--text);
     background-color: var(--canvas);
-    /* faint depth via layered radial glows — subtle, calming, low-glare */
-    background-image:
-        radial-gradient(circle at 12% -10%, rgba(46, 143, 127, 0.08), transparent 44%),
-        radial-gradient(circle at 100% 0%, rgba(205, 166, 96, 0.05), transparent 40%),
-        radial-gradient(circle at 50% 120%, rgba(46, 143, 127, 0.04), transparent 55%);
-    background-attachment: fixed;
+    /* Flat canvas — professional and calm, no decorative glows. */
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
