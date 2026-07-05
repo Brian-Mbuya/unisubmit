@@ -63,13 +63,19 @@ public class UserService {
         user.setRole(role);
         user = userRepository.save(user);
 
-        if (role == Role.STUDENT && studentId != null && !studentId.isBlank()) {
-            if (studentProfileRepository.findByAdmissionNumber(studentId.trim()).isPresent()) {
+        // Students and lecturers ALWAYS get a profile (auto-generating the ID
+        // when none is supplied). Without this, a lecturer created with no staff
+        // ID had no LecturerProfile, so the admin edit form — keyed by profile
+        // id — could never save changes.
+        if (role == Role.STUDENT) {
+            String admission = (studentId != null && !studentId.isBlank())
+                    ? studentId.trim() : "STU-" + user.getId();
+            if (studentProfileRepository.findByAdmissionNumberIgnoreCase(admission).isPresent()) {
                 throw new com.unisubmit.exception.DuplicateEntityException("Student ID already exists.");
             }
             StudentProfile profile = new StudentProfile();
             profile.setUser(user);
-            profile.setAdmissionNumber(studentId.trim());
+            profile.setAdmissionNumber(admission);
             if (courseId != null) {
                 Course course = courseRepository.findById(courseId).orElse(null);
                 profile.setProgramme(course);
@@ -78,13 +84,15 @@ public class UserService {
             profile.setCurrentSemester(semesterNumber);
             studentProfileRepository.save(profile);
             user.setStudentProfile(profile);
-        } else if (role == Role.LECTURER && staffId != null && !staffId.isBlank()) {
-            if (lecturerProfileRepository.findByStaffNumber(staffId.trim()).isPresent()) {
+        } else if (role == Role.LECTURER) {
+            String staff = (staffId != null && !staffId.isBlank())
+                    ? staffId.trim() : "STAFF-" + user.getId();
+            if (lecturerProfileRepository.findByStaffNumberIgnoreCase(staff).isPresent()) {
                 throw new com.unisubmit.exception.DuplicateEntityException("Staff ID already exists.");
             }
             LecturerProfile profile = new LecturerProfile();
             profile.setUser(user);
-            profile.setStaffNumber(staffId.trim());
+            profile.setStaffNumber(staff);
             if (departmentId != null) {
                 Department dept = departmentRepository.findById(departmentId).orElse(null);
                 profile.setDepartment(dept);
