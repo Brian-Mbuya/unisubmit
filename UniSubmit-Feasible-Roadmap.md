@@ -617,7 +617,17 @@ owner a manual test list. Do NOT browser-test on their behalf.
 
 ---
 
-## Phase 9 — Hardening & Completion (gap fixes from the 3 Jul review) — 📋 PLANNED
+## Phase 9 — Hardening & Completion (gap fixes from the 3 Jul review) — ✅ 6/7 DONE (4 Jul)
+
+> Done: (1) live smoke check of every major page per role (200 + full render — automated
+> MockMvc suite still worth adding), (2) deadline reminder scheduler (@EnableScheduling,
+> hourly, 3-day/1-day windows, dedup by message), (3) version change notes (re-upload
+> field → SubmissionVersion.changesSummary → timeline), (4) admin password reset (modal +
+> BCrypt), (5) final-grade CSV export per unit (blind-mode aware). Also fixed: lecturer/
+> student accounts now ALWAYS get a profile (auto-gen id when blank) + a startup backfill,
+> so admin edit-save works. DEFERRED: (6) audit coverage for non-submission events —
+> needs AuditLog.submission made nullable (V20) + new AuditAction values; skipped to avoid
+> a half-done schema change. (7) README rewritten. 43 unit tests green.
 
 > **Goal**: close the engineering and product gaps found after Phase 7 shipped. Items
 > are independent — do them in the order listed (highest value-for-effort first).
