@@ -162,6 +162,54 @@ public class LecturerController {
         return "redirect:/lecturer/submission/" + id + "?success=Tags updated";
     }
 
+    /** Phase 9 — export a unit's marks as CSV (one row per submission). */
+    @GetMapping("/units/{unitId}/marks.csv")
+    public org.springframework.http.ResponseEntity<String> exportMarks(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable Long unitId) {
+        User lecturer = userDetails.getUser();
+        List<Submission> subs = submissionService.getSubmissionsForLecturer(lecturer).stream()
+                .filter(s -> s.getUnit() != null && s.getUnit().getId().equals(unitId))
+                .collect(Collectors.toList());
+
+        StringBuilder csv = new StringBuilder("Student ID,Name,Title,Status,Grade,Graded by,Graded on\n");
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        for (Submission s : subs) {
+            com.unisubmit.domain.Feedback latestGraded = s.getVersions().stream()
+                    .flatMap(v -> v.getFeedbacks().stream())
+                    .filter(f -> f.getGrade() != null)
+                    .reduce((a, b) -> b.getTimestamp().isAfter(a.getTimestamp()) ? b : a)
+                    .orElse(null);
+            boolean graded = latestGraded != null;
+            // Blind mode: withhold identity for still-ungraded work.
+            boolean mask = blindReviewMode && !graded;
+            String admission = s.getStudent().getStudentProfile() != null
+                    ? s.getStudent().getStudentProfile().getAdmissionNumber() : "";
+            csv.append(csv(mask ? "" : admission)).append(',')
+               .append(csv(mask ? "Anonymous" : s.getStudent().getName())).append(',')
+               .append(csv(s.getTitle())).append(',')
+               .append(csv(s.getStatus().name())).append(',')
+               .append(graded ? latestGraded.getGrade() : "").append(',')
+               .append(csv(graded ? latestGraded.getLecturer().getName() : "")).append(',')
+               .append(graded ? latestGraded.getTimestamp().format(fmt) : "").append('\n');
+        }
+        String filename = "marks-unit-" + unitId + ".csv";
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv"))
+                .body(csv.toString());
+    }
+
+    /** Minimal CSV field escaping. */
+    private static String csv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
+    }
+
     @PostMapping("/submission/{id}/review")
     public String submitReview(@AuthenticationPrincipal CustomUserDetails userDetails,
                                @PathVariable Long id,

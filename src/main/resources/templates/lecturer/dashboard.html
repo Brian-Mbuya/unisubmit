@@ -67,7 +67,11 @@
                         <span class="unit-group-sub"
                               th:text="${entry.key.department.name + ' / ' + (not entry.value.empty and entry.value[0].curriculum != null and entry.value[0].curriculum.programme != null ? entry.value[0].curriculum.programme.name : '—')}">Department / Course</span>
                     </span>
-                    <span class="badge badge-submitted" th:text="${#lists.size(entry.value)} + ' submissions'">0 submissions</span>
+                    <span class="flex items-center gap-2">
+                        <a th:href="@{'/lecturer/units/' + ${entry.key.id} + '/marks.csv'}"
+                           class="btn btn-secondary btn-sm">Export marks (CSV)</a>
+                        <span class="badge badge-submitted" th:text="${#lists.size(entry.value)} + ' submissions'">0 submissions</span>
+                    </span>
                 </div>
 
 
