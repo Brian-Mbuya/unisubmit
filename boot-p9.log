@@ -1,0 +1,81 @@
+﻿[INFO] Environment variables loaded from .env
+[INFO] Using JDK 17: C:\Users\mbuya\.jdks\jdk-17.0.19+10
+[INFO] Starting with H2 in-memory database (local profile)...
+[INFO] App:        http://localhost:8080
+[INFO] H2 Console: http://localhost:8080/h2-console
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.unisubmit:unisubmit >-----------------------
+[INFO] Building unisubmit 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:4.0.5:run (default-cli) > test-compile @ unisubmit >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ unisubmit ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 54 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ unisubmit ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ unisubmit ---
+[INFO] Copying 2 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ unisubmit ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] <<< spring-boot:4.0.5:run (default-cli) < test-compile @ unisubmit <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:4.0.5:run (default-cli) @ unisubmit ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.5)
+
+2026-07-05T04:20:58.330+03:00  INFO 7224 --- [unisubmit] [           main] com.unisubmit.UnisubmitApplication       : Starting UnisubmitApplication using Java 17.0.19 with PID 7224 (C:\Users\mbuya\OneDrive\Desktop\unisubmit-main (1)\unisubmit-main\unisubmit-main\target\classes started by mbuya in C:\Users\mbuya\OneDrive\Desktop\unisubmit-main (1)\unisubmit-main\unisubmit-main)
+2026-07-05T04:20:58.334+03:00  INFO 7224 --- [unisubmit] [           main] com.unisubmit.UnisubmitApplication       : The following 1 profile is active: "local"
+2026-07-05T04:20:59.884+03:00  INFO 7224 --- [unisubmit] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-05T04:21:00.133+03:00  INFO 7224 --- [unisubmit] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 231 ms. Found 32 JPA repository interfaces.
+2026-07-05T04:21:01.928+03:00  INFO 7224 --- [unisubmit] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-07-05T04:21:01.971+03:00  INFO 7224 --- [unisubmit] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-07-05T04:21:01.976+03:00  INFO 7224 --- [unisubmit] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.20]
+2026-07-05T04:21:02.711+03:00  INFO 7224 --- [unisubmit] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 4294 ms
+2026-07-05T04:21:03.147+03:00  INFO 7224 --- [unisubmit] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-07-05T04:21:03.319+03:00  INFO 7224 --- [unisubmit] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.7.Final
+2026-07-05T04:21:05.091+03:00  INFO 7224 --- [unisubmit] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-05T04:21:05.234+03:00  INFO 7224 --- [unisubmit] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-07-05T04:21:06.208+03:00  INFO 7224 --- [unisubmit] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection conn0: url=jdbc:h2:file:./unisubmit-db user=SA
+2026-07-05T04:21:06.219+03:00  INFO 7224 --- [unisubmit] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-07-05T04:21:06.331+03:00  WARN 7224 --- [unisubmit] [           main] org.hibernate.orm.deprecation            : HHH90000025: H2Dialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-07-05T04:21:06.386+03:00  INFO 7224 --- [unisubmit] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:file:./unisubmit-db]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: UNISUBMIT-DB/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-05T04:21:15.947+03:00  INFO 7224 --- [unisubmit] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-05T04:21:16.296+03:00  INFO 7224 --- [unisubmit] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-05T04:21:16.545+03:00  INFO 7224 --- [unisubmit] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-07-05T04:21:25.995+03:00  WARN 7224 --- [unisubmit] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-05T04:21:26.187+03:00  INFO 7224 --- [unisubmit] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+2026-07-05T04:21:27.451+03:00  INFO 7224 --- [unisubmit] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-07-05T04:21:27.468+03:00  INFO 7224 --- [unisubmit] [           main] com.unisubmit.UnisubmitApplication       : Started UnisubmitApplication in 30.049 seconds (process running for 30.986)
+2026-07-05T04:21:28.978+03:00  INFO 7224 --- [unisubmit] [           main] c.u.config.RecommendationRefreshRunner   : Startup similarity + collaboration refresh complete: 8/8 submissions recomputed
+2026-07-05T04:22:55.831+03:00  INFO 7224 --- [unisubmit] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-07-05T04:22:55.831+03:00  INFO 7224 --- [unisubmit] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-07-05T04:22:55.834+03:00  INFO 7224 --- [unisubmit] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+2026-07-05T04:22:57.071+03:00  WARN 7224 --- [unisubmit] [nio-8080-exec-1] o.a.c.util.SessionIdGeneratorBase        : Creation of SecureRandom instance for session ID generation using [SHA1PRNG] took [337] milliseconds.
