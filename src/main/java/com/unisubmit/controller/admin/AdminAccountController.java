@@ -150,6 +150,19 @@ public class AdminAccountController {
         return "redirect:/admin/accounts";
     }
 
+    @PostMapping("/{id}/reset-password")
+    public String resetPassword(@PathVariable Long id,
+                                @RequestParam String newPassword,
+                                RedirectAttributes ra) {
+        try {
+            userService.resetPassword(id, newPassword);
+            ra.addFlashAttribute("success", "Password reset. Share the new password with the user out-of-band.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", "Could not reset password: " + e.getMessage());
+        }
+        return "redirect:/admin/accounts";
+    }
+
     @PostMapping("/{id}/delete")
     public String deleteAccount(@PathVariable Long id,
                                 @AuthenticationPrincipal CustomUserDetails currentUser,
