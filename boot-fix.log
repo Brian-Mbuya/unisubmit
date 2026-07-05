@@ -1,0 +1,13 @@
+﻿[INFO] Environment variables loaded from .env
+[INFO] Using JDK 17: C:\Users\mbuya\.jdks\jdk-17.0.19+10
+[INFO] Starting with H2 in-memory database (local profile)...
+[INFO] App:        http://localhost:8080
+[INFO] H2 Console: http://localhost:8080/h2-console
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.unisubmit:unisubmit >-----------------------
+[INFO] Building unisubmit 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:4.0.5:run (default-cli) > test-compile @ unisubmit >>>
