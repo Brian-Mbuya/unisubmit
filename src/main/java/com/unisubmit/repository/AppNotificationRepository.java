@@ -21,6 +21,9 @@ public interface AppNotificationRepository extends JpaRepository<AppNotification
     /** All unread notifications for a user (used for mark-all-read) */
     List<AppNotification> findByRecipientAndReadFalse(User recipient);
 
+    /** Deadline-reminder dedup: has this exact reminder already been sent? */
+    boolean existsByRecipientAndMessage(User recipient, String message);
+
     /** Bulk-mark all notifications for a user as read */
     @Modifying
     @Query("UPDATE AppNotification n SET n.read = true WHERE n.recipient = :recipient AND n.read = false")
