@@ -252,7 +252,7 @@ img, svg { display: block; max-width: 100%; }
     width: 28px;
     height: 28px;
     border-radius: var(--radius-pill);
-    background: linear-gradient(135deg, var(--primary), var(--accent-strong));
+    background: var(--brand);
     color: #fff;
     display: inline-flex;
     align-items: center;
@@ -274,12 +274,12 @@ h1 {
     margin-bottom: 0.25rem;
 }
 h2 {
-    font-family: var(--font-display);
-    font-size: 1.12rem;
+    font-family: var(--font-sans);
+    font-size: 1rem;
     font-weight: 600;
     line-height: 1.4;
     margin-bottom: 0.75rem;
-    letter-spacing: 0.002em;
+    letter-spacing: 0;
 }
 h3 { font-size: 0.95rem; font-weight: 600; line-height: 1.4; margin-bottom: 0.4rem; }
 p  { word-wrap: break-word; }
@@ -297,17 +297,6 @@ a:hover { color: var(--primary-strong); text-decoration: underline; }
     margin-bottom: 1.5rem;
     padding-bottom: 1.1rem;
     border-bottom: 1px solid var(--border);
-}
-/* Short brass rule under the page title — the "chapter heading" motif */
-.page-head::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -1px;
-    width: 64px;
-    height: 2px;
-    background: linear-gradient(90deg, var(--gold), transparent);
-    border-radius: 2px;
 }
 .page-head .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.2rem; }
 .eyebrow {
