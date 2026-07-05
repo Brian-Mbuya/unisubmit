@@ -35,6 +35,9 @@
             <div th:if="${param.reset}" class="alert alert-success">
                 Password reset successful. You can now sign in with your new password.
             </div>
+            <div th:if="${param.resetRequested}" class="alert alert-success">
+                Request received. An administrator will reset your password and share the new one with you.
+            </div>
 
             <form th:action="@{/login}" method="post">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -50,7 +53,7 @@
                 <div class="form-group">
                     <div class="flex justify-between items-center">
                         <label class="form-label" for="loginPassword">Password</label>
-                        <span class="text-xs text-muted">Forgot password? Contact your administrator.</span>
+                        <a class="text-xs" th:href="@{/forgot-password}">Forgot password?</a>
                     </div>
                     <input type="password" name="password" id="loginPassword" class="form-control" required>
                 </div>

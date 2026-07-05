@@ -127,9 +127,9 @@ img, svg { display: block; max-width: 100%; }
     gap: 1rem;
     height: var(--header-h);
     padding: 0 1.5rem;
-    background: rgba(19, 21, 24, 0.92);
-    backdrop-filter: saturate(140%) blur(10px);
-    border-bottom: 1px solid var(--border);
+    background: rgba(19, 21, 24, 0.76);
+    backdrop-filter: saturate(160%) blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .header a { color: var(--text); text-decoration: none; }
@@ -309,13 +309,13 @@ a:hover { color: var(--primary-strong); text-decoration: underline; }
 /* ── Cards / panels ──────────────────────────────────────────────────────── */
 .card {
     position: relative;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: linear-gradient(145deg, var(--surface) 0%, var(--surface-solid) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.04);
     border-radius: var(--radius);
     padding: 1.35rem 1.5rem;
     margin-bottom: 1rem;
-    /* Flat, border-led surfaces (GitHub-style) — no drop shadow. */
-    box-shadow: none;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.35);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 .card.is-link { transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease; }
 .card.is-link:hover { border-color: var(--border-strong); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
@@ -618,16 +618,21 @@ tbody tr:hover { background: var(--surface-muted); }
     box-shadow: var(--shadow-soft);
 }
 .list-row {
+    border-left: 3px solid transparent;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
     padding: 0.95rem 1.15rem;
     border-bottom: 1px solid var(--border-muted);
-    transition: background 0.14s ease;
+    transition: background-color 0.22s ease, border-left-color 0.22s ease, transform 0.22s ease;
 }
 .list-row:last-child { border-bottom: none; }
-.list-row:hover { background: var(--surface-muted); }
+.list-row:hover {
+    background: var(--surface-muted);
+    border-left-color: var(--primary);
+    transform: translateX(4px);
+}
 
 .list-row-main { min-width: 0; }
 .list-row-title {
@@ -2238,3 +2243,77 @@ input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 
 /* Auth card: drop the decorative gold top-border for a plain professional card */
 .auth-card { border-top: 1px solid var(--border); }
+
+/* ── Premium Aesthetic Upgrades ── */
+
+/* Health status pulsing glow */
+@keyframes pulse-glow-green {
+    0% { box-shadow: 0 0 0 0 rgba(111, 195, 137, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(111, 195, 137, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(111, 195, 137, 0); }
+}
+@keyframes pulse-glow-amber {
+    0% { box-shadow: 0 0 0 0 rgba(214, 166, 87, 0.4); }
+    70% { box-shadow: 0 0 0 6px rgba(214, 166, 87, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(214, 166, 87, 0); }
+}
+
+.health-pulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+.health-pulse.is-success {
+    background: var(--success);
+    animation: pulse-glow-green 2s infinite;
+}
+.health-pulse.is-warning {
+    background: var(--warning);
+    animation: pulse-glow-amber 2s infinite;
+}
+
+/* Glowing "AI Ready" Badge */
+.badge-ai-ready {
+    background: rgba(95, 191, 171, 0.08) !important;
+    border-color: rgba(95, 191, 171, 0.25) !important;
+    color: var(--primary) !important;
+    box-shadow: 0 0 8px rgba(95, 191, 171, 0.12);
+}
+
+/* Empty State SVG Styling */
+.empty-state-svg {
+    display: block;
+    margin: 0 auto 1.25rem;
+    color: var(--text-muted);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.empty-state:hover .empty-state-svg {
+    transform: scale(1.08) rotate(2deg);
+}
+.empty-state-svg .glow-ring {
+    stroke: var(--border-muted);
+    transition: stroke 0.3s ease;
+}
+.empty-state:hover .empty-state-svg .glow-ring {
+    stroke: var(--gold-dim);
+}
+
+/* Dashboard Quick Action Card Refinements */
+.quick-action-card {
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+.quick-action-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary) !important;
+    box-shadow: var(--shadow-hover);
+}
+
+/* Row List Improvements */
+.row-list {
+    border: 1px solid rgba(255, 255, 255, 0.04) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+}
+

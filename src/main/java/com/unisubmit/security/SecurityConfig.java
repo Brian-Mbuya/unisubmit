@@ -21,7 +21,7 @@ public class SecurityConfig {
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/favicon.svg",
-                        "/login", "/register", "/error", "/health").permitAll()
+                        "/login", "/register", "/forgot-password", "/error", "/health").permitAll()
                 // H2 console: only allowed in the local dev profile (blocked in production)
                 .requestMatchers("/h2-console", "/h2-console/**")
                     .access(new org.springframework.security.web.access.expression.WebExpressionAuthorizationManager(

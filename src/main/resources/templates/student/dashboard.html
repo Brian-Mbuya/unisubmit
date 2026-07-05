@@ -21,6 +21,20 @@
 
         <!-- Empty state -->
         <div th:if="${#lists.isEmpty(submissions)}" class="empty-state">
+            <!-- Themed Empty State SVG Illustration -->
+            <svg class="empty-state-svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+                <!-- Outer decorative dashed ring -->
+                <circle cx="12" cy="12" r="10" stroke="var(--border)" stroke-width="0.75" stroke-dasharray="3 3" class="glow-ring" />
+                <path d="M12 2v2M12 20v2M2 12h2M20 12h2" stroke="var(--border-muted)" stroke-width="0.75"/>
+                
+                <!-- Scholar Book and mortar board hat -->
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="var(--gold)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 6l4.5 2-4.5 2-4.5-2z" fill="var(--brand)" fill-opacity="0.25" stroke="var(--primary)" stroke-width="1.2" stroke-linejoin="round"/>
+                <path d="M16.5 8v3.5c0 0.5-0.5 0.8-1 0.8" stroke="var(--gold)" stroke-width="1" stroke-linecap="round"/>
+                <circle cx="15.5" cy="12.3" r="0.6" fill="var(--gold)"/>
+                <line x1="9" y1="11" x2="15" y2="11" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"/>
+                <line x1="9" y1="14" x2="13" y2="14" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"/>
+            </svg>
             <h3>No projects yet</h3>
             <p>Create your first submission to start tracking versions, reviews, and AI insights.</p>
             <a th:href="@{/student/submission/new}" class="btn mt-4">Create a submission</a>
@@ -89,8 +103,13 @@
                             </span>
                             <span class="meta-item" th:text="${#lists.size(sub.versions) + (#lists.size(sub.versions) == 1 ? ' version' : ' versions')}">1 version</span>
                             <span class="meta-item" th:if="${sub.aiInsight != null}">
-                                <span class="dot" th:classappend="'dot-' + ${#strings.toLowerCase(sub.aiInsight.status.name())}"></span>
-                                <span th:text="${sub.aiInsight.status.name() == 'COMPLETED' ? 'AI ready' : (sub.aiInsight.status.name() == 'FAILED' ? 'AI failed' : 'AI analysing')}">AI</span>
+                                <span th:if="${sub.aiInsight.status.name() == 'COMPLETED'}" class="badge badge-ai-ready" style="font-size: 0.72rem; padding: 0.15rem 0.5rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                                    <span class="dot dot-completed"></span>AI ready
+                                </span>
+                                <span th:if="${sub.aiInsight.status.name() != 'COMPLETED'}" style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                                    <span class="dot" th:classappend="'dot-' + ${#strings.toLowerCase(sub.aiInsight.status.name())}"></span>
+                                    <span th:text="${sub.aiInsight.status.name() == 'FAILED' ? 'AI failed' : 'AI analysing'}">AI</span>
+                                </span>
                             </span>
                             <!-- Deadline badge -->
                             <span th:if="${sub.unit != null and sub.unit.daysToDeadline != null}"

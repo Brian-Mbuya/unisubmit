@@ -4,6 +4,7 @@ import com.unisubmit.domain.Submission;
 import com.unisubmit.domain.User;
 import com.unisubmit.domain.Curriculum;
 import com.unisubmit.domain.Unit;
+import com.unisubmit.domain.SubmissionStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,6 +16,8 @@ import java.util.List;
 
 @Repository
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
+    long countByStatus(SubmissionStatus status);
+
     List<Submission> findByStudent(User student);
     List<Submission> findByCurriculumIn(List<Curriculum> curricula);
     List<Submission> findByProjectGroupId(Long groupId);

@@ -15,9 +15,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class AuthController {
 
     private final UserService userService;
+    private final com.unisubmit.service.NotificationService notificationService;
 
-    public AuthController(UserService userService) {
+    public AuthController(UserService userService,
+                          com.unisubmit.service.NotificationService notificationService) {
         this.userService = userService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping("/login")
@@ -28,6 +31,32 @@ public class AuthController {
     @GetMapping("/register")
     public String registerForm() {
         return "register";
+    }
+
+    @GetMapping("/forgot-password")
+    public String forgotPasswordForm() {
+        return "forgot-password";
+    }
+
+    /**
+     * Request-based reset (no email infrastructure): notifies every admin so
+     * they can reset the account from the admin console. Always shows the same
+     * confirmation regardless of whether the identifier exists (no enumeration).
+     */
+    @PostMapping("/forgot-password")
+    public String requestPasswordReset(@RequestParam String identifier,
+                                       @RequestParam(required = false) String note) {
+        String id = identifier == null ? "" : identifier.trim();
+        if (!id.isEmpty()) {
+            String message = "Password reset requested for '" + id + "'"
+                    + (note != null && !note.isBlank() ? " — note: " + note.trim() : "")
+                    + ". Reset it from Admin › Accounts.";
+            for (var admin : userService.findByRole(Role.ADMIN)) {
+                notificationService.createNotification(
+                        admin, com.unisubmit.domain.NotificationType.SYSTEM_NOTICE, message, null);
+            }
+        }
+        return "redirect:/login?resetRequested";
     }
 
     @PostMapping("/register")

@@ -67,51 +67,130 @@
         </div>
     </div>
 
-    <!-- System Info -->
-    <div class="grid grid-cols-2 gap-4">
-        <div class="card">
-            <div class="card-head"><h2>Academic Structure</h2></div>
-            <div class="p-4">
-                <div class="info-row">
-                    <span class="text-muted">Faculties</span>
-                    <a th:href="@{/admin/faculties}" th:text="${statFaculties}" class="text-accent fw-600">0</a>
+    <!-- System Info & Visualization -->
+    <div class="detail-grid mb-6">
+        <!-- Left Column: Academic Structure & System Health -->
+        <div class="col">
+            <div class="card">
+                <div class="card-head"><h2>Academic Structure</h2></div>
+                <div class="p-2">
+                    <div class="info-row">
+                        <span class="text-muted">Faculties</span>
+                        <a th:href="@{/admin/faculties}" th:text="${statFaculties}" class="text-accent fw-600">0</a>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Departments</span>
+                        <a th:href="@{/admin/departments}" th:text="${statDepartments}" class="text-accent fw-600">0</a>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Programmes</span>
+                        <a th:href="@{/admin/programmes}" th:text="${statCourses}" class="text-accent fw-600">0</a>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Units</span>
+                        <a th:href="@{/admin/units}" th:text="${statUnits}" class="text-accent fw-600">0</a>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Curriculum Items</span>
+                        <span th:text="${statCurricula}" class="text-accent fw-600">0</span>
+                    </div>
                 </div>
-                <div class="info-row">
-                    <span class="text-muted">Departments</span>
-                    <a th:href="@{/admin/departments}" th:text="${statDepartments}" class="text-accent fw-600">0</a>
-                </div>
-                <div class="info-row">
-                    <span class="text-muted">Programmes</span>
-                    <a th:href="@{/admin/programmes}" th:text="${statCourses}" class="text-accent fw-600">0</a>
-                </div>
-                <div class="info-row">
-                    <span class="text-muted">Units</span>
-                    <a th:href="@{/admin/units}" th:text="${statUnits}" class="text-accent fw-600">0</a>
-                </div>
-                <div class="info-row">
-                    <span class="text-muted">Curriculum Items</span>
-                    <span th:text="${statCurricula}" class="text-accent fw-600">0</span>
+            </div>
+            
+            <div class="card">
+                <div class="card-head"><h2>System Health</h2></div>
+                <div class="p-2">
+                    <div class="info-row">
+                        <span class="text-muted">Application</span>
+                        <span class="text-accent fw-600" style="display: inline-flex; align-items: center;">
+                            <span class="health-pulse is-success"></span>Operational
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Database</span>
+                        <span class="text-accent fw-600" style="display: inline-flex; align-items: center;">
+                            <span class="health-pulse is-success"></span>Connected
+                        </span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">File Storage</span>
+                        <span class="text-accent fw-600" style="display: inline-flex; align-items: center;">
+                            <span class="health-pulse is-success"></span>Online
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="card">
-            <div class="card-head"><h2>System Health</h2></div>
-            <div class="p-4">
-                <div class="info-row">
-                    <span class="text-muted">Application</span>
-                    <span class="text-accent fw-600">● Operational</span>
-                </div>
-                <div class="info-row">
-                    <span class="text-muted">Database</span>
-                    <span class="text-accent fw-600">● Connected</span>
-                </div>
-                <div class="info-row">
-                    <span class="text-muted">File Storage</span>
-                    <span class="text-accent fw-600">● Online</span>
+
+        <!-- Right Column: Submissions Breakdown Chart -->
+        <div class="col">
+            <div class="card" style="height: 100%; display: flex; flex-direction: column;">
+                <div class="card-head"><h2>Submissions Breakdown</h2></div>
+                <div style="flex: 1; position: relative; min-height: 220px; width: 100%; display: flex; justify-content: center; align-items: center;">
+                    <canvas id="submissionsChart"></canvas>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Inline Script for Chart.js Submissions Doughnut Chart -->
+    <script th:inline="javascript">
+        document.addEventListener("DOMContentLoaded", function() {
+            const ctx = document.getElementById('submissionsChart').getContext('2d');
+            const data = {
+                labels: ['Draft', 'Proposal', 'Submitted', 'Under Review', 'Approved', 'Final', 'Rejected', 'Archived'],
+                datasets: [{
+                    data: [
+                        /*[[${statDraft}]]*/ 0,
+                        /*[[${statProposal}]]*/ 0,
+                        /*[[${statSubmitted}]]*/ 0,
+                        /*[[${statUnderReview}]]*/ 0,
+                        /*[[${statApproved}]]*/ 0,
+                        /*[[${statFinal}]]*/ 0,
+                        /*[[${statRejected}]]*/ 0,
+                        /*[[${statArchived}]]*/ 0
+                    ],
+                    backgroundColor: [
+                        '#7d7973', // Draft
+                        '#a6a299', // Proposal
+                        '#5cc3b2', // Submitted
+                        '#dcb061', // Under Review
+                        '#80cf98', // Approved
+                        '#6fc389', // Final
+                        '#ec8a7b', // Rejected (Changes requested)
+                        '#485058'  // Archived
+                    ],
+                    borderWidth: 1,
+                    borderColor: '#1b1e22'
+                }]
+            };
+
+            const config = {
+                type: 'doughnut',
+                data: data,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#eae7e0',
+                                font: {
+                                    family: 'Inter',
+                                    size: 11
+                                },
+                                boxWidth: 12
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            };
+
+            new Chart(ctx, config);
+        });
+    </script>
 </div>
 </body>
 </html>
