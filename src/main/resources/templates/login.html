@@ -2,6 +2,37 @@
 <html th:replace="~{layout :: html(content=~{::div})}">
 <body>
     <div class="auth-wrap">
+        <!-- ── Brand panel (desktop only) ──────────────────────────────── -->
+        <div class="auth-side">
+            <svg class="auth-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect width="24" height="24" rx="6" fill="var(--brand)"/>
+                <path d="M12 5.4 3.8 9.4l8.2 4 8.2-4-8.2-4z" fill="#fff"/>
+                <path d="M7.4 12.4v2.9c0 1.15 2.06 2.1 4.6 2.1s4.6-.95 4.6-2.1v-2.9L12 14.65l-4.6-2.25z" fill="#fff" opacity="0.82"/>
+                <path d="M19.6 10.1v4.1" stroke="var(--gold, #c9a35f)" stroke-width="1.3" stroke-linecap="round"/>
+                <circle cx="19.6" cy="15" r="0.9" fill="var(--gold, #c9a35f)"/>
+            </svg>
+            <h1>Every project, one archive.</h1>
+            <p class="auth-pitch">
+                Submit coursework, track versions and feedback, and let the AI surface
+                related work and collaborators across the whole university.
+            </p>
+            <div class="auth-points">
+                <div class="auth-point">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/></svg>
+                    <div><strong>Versioned submissions</strong> Every upload tracked, nothing overwritten.</div>
+                </div>
+                <div class="auth-point">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/></svg>
+                    <div><strong>Hybrid AI search</strong> Find work by meaning, not just keywords.</div>
+                </div>
+                <div class="auth-point">
+                    <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1H7zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-5.784 6A2.238 2.238 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.325 6.325 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1h4.216z"/></svg>
+                    <div><strong>Collaboration matching</strong> Six-signal recommendations across departments.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Sign-in card ────────────────────────────────────────────── -->
         <div class="auth-card card">
             <div class="auth-head">
                 <svg class="auth-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -15,14 +46,14 @@
                 <p class="text-muted text-sm">Use your Student ID, Staff ID, email, or admin username</p>
             </div>
 
-            <div th:if="${param.error}" class="alert alert-error">
+            <div th:if="${param.error}" class="alert alert-danger">
                 Invalid credentials — please check your ID or password and try again.
             </div>
-            <div th:if="${param.suspended}" class="alert alert-error">
+            <div th:if="${param.suspended}" class="alert alert-danger">
                 <strong>Account suspended.</strong>
                 <span th:text="${session.suspendedReason} ?: 'Please contact an administrator.'">Reason</span>
             </div>
-            <div th:if="${param.locked}" class="alert alert-error">
+            <div th:if="${param.locked}" class="alert alert-danger">
                 <strong>Temporarily locked.</strong>
                 <span th:text="${session.lockoutMessage} ?: 'Too many failed attempts — please wait 15 minutes and try again.'">Reason</span>
             </div>
@@ -46,7 +77,7 @@
                     <input type="text" name="username" id="loginIdentifier" class="form-control"
                            placeholder="e.g. S12345, you@university.edu, or admin" required autofocus>
                     <div class="field-hint">
-                        Students: email or Student ID &nbsp;·&nbsp; Lecturers: Staff ID &nbsp;·&nbsp; Admins: username
+                        Students: email or Student ID · Lecturers: Staff ID · Admins: username
                     </div>
                 </div>
 

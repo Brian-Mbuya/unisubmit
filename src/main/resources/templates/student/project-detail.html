@@ -4,6 +4,7 @@
     <div>
         <div class="page-head">
             <div>
+                <div class="eyebrow">Project archive</div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 th:text="${submission.title}">Project Title</h1>
                     <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>
@@ -13,32 +14,32 @@
             <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
         </div>
 
-        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
-        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
 
-        <div class="detail-grid">
-            <div class="col">
+        <div class="page-grid">
+            <!-- ── Main: what the project is, and its life so far ──────── -->
+            <div class="page-main">
                 <div class="card">
                     <div class="card-head"><h2>Overview</h2></div>
 
                     <div th:if="${submission.aiInsight != null and submission.aiInsight.summary != null}">
-                        <div class="eyebrow">Project summary</div>
-                        <p class="text-sm readable" th:text="${submission.aiInsight.summary}">Summary</p>
+                        <div class="eyebrow">AI project summary</div>
+                        <p class="text-sm readable ai-summary" th:text="${submission.aiInsight.summary}">Summary</p>
                     </div>
                     <div th:if="${submission.aiInsight == null or submission.aiInsight.summary == null}"
-                         class="empty-state text-sm ai-empty">
+                         class="empty-state empty-state-compact text-sm ai-empty">
                         AI analysis is not yet available for this project.
                     </div>
 
                     <div th:if="${submission.aiInsight != null and not #lists.isEmpty(submission.aiInsight.keywords)}" class="mt-4">
                         <div class="eyebrow">Key topics</div>
-                        <div class="flex flex-wrap gap-2">
+                        <div class="topic-list">
                             <span th:each="kw : ${submission.aiInsight.keywords}" class="chip" th:text="${kw}">Keyword</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- ── Activity timeline (Phase 4 — append-only audit history) ── -->
+                <!-- Append-only audit history -->
                 <div class="card">
                     <div class="card-head"><h2>Activity timeline</h2></div>
 
@@ -60,7 +61,8 @@
                 </div>
             </div>
 
-            <div class="col">
+            <!-- ── Rail: owner, access, lineage ────────────────────────── -->
+            <aside class="page-rail" aria-label="Project metadata">
                 <div class="card">
                     <div class="card-head"><h2>Details</h2></div>
                     <div class="info-row">
@@ -86,12 +88,12 @@
                             Unlocked because you are an accepted collaborator on this project.
                         </p>
                     </div>
-                    <div th:if="${not canAccessFile}" class="empty-state text-sm ai-empty">
+                    <div th:if="${not canAccessFile}" class="empty-state empty-state-compact text-sm ai-empty">
                         Files unlock after the project is approved, or once you collaborate on it.
                     </div>
                 </div>
 
-                <!-- ── Related projects (Phase 4 — curated lineage, distinct from Similar work) ── -->
+                <!-- Curated lineage — distinct from automatic similarity -->
                 <div class="card">
                     <div class="card-head"><h2>Related projects</h2></div>
                     <p class="field-hint">Curated lineage links — separate from automatic keyword matches.</p>
@@ -142,7 +144,7 @@
                         <button type="submit" class="btn btn-block">Link project</button>
                     </form>
                 </div>
-            </div>
+            </aside>
         </div>
     </div>
 </body>

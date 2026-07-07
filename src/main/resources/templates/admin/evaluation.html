@@ -3,108 +3,124 @@
       th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='evaluation')}">
 <body>
 <div>
-    <div class="page-head mb-6">
+    <div class="page-head">
         <div>
-            <div class="eyebrow">Admin console</div>
-            <h1>Recommender Evaluation</h1>
+            <div class="eyebrow">Intelligence</div>
+            <h1>Recommender evaluation</h1>
             <p class="subtitle">
                 Measured retrieval quality of the similarity engine under different signal weightings.
             </p>
         </div>
     </div>
 
-    <!-- Phase 8 — collaboration engine health -->
+    <!-- Collaboration engine health -->
     <div class="card mb-6">
         <div class="card-head">
-            <h2>Collaboration discovery (Phase 8)</h2>
+            <h2>Collaboration discovery</h2>
             <span class="badge badge-approved"
                   th:text="${#numbers.formatDecimal(collab.acceptanceRate * 100, 1, 0)} + '% accepted'">0%</span>
         </div>
-        <div class="stat-strip">
-            <div class="stat">
+        <div class="stat-strip" style="margin-bottom: 0.75rem;">
+            <div class="stat stat-green">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 <div class="stat-label">High-value matches</div>
-                <div class="stat-value is-accent" th:text="${collab.highValueMatches}">0</div>
+                <div class="stat-value" th:text="${collab.highValueMatches}">0</div>
             </div>
-            <div class="stat">
+            <div class="stat stat-amber">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 <div class="stat-label">Medium-value</div>
                 <div class="stat-value" th:text="${collab.mediumValueMatches}">0</div>
             </div>
-            <div class="stat">
+            <div class="stat stat-blue">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
                 <div class="stat-label">Shortlisted pairs</div>
                 <div class="stat-value" th:text="${collab.shortlistedPairs}">0</div>
             </div>
-            <div class="stat">
+            <div class="stat stat-purple">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
                 <div class="stat-label">Connect requests</div>
                 <div class="stat-value" th:text="${collab.connectRequests}">0</div>
             </div>
-            <div class="stat">
+            <div class="stat stat-gold">
+                <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
                 <div class="stat-label">Accepted / declined</div>
                 <div class="stat-value" th:text="${collab.accepted} + ' / ' + ${collab.declined}">0 / 0</div>
             </div>
         </div>
-        <p class="field-hint mt-2">
+        <p class="field-hint">
             Acceptance rate over decided "Request to connect" outcomes is the ground truth for tuning
             <code class="mono">unisubmit.collaboration.weight.*</code>. Shortlisted pairs are Stage 1
             (mechanical, cross-disciplinary); High/Medium are Stage 2 (LLM-assessed).
         </p>
     </div>
 
-    <div class="card mb-6">
-        <div class="card-head">
-            <h2>How this is measured</h2>
-            <span class="badge badge-submitted"
-                  th:text="${report.groundTruthPairs} + ' ground-truth pairs'">0 pairs</span>
+    <div class="page-grid">
+        <!-- ── Main: ablation results ──────────────────────────────────── -->
+        <div class="page-main">
+            <div th:if="${report.groundTruthPairs == 0}" class="empty-state">
+                <h3>No ground truth yet</h3>
+                <p>Metrics appear once students have accepted collaboration requests —
+                   each acceptance becomes a relevance judgement the engine is scored against.</p>
+            </div>
+
+            <div th:if="${report.groundTruthPairs > 0}" class="card card-pad-0">
+                <div class="card-head">
+                    <h2>Weight configurations</h2>
+                    <span class="badge badge-submitted"
+                          th:text="${report.groundTruthPairs} + ' ground-truth pairs'">0 pairs</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Configuration</th>
+                                <th>Weights</th>
+                                <th>Retrieved</th>
+                                <th>Precision@5</th>
+                                <th>MRR</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="r, iter : ${report.results}"
+                                th:classappend="${iter.first} ? 'row-current' : ''">
+                                <td>
+                                    <strong th:text="${r.name}">Config</strong>
+                                    <span th:if="${iter.first}" class="badge badge-approved ml-2">live</span>
+                                </td>
+                                <td class="mono text-xs text-muted" th:text="${r.weightsSummary}">weights</td>
+                                <td th:text="${r.retrieved} + ' / ' + ${r.pairs}">0 / 0</td>
+                                <td>
+                                    <strong th:text="${#numbers.formatDecimal(r.precisionAtK * 100, 1, 0)} + '%'">0%</strong>
+                                </td>
+                                <td class="mono" th:text="${#numbers.formatDecimal(r.mrr, 1, 3)}">0.000</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <p th:if="${report.groundTruthPairs > 0}" class="field-hint">
+                Weights are configurable under <code class="mono">unisubmit.recommendation.weight.*</code>
+                in application.yml — if an ablation above beats the live configuration, tune accordingly.
+            </p>
         </div>
-        <p class="text-sm text-muted readable">
-            Every <strong>accepted collaboration request</strong> is treated as proof that the
-            requested project was genuinely relevant to that student. For each weight
-            configuration the engine re-ranks each student's candidate pool live and records
-            where the accepted project actually landed.
-            <strong>Precision@5</strong> is the share of pairs ranked in the top five;
-            <strong>MRR</strong> (mean reciprocal rank) rewards ranking relevant work near the top.
-            Nothing here is persisted — it is a what-if replay over real usage data.
-        </p>
-    </div>
 
-    <div th:if="${report.groundTruthPairs == 0}" class="empty-state">
-        <h3>No ground truth yet</h3>
-        <p>Metrics appear once students have accepted collaboration requests —
-           each acceptance becomes a relevance judgement the engine is scored against.</p>
+        <!-- ── Rail: methodology ───────────────────────────────────────── -->
+        <aside class="page-rail" aria-label="Methodology">
+            <div class="card">
+                <div class="card-head"><h2>How this is measured</h2></div>
+                <p class="text-sm text-muted readable no-margin">
+                    Every <strong>accepted collaboration request</strong> is treated as proof that
+                    the requested project was genuinely relevant to that student. For each weight
+                    configuration the engine re-ranks each student's candidate pool live and
+                    records where the accepted project actually landed.
+                    <strong>Precision@5</strong> is the share of pairs ranked in the top five;
+                    <strong>MRR</strong> (mean reciprocal rank) rewards ranking relevant work near
+                    the top. Nothing here is persisted — it is a what-if replay over real usage data.
+                </p>
+            </div>
+        </aside>
     </div>
-
-    <div th:if="${report.groundTruthPairs > 0}" class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Configuration</th>
-                    <th>Weights</th>
-                    <th>Retrieved</th>
-                    <th>Precision@5</th>
-                    <th>MRR</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="r, iter : ${report.results}"
-                    th:classappend="${iter.first} ? 'row-current' : ''">
-                    <td>
-                        <strong th:text="${r.name}">Config</strong>
-                        <span th:if="${iter.first}" class="badge badge-approved ml-2">live</span>
-                    </td>
-                    <td class="mono text-xs text-muted" th:text="${r.weightsSummary}">weights</td>
-                    <td th:text="${r.retrieved} + ' / ' + ${r.pairs}">0 / 0</td>
-                    <td>
-                        <strong th:text="${#numbers.formatDecimal(r.precisionAtK * 100, 1, 0)} + '%'">0%</strong>
-                    </td>
-                    <td class="mono" th:text="${#numbers.formatDecimal(r.mrr, 1, 3)}">0.000</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <p th:if="${report.groundTruthPairs > 0}" class="field-hint mt-4">
-        Weights are configurable under <code class="mono">unisubmit.recommendation.weight.*</code>
-        in application.yml — if an ablation above beats the live configuration, tune accordingly.
-    </p>
 </div>
 </body>
 </html>

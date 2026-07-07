@@ -1,8 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!--
+  Universal flash / feedback banner.
+  Handles every convention used across the app so pages never hand-roll alerts:
+    - flash attributes:  success, error, successMessage, errorMessage
+    - query parameters:  ?success=…, ?error=…
+-->
 <div th:fragment="alerts">
-    <div th:if="${success}" class="alert alert-success" role="alert">
+    <div th:if="${success}" class="alert alert-success" role="status">
         <span th:text="${success}">Success message</span>
+    </div>
+    <div th:if="${successMessage}" class="alert alert-success" role="status">
+        <span th:text="${successMessage}">Success message</span>
+    </div>
+    <div th:if="${param.success}" class="alert alert-success" role="status">
+        <span th:text="${param.success}">Success message</span>
     </div>
     <div th:if="${error}" class="alert alert-danger" role="alert">
         <span th:text="${error}">Error message</span>
     </div>
+    <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+        <span th:text="${errorMessage}">Error message</span>
+    </div>
+    <div th:if="${param.error}" class="alert alert-danger" role="alert">
+        <span th:text="${param.error}">Error message</span>
+    </div>
 </div>
+</body>
+</html>

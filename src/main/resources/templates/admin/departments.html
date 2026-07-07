@@ -3,18 +3,23 @@
       th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='departments')}">
 <body>
 <div>
-    <div class="page-head mb-6">
+    <div class="page-head">
         <div>
-            <div class="eyebrow">Admin console</div>
+            <div class="eyebrow">Academic structure</div>
             <h1>Departments</h1>
             <p class="subtitle">Manage academic departments across all faculties.</p>
         </div>
-        <button class="btn" onclick="openModal('createDeptModal')">+ Create Department</button>
+        <button class="btn" onclick="openModal('createDeptModal')">+ Create department</button>
     </div>
 
     <div class="card card-pad-0">
+        <div class="table-toolbar">
+            <span class="text-sm text-muted" th:text="${#lists.size(departments)} + ' departments'">0</span>
+            <input type="search" class="form-control" placeholder="Filter departments…"
+                   data-table-search="#departmentsTable" aria-label="Filter departments">
+        </div>
         <div class="table-wrap">
-            <table>
+            <table id="departmentsTable">
                 <thead>
                     <tr>
                         <th>Code</th>
@@ -31,8 +36,8 @@
                         th:data-name="${d.name}"
                         th:data-faculty="${d.faculty.id}">
                         <td><code th:text="${d.code}"></code></td>
-                        <td th:text="${d.name}"></td>
-                        <td th:text="${d.faculty.name}"></td>
+                        <td class="fw-600" th:text="${d.name}"></td>
+                        <td class="text-muted" th:text="${d.faculty.name}"></td>
                         <td th:text="${d.courses.size()}"></td>
                         <td class="text-right">
                             <button class="btn btn-sm btn-secondary edit-dept-btn">Edit</button>
@@ -44,7 +49,7 @@
                         </td>
                     </tr>
                     <tr th:if="${departments.empty}">
-                        <td colspan="5" class="text-center text-muted py-8">
+                        <td colspan="5">
                             <div class="empty-state">
                                 <h3>No departments yet</h3>
                                 <p>Create a department above to structure courses and units.</p>
@@ -60,28 +65,28 @@
     <div id="createDeptModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'createDeptModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h2 class="m-0">Create Department</h2>
+                <h2 class="m-0">Create department</h2>
                 <button class="btn btn-sm btn-secondary" onclick="closeModal('createDeptModal')">✕</button>
             </div>
             <form th:action="@{/admin/departments}" method="post" class="modal-body">
                 <div class="form-group">
                     <label class="form-label">Faculty <span class="text-danger">*</span></label>
                     <select name="facultyId" class="form-control" required>
-                        <option value="">— Select Faculty —</option>
+                        <option value="">— Select faculty —</option>
                         <option th:each="f : ${faculties}" th:value="${f.id}" th:text="${f.name}"></option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Department Code <span class="text-danger">*</span></label>
+                    <label class="form-label">Department code <span class="text-danger">*</span></label>
                     <input type="text" name="code" class="form-control" required placeholder="e.g. CS" maxlength="10">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Department Name <span class="text-danger">*</span></label>
+                    <label class="form-label">Department name <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control" required placeholder="e.g. Department of Computer Science">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('createDeptModal')">Cancel</button>
-                    <button type="submit" class="btn">Create Department</button>
+                    <button type="submit" class="btn">Create department</button>
                 </div>
             </form>
         </div>
@@ -91,7 +96,7 @@
     <div id="editDeptModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'editDeptModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h2 class="m-0">Edit Department</h2>
+                <h2 class="m-0">Edit department</h2>
                 <button class="btn btn-sm btn-secondary" onclick="closeModal('editDeptModal')">✕</button>
             </div>
             <form id="editDeptForm" method="post" class="modal-body">
@@ -103,16 +108,16 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Department Code <span class="text-danger">*</span></label>
+                    <label class="form-label">Department code <span class="text-danger">*</span></label>
                     <input id="editDeptCode" type="text" name="code" class="form-control" required maxlength="10">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Department Name <span class="text-danger">*</span></label>
+                    <label class="form-label">Department name <span class="text-danger">*</span></label>
                     <input id="editDeptName" type="text" name="name" class="form-control" required>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('editDeptModal')">Cancel</button>
-                    <button type="submit" class="btn">Save Changes</button>
+                    <button type="submit" class="btn">Save changes</button>
                 </div>
             </form>
         </div>

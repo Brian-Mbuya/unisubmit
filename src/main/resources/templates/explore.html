@@ -2,248 +2,276 @@
 <html th:replace="~{layout :: html(content=~{::div})}">
 <body>
 <div>
-    <div class="page-head">
-        <div>
-            <div class="eyebrow">UniSubmit</div>
-            <h1>Explore</h1>
-            <p class="subtitle">Search the project archive or discover cross-disciplinary collaborators.</p>
-        </div>
-    </div>
+    <!-- ── Hero: the search engine is the page ─────────────────────────── -->
+    <div class="explore-hero">
+        <div class="eyebrow">Explore</div>
+        <h1>Search the project archive</h1>
+        <p class="subtitle mb-4" style="max-width: 64ch;">
+            Hybrid keyword + semantic search across titles, AI summaries, keywords and focus
+            tags — or let the engine find collaborators for you.
+        </p>
 
-    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Saved</div>
-    <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
-
-    <!-- Tab navigation -->
-    <div class="explore-tabs mb-6">
-        <a th:href="@{/explore(tab='search')}"
-           th:classappend="${activeTab == 'search'} ? ' explore-tab-active' : ''"
-           class="explore-tab" id="tab-search-link">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
-            </svg>
-            Search Projects
-        </a>
-        <a th:href="@{/explore(tab='discover')}"
-           th:classappend="${activeTab == 'discover'} ? ' explore-tab-active' : ''"
-           class="explore-tab" id="tab-discover-link">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
-            </svg>
-            Find Collaborators
-        </a>
-    </div>
-
-    <!-- ══════════════════════════════════════════════════════ -->
-    <!-- SEARCH TAB                                            -->
-    <!-- ══════════════════════════════════════════════════════ -->
-    <div th:if="${activeTab == 'search'}">
         <form th:action="@{/explore}" method="get" class="search-page-form" role="search">
             <input type="hidden" name="tab" value="search">
-            <input type="text" name="q" th:value="${query}" class="form-control search-page-input"
-                   placeholder="e.g. traffic prediction, organizational communication, IoT sensors…"
-                   autofocus autocomplete="off">
+            <div class="search-field">
+                <svg class="search-glyph" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                </svg>
+                <input type="text" name="q" th:value="${query}" class="form-control search-page-input"
+                       placeholder="e.g. traffic prediction, organizational communication, IoT sensors…"
+                       autofocus autocomplete="off">
+            </div>
             <button type="submit" class="btn">Search</button>
         </form>
 
-        <!-- No query yet -->
-        <div th:if="${query.isEmpty()}" class="empty-state mt-6">
-            <h3>Search the project archive</h3>
-            <p>Results respect visibility rules — you only ever see work you are allowed to discover.</p>
+        <!-- Tabs -->
+        <div class="explore-tabs">
+            <a th:href="@{/explore(tab='search')}"
+               th:classappend="${activeTab == 'search'} ? ' explore-tab-active' : ''"
+               class="explore-tab" id="tab-search-link">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                </svg>
+                Search projects
+            </a>
+            <a th:href="@{/explore(tab='discover')}"
+               th:classappend="${activeTab == 'discover'} ? ' explore-tab-active' : ''"
+               class="explore-tab" id="tab-discover-link">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
+                </svg>
+                Find collaborators
+                <span class="tab-count" th:if="${totalCount > 0}" th:text="${totalCount}">0</span>
+            </a>
         </div>
+    </div>
 
-        <!-- No hits -->
-        <div th:if="${!query.isEmpty() and #lists.isEmpty(hits)}" class="empty-state mt-6">
-            <h3>No matching projects</h3>
-            <p>Try broader terms — the index covers titles, AI summaries, keywords and focus tags.</p>
-        </div>
+    <div th:replace="~{fragments/alerts :: alerts}"></div>
 
-        <!-- Results -->
-        <div th:if="${not #lists.isEmpty(hits)}" class="mt-6">
-            <p class="text-sm text-muted mb-4"
-               th:text="${#lists.size(hits)} + (${#lists.size(hits) == 1} ? ' result for &quot;' : ' results for &quot;') + ${query} + '&quot;'">Results</p>
-            <div class="row-list">
-                <div th:each="hit : ${hits}" class="list-row">
-                    <div class="list-row-main">
-                        <a class="list-row-title" th:href="@{'/projects/' + ${hit.submission.id}}"
-                           th:text="${hit.submission.title}">Title</a>
-                        <div class="meta-line">
-                            <span class="meta-item" th:if="${hit.submission.unit != null}"
-                                  th:text="${hit.submission.unit.unitName}">Unit</span>
-                            <span class="meta-item text-subtle"
-                                  th:text="${hit.submission.student.name}">Student</span>
-                            <span th:if="${hit.semanticMatch}" class="meta-item chip chip-gold">semantic match</span>
+    <!-- ══════════════════════════════════════════════════════════════════
+         SEARCH TAB
+         ══════════════════════════════════════════════════════════════════ -->
+    <div th:if="${activeTab == 'search'}" class="page-grid">
+        <div class="page-main">
+            <!-- No query yet -->
+            <div th:if="${query.isEmpty()}" class="empty-state">
+                <h3>Type a topic to search the archive</h3>
+                <p>Results respect visibility rules — you only ever see work you are allowed to discover.</p>
+            </div>
+
+            <!-- No hits -->
+            <div th:if="${!query.isEmpty() and #lists.isEmpty(hits)}" class="empty-state">
+                <h3>No matching projects</h3>
+                <p>Try broader terms — the index covers titles, AI summaries, keywords and focus tags.</p>
+            </div>
+
+            <!-- Results -->
+            <div th:if="${not #lists.isEmpty(hits)}" class="card card-pad-0">
+                <div class="card-head">
+                    <h2 th:text="${#lists.size(hits)} + (${#lists.size(hits) == 1} ? ' result' : ' results') + ' for “' + ${query} + '”'">Results</h2>
+                </div>
+                <div class="row-list">
+                    <div th:each="hit : ${hits}" class="list-row">
+                        <div class="list-row-main">
+                            <a class="list-row-title" th:href="@{'/projects/' + ${hit.submission.id}}"
+                               th:text="${hit.submission.title}">Title</a>
+                            <div class="meta-line">
+                                <span class="meta-item" th:if="${hit.submission.unit != null}"
+                                      th:text="${hit.submission.unit.unitName}">Unit</span>
+                                <span class="meta-item text-subtle"
+                                      th:text="${hit.submission.student.name}">Student</span>
+                                <span th:if="${hit.semanticMatch}" class="chip chip-gold"
+                                      title="Found by meaning, not keywords — the AI embedding matched this project.">semantic match</span>
+                            </div>
+                            <p class="text-sm text-muted mt-2 recommendation-summary" th:text="${hit.snippet}">Snippet</p>
                         </div>
-                        <p class="text-sm text-muted mt-2 recommendation-summary" th:text="${hit.snippet}">Snippet</p>
-                    </div>
-                    <div class="list-row-side">
-                        <div th:replace="~{fragments/components :: statusBadge(${hit.submission.status.name()})}"></div>
+                        <div class="list-row-side">
+                            <div th:replace="~{fragments/components :: statusBadge(${hit.submission.status.name()})}"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <aside class="page-rail" aria-label="Search engine details">
+            <div class="card">
+                <div class="card-head"><h2>Engine status</h2></div>
+                <div class="figure-row">
+                    <span class="figure-label">Keyword (BM25)</span>
+                    <span class="semantic-pill"><span class="dot dot-completed"></span>Active</span>
+                </div>
+                <div class="figure-row">
+                    <span class="figure-label">Semantic (AI)</span>
+                    <span class="semantic-pill" th:if="${semanticEnabled}"><span class="dot dot-completed"></span>Active</span>
+                    <span class="semantic-pill" th:unless="${semanticEnabled}"><span class="dot dot-muted"></span>Keyword only</span>
+                </div>
+                <p class="field-hint mt-2">
+                    Both engines run on every query; results are blended and the
+                    <span class="chip chip-gold">semantic match</span> chip marks hits found by
+                    meaning rather than exact words.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h2>Search tips</h2></div>
+                <ul class="text-sm text-muted" style="padding-left: 1.1rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                    <li>Describe the <em>idea</em> — "predicting floods from sensor data" works.</li>
+                    <li>Unit codes and technology names narrow results fast.</li>
+                    <li>Approved projects expose their files; drafts stay private.</li>
+                </ul>
+            </div>
+        </aside>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════ -->
-    <!-- DISCOVER TAB                                          -->
-    <!-- ══════════════════════════════════════════════════════ -->
-    <div th:if="${activeTab == 'discover'}">
+    <!-- ══════════════════════════════════════════════════════════════════
+         DISCOVER TAB
+         ══════════════════════════════════════════════════════════════════ -->
+    <div th:if="${activeTab == 'discover'}" class="page-grid">
+        <div class="page-main">
 
-        <!-- Visibility control -->
-        <div class="card discover-visibility mb-4">
-            <div class="flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                    <strong class="text-sm">Discoverable for collaboration</strong>
-                    <p class="field-hint no-margin">
-                        When on, your analysed projects can be matched with others across different departments.
-                        When off, you neither appear to others nor see matches.
-                    </p>
+            <!-- Opted out -->
+            <div th:if="${!discoverable}" class="empty-state">
+                <h3>Collaboration discovery is off</h3>
+                <p>Turn discoverability on (right) to see who you could work with across the university.</p>
+            </div>
+
+            <!-- Empty -->
+            <div th:if="${discoverable and totalCount == 0}" class="empty-state">
+                <h3>No collaboration matches yet</h3>
+                <p>Matches appear once your projects and others' have been AI-analysed. They surface
+                   partners from other units and departments — not your own classmates.</p>
+            </div>
+
+            <!-- Grouped opportunities — HIGH → MEDIUM → SHORTLISTED -->
+            <div th:if="${discoverable and totalCount > 0}">
+                <p class="text-sm text-muted mb-4" th:text="${totalCount} + ' match' + (${totalCount == 1} ? '' : 'es') + ' — sorted by collaboration value'">n matches</p>
+
+                <div th:each="group : ${grouped}" class="mb-6">
+                    <div class="section-divider">
+                        <h2 th:text="${group.key}">Type</h2>
+                    </div>
+
+                    <div class="recommendation-list">
+                        <div th:each="o : ${group.value}" class="recommendation-card collab-card">
+                            <!-- Head: partner + value -->
+                            <div class="recommendation-head">
+                                <div class="list-row-main">
+                                    <a class="list-row-title" th:href="@{'/projects/' + ${o.partner.id}}"
+                                       th:text="${o.partner.title}">Partner project</a>
+                                    <div class="text-xs text-muted mt-1">
+                                        <span th:text="${o.partner.student.name}">Student</span>
+                                        <span th:if="${o.partnerDepartment != null}"
+                                              th:text="' · ' + ${o.partnerDepartment}"> · Dept</span>
+                                        <span th:if="${o.partnerYear != null}"
+                                              th:text="' · Year ' + ${o.partnerYear}"> · Year</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2">
+                                    <span class="match-pill"
+                                          th:classappend="${o.value.name() == 'HIGH' ? 'match-pill-strong' : (o.value.name() == 'MEDIUM' ? 'match-pill-related' : 'match-pill-weak')}"
+                                          th:text="${o.value.name() == 'HIGH' ? 'High-value' : (o.value.name() == 'MEDIUM' ? 'Good match' : 'Shortlisted')}">
+                                        value</span>
+                                    <span th:if="${o.crossDepartment()}" class="chip chip-gold">Cross-department</span>
+                                </div>
+                            </div>
+
+                            <!-- AI pitch -->
+                            <div th:if="${o.pitch != null}" class="assistant-callout mt-4">
+                                <div class="assistant-callout-label">AI-suggested collaboration</div>
+                                <p class="assistant-callout-text" th:text="${o.pitch}">Pitch</p>
+                            </div>
+
+                            <!-- Gains -->
+                            <div th:if="${o.youGain != null or o.theyGain != null}" class="collab-gains mt-4">
+                                <div th:if="${o.youGain != null}" class="collab-gain">
+                                    <span class="collab-gain-label">You gain</span>
+                                    <span th:text="${o.youGain}">gain</span>
+                                </div>
+                                <div th:if="${o.theyGain != null}" class="collab-gain">
+                                    <span class="collab-gain-label" th:text="${o.partner.student.name} + ' gains'">They gain</span>
+                                    <span th:text="${o.theyGain}">gain</span>
+                                </div>
+                            </div>
+
+                            <!-- Complementary gap -->
+                            <div th:if="${o.complementaryGaps != null}" class="match-reason mt-4">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                    <path d="M8 1.5a5.5 5.5 0 0 0-3.09 10.05c.34.24.59.62.59 1.05v.4h5v-.4c0-.43.25-.81.59-1.05A5.5 5.5 0 0 0 8 1.5z"/>
+                                </svg>
+                                <span th:text="${o.complementaryGaps}">gap</span>
+                            </div>
+
+                            <!-- Anchor project -->
+                            <div class="text-xs text-subtle mt-4">
+                                Matched with your project:
+                                <a th:href="@{'/student/submission/' + ${o.yourProject.id}}"
+                                   th:text="${o.yourProject.title}">Your project</a>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="flex flex-wrap gap-2 items-center mt-4">
+                                <a th:href="@{'/projects/' + ${o.partner.id}}" class="btn btn-secondary btn-sm">View project</a>
+
+                                <form th:if="${!o.requestAlreadySent}" th:action="@{/student/collaboration-requests}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="submissionId" th:value="${o.partner.id}">
+                                    <input type="hidden" name="message"
+                                           th:value="${o.pitch != null
+                                                     ? ('Hi ' + o.partner.student.name + ' — UniSubmit suggested we connect. ' + o.pitch)
+                                                     : ('Hi ' + o.partner.student.name + ', I found your project through UniSubmit and think we could collaborate.')}">
+                                    <button type="submit" class="btn btn-accent btn-sm">Request to connect</button>
+                                </form>
+                                <span th:if="${o.requestAlreadySent}" class="badge badge-review">Request sent</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <aside class="page-rail" aria-label="Discovery settings">
+            <!-- Visibility control — the discover tab's one switch -->
+            <div class="card discover-visibility">
+                <div class="card-head">
+                    <h2>Discoverable</h2>
+                    <span class="badge" th:classappend="${discoverable} ? 'badge-approved' : 'badge-archived'"
+                          th:text="${discoverable} ? 'On' : 'Off'">On</span>
+                </div>
+                <p class="field-hint no-margin mb-2">
+                    When on, your analysed projects can be matched with others across
+                    departments. When off, you neither appear to others nor see matches.
+                </p>
                 <form th:action="@{/discover/visibility}" method="post" class="inline-form">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                     <input type="hidden" name="discoverable" th:value="${discoverable} ? 'false' : 'true'">
                     <button type="submit"
-                            th:classappend="${discoverable} ? 'btn-accent' : 'btn-secondary'"
+                            th:classappend="${discoverable} ? 'btn-secondary' : 'btn-accent'"
                             class="btn btn-sm"
-                            th:text="${discoverable} ? 'On — opt out' : 'Off — opt in'">Toggle</button>
+                            th:text="${discoverable} ? 'Opt out' : 'Opt in'">Toggle</button>
                 </form>
             </div>
-        </div>
 
-        <!-- AI-off notice -->
-        <div th:if="${!aiConfigured and totalCount > 0}" class="alert alert-info">
-            No AI provider is configured — showing <strong>mechanical shortlist</strong> matches
-            (topic/skill overlap across departments). With a key configured, each becomes a graded
-            pitch explaining exactly what each side gains.
-        </div>
+            <!-- AI status -->
+            <div th:if="${!aiConfigured and totalCount > 0}" class="card accent-gold">
+                <h3 class="mb-1">Mechanical shortlist mode</h3>
+                <p class="text-sm text-muted no-margin">
+                    No AI provider is configured — matches come from topic/skill overlap across
+                    departments. With a key configured, each match becomes a graded pitch
+                    explaining exactly what each side gains.
+                </p>
+            </div>
 
-        <!-- Opted out -->
-        <div th:if="${!discoverable}" class="empty-state">
-            <h3>Collaboration discovery is off</h3>
-            <p>Turn discoverability on above to see who you could work with across the university.</p>
-        </div>
-
-        <!-- Empty -->
-        <div th:if="${discoverable and totalCount == 0}" class="empty-state">
-            <h3>No collaboration matches yet</h3>
-            <p>Matches appear once your projects and others' have been AI-analysed. They surface
-               partners from other units and departments — not your own classmates.</p>
-        </div>
-
-        <!-- Grouped opportunities — HIGH → MEDIUM → SHORTLISTED -->
-        <div th:if="${discoverable and totalCount > 0}">
-            <p class="text-sm text-muted mb-4" th:text="${totalCount} + ' match' + (${totalCount == 1} ? '' : 'es') + ' — sorted by collaboration value'">n matches</p>
-            <div th:each="group : ${grouped}" class="mb-6">
-                <div class="section-divider">
-                    <h2 th:text="${group.key}">Type</h2>
-                </div>
-
-                <div class="recommendation-list">
-                    <div th:each="o : ${group.value}" class="recommendation-card collab-card">
-                        <!-- Head: partner title + value pill -->
-                        <div class="recommendation-head">
-                            <div class="list-row-main">
-                                <a class="list-row-title" th:href="@{'/projects/' + ${o.partner.id}}"
-                                   th:text="${o.partner.title}">Partner project</a>
-                                <div class="text-xs text-muted mt-2">
-                                    <span th:text="${o.partner.student.name}">Student</span>
-                                    <span th:if="${o.partnerDepartment != null}"
-                                          th:text="' · ' + ${o.partnerDepartment}"> · Dept</span>
-                                    <span th:if="${o.partnerYear != null}"
-                                          th:text="' · Year ' + ${o.partnerYear}"> · Year</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end gap-2">
-                                <span class="match-pill"
-                                      th:classappend="${o.value.name() == 'HIGH' ? 'match-pill-strong' : (o.value.name() == 'MEDIUM' ? 'match-pill-related' : 'match-pill-weak')}"
-                                      th:text="${o.value.name() == 'HIGH' ? 'High-value' : (o.value.name() == 'MEDIUM' ? 'Good match' : 'Shortlisted')}">
-                                    value</span>
-                                <span th:if="${o.crossDepartment()}" class="chip chip-gold">Cross-department</span>
-                            </div>
-                        </div>
-
-                        <!-- AI pitch -->
-                        <div th:if="${o.pitch != null}" class="assistant-callout mt-4">
-                            <div class="assistant-callout-label">AI-suggested collaboration</div>
-                            <p class="assistant-callout-text" th:text="${o.pitch}">Pitch</p>
-                        </div>
-
-                        <!-- Gains -->
-                        <div th:if="${o.youGain != null or o.theyGain != null}" class="collab-gains mt-4">
-                            <div th:if="${o.youGain != null}" class="collab-gain">
-                                <span class="collab-gain-label">You gain</span>
-                                <span th:text="${o.youGain}">gain</span>
-                            </div>
-                            <div th:if="${o.theyGain != null}" class="collab-gain">
-                                <span class="collab-gain-label" th:text="${o.partner.student.name} + ' gains'">They gain</span>
-                                <span th:text="${o.theyGain}">gain</span>
-                            </div>
-                        </div>
-
-                        <!-- Complementary gap -->
-                        <div th:if="${o.complementaryGaps != null}" class="match-reason mt-4">
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                                <path d="M8 1.5a5.5 5.5 0 0 0-3.09 10.05c.34.24.59.62.59 1.05v.4h5v-.4c0-.43.25-.81.59-1.05A5.5 5.5 0 0 0 8 1.5z"/>
-                            </svg>
-                            <span th:text="${o.complementaryGaps}">gap</span>
-                        </div>
-
-                        <!-- Which of your projects this matches -->
-                        <div class="text-xs text-subtle mt-4">
-                            Matched with your project:
-                            <a th:href="@{'/student/submission/' + ${o.yourProject.id}}"
-                               th:text="${o.yourProject.title}">Your project</a>
-                        </div>
-
-                        <!-- Actions -->
-                        <div class="flex flex-wrap gap-2 items-center mt-4">
-                            <a th:href="@{'/projects/' + ${o.partner.id}}" class="btn btn-secondary btn-sm">View project</a>
-
-                            <form th:if="${!o.requestAlreadySent}" th:action="@{/student/collaboration-requests}"
-                                  method="post" class="inline-form">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <input type="hidden" name="submissionId" th:value="${o.partner.id}">
-                                <input type="hidden" name="message"
-                                       th:value="${o.pitch != null
-                                                 ? ('Hi ' + o.partner.student.name + ' — UniSubmit suggested we connect. ' + o.pitch)
-                                                 : ('Hi ' + o.partner.student.name + ', I found your project through UniSubmit and think we could collaborate.')}">
-                                <button type="submit" class="btn btn-accent btn-sm">Request to connect</button>
-                            </form>
-                            <span th:if="${o.requestAlreadySent}" class="badge badge-review">Request sent</span>
-                        </div>
-                    </div>
+            <div class="card">
+                <div class="card-head"><h2>How matching works</h2></div>
+                <div class="ai-steps">
+                    <div class="ai-step ai-step-active">Stage 1 — mechanical shortlist: cross-disciplinary topic &amp; skill overlap</div>
+                    <div class="ai-step" th:classappend="${aiConfigured} ? 'ai-step-active' : ''">Stage 2 — AI grades each pair and writes the pitch</div>
+                    <div class="ai-step">Matches are grouped High → Medium → Shortlisted</div>
                 </div>
             </div>
-        </div>
+        </aside>
     </div>
-
-    <style>
-        .explore-tabs {
-            display: flex;
-            gap: 0.25rem;
-            border-bottom: 2px solid var(--border);
-            padding-bottom: 0;
-        }
-        .explore-tab {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.6rem 1.2rem;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--text-muted);
-            text-decoration: none;
-            border-bottom: 2px solid transparent;
-            margin-bottom: -2px;
-            border-radius: 6px 6px 0 0;
-            transition: color 0.15s, border-color 0.15s;
-        }
-        .explore-tab:hover { color: var(--text-primary); }
-        .explore-tab-active {
-            color: var(--brand);
-            border-bottom-color: var(--brand);
-            background: var(--surface-1);
-        }
-    </style>
 </div>
 </body>
 </html>

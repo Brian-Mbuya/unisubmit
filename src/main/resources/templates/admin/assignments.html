@@ -1,123 +1,132 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='assignments')}">
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='assignments')}">
 <body>
 <div>
-    <div class="page-head mb-6">
+    <div class="page-head">
         <div>
-            <div class="eyebrow">Admin console</div>
-            <h1>Teaching Assignments</h1>
-            <p class="subtitle">Assign lecturers to course units for grading and review.</p>
+            <div class="eyebrow">People</div>
+            <h1>Teaching assignments</h1>
+            <p class="subtitle">Assign lecturers to curriculum units for grading and review.</p>
         </div>
     </div>
 
-    <div class="card mb-4">
-        <div class="card-head">
-            <h3>Assign Lecturer to Curriculum</h3>
-        </div>
-        <form th:action="@{/admin/assignments}" method="post" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="form-group">
-                <label class="form-label">Lecturer</label>
-                <select name="lecturerId" class="form-control" required>
-                    <option value="">Select Lecturer...</option>
-                    <option th:each="lecturer : ${lecturers}" 
-                            th:value="${lecturer.id}" 
-                            th:text="${lecturer.user != null ? lecturer.user.name : lecturer.staffNumber}"></option>
-                </select>
+    <div class="page-grid rail-left">
+        <!-- ── Rail: assign form ───────────────────────────────────────── -->
+        <aside class="page-rail" aria-label="Assign lecturer">
+            <div class="card">
+                <div class="card-head"><h2>Assign lecturer</h2></div>
+                <form th:action="@{/admin/assignments}" method="post">
+                    <div class="form-group">
+                        <label class="form-label">Lecturer <span class="text-danger">*</span></label>
+                        <select name="lecturerId" class="form-control" required>
+                            <option value="">Select lecturer…</option>
+                            <option th:each="lecturer : ${lecturers}"
+                                    th:value="${lecturer.id}"
+                                    th:text="${lecturer.user != null ? lecturer.user.name : lecturer.staffNumber}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Curriculum (unit under programme) <span class="text-danger">*</span></label>
+                        <select name="curriculumId" class="form-control" required>
+                            <option value="">Select curriculum…</option>
+                            <option th:each="curr : ${curricula}"
+                                    th:value="${curr.id}"
+                                    th:text="${(curr.programme != null ? curr.programme.name : 'Unassigned') + ' - ' + curr.unit.unitCode + ' ' + curr.unit.unitName}"></option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Academic year</label>
+                            <select name="academicYear" class="form-control">
+                                <option value="">Select year…</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Semester</label>
+                            <select name="semester" class="form-control">
+                                <option value="">Select semester…</option>
+                                <option value="1.1">1.1</option>
+                                <option value="1.2">1.2</option>
+                                <option value="1.3">1.3</option>
+                                <option value="2.1">2.1</option>
+                                <option value="2.2">2.2</option>
+                                <option value="2.3">2.3</option>
+                                <option value="3.1">3.1</option>
+                                <option value="3.2">3.2</option>
+                                <option value="3.3">3.3</option>
+                                <option value="4.1">4.1</option>
+                                <option value="4.2">4.2</option>
+                                <option value="4.3">4.3</option>
+                                <option value="5.1">5.1</option>
+                                <option value="5.2">5.2</option>
+                                <option value="5.3">5.3</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-block">Assign</button>
+                </form>
             </div>
-            <div class="form-group">
-                <label class="form-label">Curriculum (Unit under Course)</label>
-                <select name="curriculumId" class="form-control" required>
-                    <option value="">Select Curriculum...</option>
-                    <option th:each="curr : ${curricula}" 
-                            th:value="${curr.id}" 
-                            th:text="${(curr.programme != null ? curr.programme.name : 'Unassigned') + ' - ' + curr.unit.unitCode + ' ' + curr.unit.unitName}"></option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Academic Year</label>
-                <select name="academicYear" class="form-control">
-                    <option value="">Select Year...</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                    <option value="4">4</option>
-                    <option value="5">5</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Semester</label>
-                <select name="semester" class="form-control">
-                    <option value="">Select Semester...</option>
-                    <option value="1.1">1.1</option>
-                    <option value="1.2">1.2</option>
-                    <option value="1.3">1.3</option>
-                    <option value="2.1">2.1</option>
-                    <option value="2.2">2.2</option>
-                    <option value="2.3">2.3</option>
-                    <option value="3.1">3.1</option>
-                    <option value="3.2">3.2</option>
-                    <option value="3.3">3.3</option>
-                    <option value="4.1">4.1</option>
-                    <option value="4.2">4.2</option>
-                    <option value="4.3">4.3</option>
-                    <option value="5.1">5.1</option>
-                    <option value="5.2">5.2</option>
-                    <option value="5.3">5.3</option>
-                </select>
-            </div>
-            <div class="form-group col-span-full flex justify-end">
-                <button type="submit" class="btn">Assign</button>
-            </div>
-        </form>
-    </div>
+        </aside>
 
-    <div class="card card-pad-0">
-        <div class="card-head p-4">
-            <h3>Current Assignments</h3>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Lecturer</th>
-                        <th>Course</th>
-                        <th>Unit</th>
-                        <th>Academic Year</th>
-                        <th>Semester</th>
-                        <th class="text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr th:each="assignment : ${assignments}"
-                        th:data-id="${assignment.id}"
-                        th:data-lecturer-id="${assignment.lecturer.id}"
-                        th:data-curriculum-id="${assignment.curriculum.id}"
-                        th:data-academic-year-id="${assignment.academicYear != null ? assignment.academicYear : ''}"
-                        th:data-semester-id="${assignment.semester != null ? assignment.semester : ''}">
-                        <td th:text="${assignment.id}">1</td>
-                        <td th:text="${assignment.lecturer.user != null ? assignment.lecturer.user.name : assignment.lecturer.staffNumber}">Jane Doe</td>
-                        <td th:text="${assignment.curriculum.programme != null ? assignment.curriculum.programme.name : 'Unassigned'}">BSc CS</td>
-                        <td th:text="${assignment.curriculum.unit.unitCode}">CS101</td>
-                        <td th:text="${assignment.academicYear != null ? assignment.academicYear : '—'}">—</td>
-                        <td th:text="${assignment.semester != null ? assignment.semester : '—'}">—</td>
-                        <td class="text-right">
-                            <button class="btn btn-secondary btn-sm edit-asgn-btn">Edit</button>
-                            <form th:action="@{/admin/assignments/{id}/delete(id=${assignment.id})}" method="post" class="inline-form" onsubmit="return confirm('Are you sure?');">
-                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <tr th:if="${assignments.empty}">
-                        <td colspan="7" class="text-center text-muted py-8">
-                            <div class="empty-state">
-                                <h3>No teaching assignments</h3>
-                                <p>Map a lecturer to a curriculum unit above to assign grading responsibilities.</p>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- ── Main: current assignments ───────────────────────────────── -->
+        <div class="page-main">
+            <div class="card card-pad-0">
+                <div class="table-toolbar">
+                    <span class="text-sm text-muted" th:text="${#lists.size(assignments)} + ' assignments'">0</span>
+                    <input type="search" class="form-control" placeholder="Filter assignments…"
+                           data-table-search="#assignmentsTable" aria-label="Filter assignments">
+                </div>
+                <div class="table-wrap">
+                    <table id="assignmentsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Lecturer</th>
+                                <th>Programme</th>
+                                <th>Unit</th>
+                                <th>Academic year</th>
+                                <th>Semester</th>
+                                <th class="text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="assignment : ${assignments}"
+                                th:data-id="${assignment.id}"
+                                th:data-lecturer-id="${assignment.lecturer.id}"
+                                th:data-curriculum-id="${assignment.curriculum.id}"
+                                th:data-academic-year-id="${assignment.academicYear != null ? assignment.academicYear : ''}"
+                                th:data-semester-id="${assignment.semester != null ? assignment.semester : ''}">
+                                <td class="text-muted" th:text="${assignment.id}">1</td>
+                                <td class="fw-600" th:text="${assignment.lecturer.user != null ? assignment.lecturer.user.name : assignment.lecturer.staffNumber}">Jane Doe</td>
+                                <td class="text-muted" th:text="${assignment.curriculum.programme != null ? assignment.curriculum.programme.name : 'Unassigned'}">BSc CS</td>
+                                <td th:text="${assignment.curriculum.unit.unitCode}">CS101</td>
+                                <td th:text="${assignment.academicYear != null ? assignment.academicYear : '—'}">—</td>
+                                <td th:text="${assignment.semester != null ? assignment.semester : '—'}">—</td>
+                                <td class="text-right">
+                                    <button class="btn btn-secondary btn-sm edit-asgn-btn">Edit</button>
+                                    <form th:action="@{/admin/assignments/{id}/delete(id=${assignment.id})}" method="post" class="inline-form" onsubmit="return confirm('Are you sure?');">
+                                        <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr th:if="${assignments.empty}">
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <h3>No teaching assignments</h3>
+                                        <p>Map a lecturer to a curriculum unit to assign grading responsibilities.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -125,64 +134,66 @@
     <div id="editAsgnModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'editAsgnModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h2 class="m-0">Edit Teaching Assignment</h2>
+                <h2 class="m-0">Edit teaching assignment</h2>
                 <button class="btn btn-sm btn-secondary" onclick="closeModal('editAsgnModal')">✕</button>
             </div>
-            <form id="editAsgnForm" method="post" class="modal-body space-y-4">
+            <form id="editAsgnForm" method="post" class="modal-body">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="form-group">
                     <label class="form-label">Lecturer <span class="text-danger">*</span></label>
                     <select name="lecturerId" id="editAsgnLecturer" class="form-control" required>
-                        <option value="">Select Lecturer...</option>
-                        <option th:each="lecturer : ${lecturers}" 
-                                th:value="${lecturer.id}" 
+                        <option value="">Select lecturer…</option>
+                        <option th:each="lecturer : ${lecturers}"
+                                th:value="${lecturer.id}"
                                 th:text="${lecturer.user != null ? lecturer.user.name : lecturer.staffNumber}"></option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Curriculum (Unit under Course) <span class="text-danger">*</span></label>
+                    <label class="form-label">Curriculum (unit under programme) <span class="text-danger">*</span></label>
                     <select name="curriculumId" id="editAsgnCurriculum" class="form-control" required>
-                        <option value="">Select Curriculum...</option>
-                        <option th:each="curr : ${curricula}" 
-                                th:value="${curr.id}" 
+                        <option value="">Select curriculum…</option>
+                        <option th:each="curr : ${curricula}"
+                                th:value="${curr.id}"
                                 th:text="${(curr.programme != null ? curr.programme.name : 'Unassigned') + ' - ' + curr.unit.unitCode + ' ' + curr.unit.unitName}"></option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Academic Year</label>
-                    <select name="academicYear" id="editAsgnAcademicYear" class="form-control">
-                        <option value="">Select Year...</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Semester</label>
-                    <select name="semester" id="editAsgnSemester" class="form-control">
-                        <option value="">Select Semester...</option>
-                        <option value="1.1">1.1</option>
-                        <option value="1.2">1.2</option>
-                        <option value="1.3">1.3</option>
-                        <option value="2.1">2.1</option>
-                        <option value="2.2">2.2</option>
-                        <option value="2.3">2.3</option>
-                        <option value="3.1">3.1</option>
-                        <option value="3.2">3.2</option>
-                        <option value="3.3">3.3</option>
-                        <option value="4.1">4.1</option>
-                        <option value="4.2">4.2</option>
-                        <option value="4.3">4.3</option>
-                        <option value="5.1">5.1</option>
-                        <option value="5.2">5.2</option>
-                        <option value="5.3">5.3</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Academic year</label>
+                        <select name="academicYear" id="editAsgnAcademicYear" class="form-control">
+                            <option value="">Select year…</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Semester</label>
+                        <select name="semester" id="editAsgnSemester" class="form-control">
+                            <option value="">Select semester…</option>
+                            <option value="1.1">1.1</option>
+                            <option value="1.2">1.2</option>
+                            <option value="1.3">1.3</option>
+                            <option value="2.1">2.1</option>
+                            <option value="2.2">2.2</option>
+                            <option value="2.3">2.3</option>
+                            <option value="3.1">3.1</option>
+                            <option value="3.2">3.2</option>
+                            <option value="3.3">3.3</option>
+                            <option value="4.1">4.1</option>
+                            <option value="4.2">4.2</option>
+                            <option value="4.3">4.3</option>
+                            <option value="5.1">5.1</option>
+                            <option value="5.2">5.2</option>
+                            <option value="5.3">5.3</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('editAsgnModal')">Cancel</button>
-                    <button type="submit" class="btn">Save Changes</button>
+                    <button type="submit" class="btn">Save changes</button>
                 </div>
             </form>
         </div>
@@ -192,7 +203,7 @@
         function openModal(id) { document.getElementById(id).style.display='flex'; document.body.style.overflow='hidden'; }
         function closeModal(id) { document.getElementById(id).style.display='none'; document.body.style.overflow=''; }
         function closeOnOverlay(e,id) { if(e.target.id===id) closeModal(id); }
-        
+
         document.querySelectorAll('.edit-asgn-btn').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 const row = this.closest('tr');

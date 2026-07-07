@@ -4,133 +4,139 @@
     <div>
         <div class="page-head">
             <div>
-                <h1>Collaboration</h1>
+                <div class="eyebrow">Collaboration</div>
+                <h1>Collaboration inbox</h1>
                 <p class="subtitle">Manage incoming requests and track the ones you have sent.</p>
             </div>
-            <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back to projects</a>
+            <a th:href="@{/explore(tab='discover')}" class="btn btn-accent">Find new collaborators</a>
         </div>
 
-        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Success</div>
-        <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}">Error</div>
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="page-grid">
+            <!-- ── Main: things that need a decision ───────────────────── -->
+            <div class="page-main">
+                <div class="card">
+                    <div class="card-head">
+                        <h2>Incoming requests</h2>
+                        <span class="badge badge-review" th:if="${not #lists.isEmpty(inbox.incomingRequests)}"
+                              th:text="${#lists.size(inbox.incomingRequests)}">0</span>
+                    </div>
 
-            <!-- Incoming -->
-            <div class="card">
-                <div class="card-head">
-                    <h2>Incoming requests</h2>
-                    <span class="badge badge-draft" th:text="${#lists.size(inbox.incomingRequests)}">0</span>
+                    <div th:if="${#lists.isEmpty(inbox.incomingRequests)}" class="empty-state empty-state-compact text-sm">
+                        No requests yet. When someone finds your project through search or
+                        recommendations, their request lands here.
+                    </div>
+
+                    <div class="flex flex-col gap-4" th:if="${not #lists.isEmpty(inbox.incomingRequests)}">
+                        <div th:each="request : ${inbox.incomingRequests}" class="muted-panel">
+                            <div class="flex justify-between items-start gap-2 mb-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="avatar" th:text="${#strings.substring(request.sender.name, 0, 1)}">S</span>
+                                    <div>
+                                        <div class="text-sm fw-600" th:text="${request.sender.name}">Sender</div>
+                                        <div class="text-xs text-subtle"
+                                             th:text="${request.sender.studentProfile != null ? request.sender.studentProfile.admissionNumber : request.sender.username}">ID</div>
+                                    </div>
+                                </div>
+                                <span class="badge"
+                                      th:classappend="${request.status.name() == 'PENDING'} ? ' badge-review' : (${request.status.name() == 'ACCEPTED'} ? ' badge-approved' : ' badge-rejected')"
+                                      th:text="${#strings.toLowerCase(request.status.name())}">pending</span>
+                            </div>
+
+                            <div class="text-sm mb-1">
+                                Project: <a th:href="@{'/projects/' + ${request.submission.id}}" th:text="${request.submission.title}">Project</a>
+                            </div>
+                            <div class="text-xs text-subtle mb-2" th:text="${#temporals.format(request.createdAt, 'dd MMM yyyy, HH:mm')}">Date</div>
+
+                            <div th:if="${request.message != null}" class="message-box" th:text="${request.message}">Message</div>
+
+                            <div th:if="${request.status.name() == 'PENDING'}" class="flex gap-2 mt-4">
+                                <form th:action="@{'/student/collaboration-requests/' + ${request.id} + '/accept'}" method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button type="submit" class="btn btn-accent btn-sm">Accept</button>
+                                </form>
+                                <form th:action="@{'/student/collaboration-requests/' + ${request.id} + '/decline'}" method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button type="submit" class="btn btn-secondary btn-sm">Decline</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div th:if="${#lists.isEmpty(inbox.incomingRequests)}" class="empty-state text-sm empty-state-compact">
-                    No requests yet.
-                </div>
+                <!-- Active partnerships -->
+                <div class="card">
+                    <div class="card-head">
+                        <h2>Active collaborations</h2>
+                        <span class="badge badge-approved" th:text="${#lists.size(inbox.activeCollaborations)}">0</span>
+                    </div>
 
-                <div class="flex flex-col gap-4" th:if="${not #lists.isEmpty(inbox.incomingRequests)}">
-                    <div th:each="request : ${inbox.incomingRequests}" class="muted-panel">
-                        <div class="flex justify-between items-start gap-2 mb-2">
+                    <div th:if="${#lists.isEmpty(inbox.activeCollaborations)}" class="empty-state empty-state-compact text-sm">
+                        No active collaborations yet — accept a request to start one.
+                    </div>
+
+                    <div class="row-list" th:if="${not #lists.isEmpty(inbox.activeCollaborations)}">
+                        <div th:each="collaboration : ${inbox.activeCollaborations}"
+                             th:with="partner=${collaboration.getOtherUser(#authentication.principal.user)}"
+                             class="list-row">
                             <div class="flex items-center gap-2">
-                                <span class="avatar" th:text="${#strings.substring(request.sender.name, 0, 1)}">S</span>
+                                <span class="avatar" th:text="${partner != null ? #strings.substring(partner.name, 0, 1) : 'C'}">C</span>
                                 <div>
-                                    <div class="text-sm fw-600" th:text="${request.sender.name}">Sender</div>
-                                    <div class="text-xs text-subtle"
-                                         th:text="${request.sender.studentProfile != null ? request.sender.studentProfile.admissionNumber : request.sender.username}">ID</div>
+                                    <div class="text-sm fw-600" th:text="${partner != null ? partner.name : 'Collaborator'}">Collaborator</div>
+                                    <div class="text-xs text-subtle">
+                                        <a th:href="@{'/projects/' + ${collaboration.submission.id}}" th:text="${collaboration.submission.title}">Project</a>
+                                    </div>
                                 </div>
                             </div>
-                            <span class="badge"
-                                  th:classappend="${request.status.name() == 'PENDING'} ? ' badge-review' : (${request.status.name() == 'ACCEPTED'} ? ' badge-approved' : ' badge-rejected')"
-                                  th:text="${#strings.toLowerCase(request.status.name())}">pending</span>
-                        </div>
-
-                        <div class="text-sm mb-2">
-                            Project: <a th:href="@{'/projects/' + ${request.submission.id}}" th:text="${request.submission.title}">Project</a>
-                        </div>
-                        <div class="text-xs text-subtle mb-2" th:text="${#temporals.format(request.createdAt, 'dd MMM yyyy, HH:mm')}">Date</div>
-
-                        <div th:if="${request.message != null}" class="message-box" th:text="${request.message}">Message</div>
-
-                        <div th:if="${request.status.name() == 'PENDING'}" class="flex gap-2 mt-4">
-                            <form th:action="@{'/student/collaboration-requests/' + ${request.id} + '/accept'}" method="post" class="inline-form">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button type="submit" class="btn btn-accent btn-sm">Accept</button>
-                            </form>
-                            <form th:action="@{'/student/collaboration-requests/' + ${request.id} + '/decline'}" method="post" class="inline-form">
-                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                                <button type="submit" class="btn btn-secondary btn-sm">Decline</button>
-                            </form>
+                            <div class="list-row-side">
+                                <span class="badge badge-approved">active</span>
+                                <span class="text-xs text-subtle" th:text="${#temporals.format(collaboration.createdAt, 'dd MMM yyyy')}">Date</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Sent -->
-            <div class="card">
-                <div class="card-head">
-                    <h2>Sent requests</h2>
-                    <span class="badge badge-draft" th:text="${#lists.size(inbox.outgoingRequests)}">0</span>
-                </div>
+            <!-- ── Rail: what you sent ─────────────────────────────────── -->
+            <aside class="page-rail" aria-label="Sent requests">
+                <div class="card">
+                    <div class="card-head">
+                        <h2>Sent requests</h2>
+                        <span class="badge badge-draft" th:text="${#lists.size(inbox.outgoingRequests)}">0</span>
+                    </div>
 
-                <div th:if="${#lists.isEmpty(inbox.outgoingRequests)}" class="empty-state text-sm empty-state-compact">
-                    You have not sent any requests yet.
-                </div>
+                    <div th:if="${#lists.isEmpty(inbox.outgoingRequests)}" class="empty-state empty-state-compact text-sm">
+                        You have not sent any requests yet. Find matches on the
+                        <a th:href="@{/explore(tab='discover')}">Discover</a> tab.
+                    </div>
 
-                <div class="flex flex-col gap-4" th:if="${not #lists.isEmpty(inbox.outgoingRequests)}">
-                    <div th:each="request : ${inbox.outgoingRequests}" class="muted-panel">
-                        <div class="flex justify-between items-start gap-2 mb-2">
-                            <div class="flex items-center gap-2">
-                                <span class="avatar" th:text="${#strings.substring(request.recipient.name, 0, 1)}">R</span>
-                                <div>
-                                    <div class="text-sm fw-600" th:text="${request.recipient.name}">Recipient</div>
-                                    <div class="text-xs text-subtle"
-                                         th:text="${request.recipient.studentProfile != null ? request.recipient.studentProfile.admissionNumber : request.recipient.username}">ID</div>
+                    <div class="flex flex-col gap-4" th:if="${not #lists.isEmpty(inbox.outgoingRequests)}">
+                        <div th:each="request : ${inbox.outgoingRequests}" class="muted-panel">
+                            <div class="flex justify-between items-start gap-2 mb-2 flex-wrap">
+                                <div class="flex items-center gap-2">
+                                    <span class="avatar" th:text="${#strings.substring(request.recipient.name, 0, 1)}">R</span>
+                                    <div>
+                                        <div class="text-sm fw-600" th:text="${request.recipient.name}">Recipient</div>
+                                        <div class="text-xs text-subtle"
+                                             th:text="${request.recipient.studentProfile != null ? request.recipient.studentProfile.admissionNumber : request.recipient.username}">ID</div>
+                                    </div>
                                 </div>
+                                <span class="badge"
+                                      th:classappend="${request.status.name() == 'PENDING'} ? ' badge-review' : (${request.status.name() == 'ACCEPTED'} ? ' badge-approved' : ' badge-rejected')"
+                                      th:text="${#strings.toLowerCase(request.status.name())}">pending</span>
                             </div>
-                            <span class="badge"
-                                  th:classappend="${request.status.name() == 'PENDING'} ? ' badge-review' : (${request.status.name() == 'ACCEPTED'} ? ' badge-approved' : ' badge-rejected')"
-                                  th:text="${#strings.toLowerCase(request.status.name())}">pending</span>
-                        </div>
 
-                        <div class="text-sm mb-2">
-                            Project: <a th:href="@{'/projects/' + ${request.submission.id}}" th:text="${request.submission.title}">Project</a>
-                        </div>
-                        <div class="text-xs text-subtle mb-2" th:text="${#temporals.format(request.createdAt, 'dd MMM yyyy, HH:mm')}">Date</div>
+                            <div class="text-sm mb-1">
+                                Project: <a th:href="@{'/projects/' + ${request.submission.id}}" th:text="${request.submission.title}">Project</a>
+                            </div>
+                            <div class="text-xs text-subtle mb-2" th:text="${#temporals.format(request.createdAt, 'dd MMM yyyy, HH:mm')}">Date</div>
 
-                        <div th:if="${request.message != null}" class="message-box" th:text="${request.message}">Message</div>
+                            <div th:if="${request.message != null}" class="message-box" th:text="${request.message}">Message</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Active collaborations -->
-        <div class="card mt-4">
-            <div class="card-head">
-                <h2>Active collaborations</h2>
-                <span class="badge badge-approved" th:text="${#lists.size(inbox.activeCollaborations)}">0</span>
-            </div>
-
-            <div th:if="${#lists.isEmpty(inbox.activeCollaborations)}" class="empty-state text-sm empty-state-compact">
-                No active collaborations yet.
-            </div>
-
-            <div class="row-list" th:if="${not #lists.isEmpty(inbox.activeCollaborations)}">
-                <div th:each="collaboration : ${inbox.activeCollaborations}"
-                     th:with="partner=${collaboration.getOtherUser(#authentication.principal.user)}"
-                     class="list-row">
-                    <div class="flex items-center gap-2">
-                        <span class="avatar" th:text="${partner != null ? #strings.substring(partner.name, 0, 1) : 'C'}">C</span>
-                        <div>
-                            <div class="text-sm fw-600" th:text="${partner != null ? partner.name : 'Collaborator'}">Collaborator</div>
-                            <div class="text-xs text-subtle">
-                                <a th:href="@{'/projects/' + ${collaboration.submission.id}}" th:text="${collaboration.submission.title}">Project</a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="list-row-side">
-                        <span class="badge badge-approved">active</span>
-                        <span class="text-xs text-subtle" th:text="${#temporals.format(collaboration.createdAt, 'dd MMM yyyy')}">Date</span>
-                    </div>
-                </div>
-            </div>
+            </aside>
         </div>
     </div>
 </body>

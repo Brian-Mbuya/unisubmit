@@ -2,17 +2,20 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <!-- Status badge                                                          -->
-    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- ════════════════════════════════════════════════════════════════════
+         Status badge — statusBadge(status)
+         Renders the submission lifecycle state. Class derives from the enum,
+         so every state maps to a badge-* rule in base.css.
+         ════════════════════════════════════════════════════════════════════ -->
     <div th:fragment="statusBadge(status)">
-        <span th:class="'badge badge-' + ${#strings.toLowerCase(status)}" th:text="${#strings.replace(status, '_', ' ')}">STATUS</span>
+        <span th:class="'badge badge-' + ${#strings.toLowerCase(status)}"
+              th:text="${#strings.replace(status, '_', ' ')}">STATUS</span>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <!-- Version & feedback timeline                                           -->
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <!-- maskUploaders=true hides student identity (blind review mode) -->
+    <!-- ════════════════════════════════════════════════════════════════════
+         Version & feedback timeline — feedbackTimeline(versions, maskUploaders)
+         maskUploaders=true hides student identity (blind review mode).
+         ════════════════════════════════════════════════════════════════════ -->
     <div th:fragment="feedbackTimeline(versions, maskUploaders)">
 
         <div th:if="${#lists.isEmpty(versions)}" class="empty-state empty-state-compact">
@@ -26,8 +29,8 @@
                 <div class="timeline-item">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <div class="flex items-center gap-2">
-                            <strong>Version <span th:text="${version.versionNumber}">1</span></strong>
-                            <span th:if="${version.late}" class="badge" style="background: var(--color-danger, #e05252); color: #fff; font-size: 0.7rem; padding: 0.1rem 0.5rem;">Late submission</span>
+                            <strong class="text-sm">Version <span th:text="${version.versionNumber}">1</span></strong>
+                            <span th:if="${version.late}" class="badge badge-rejected">Late submission</span>
                         </div>
                         <span class="text-xs text-subtle"
                               th:text="${#temporals.format(version.uploadedAt, 'dd MMM yyyy, HH:mm')}">Time</span>
@@ -37,22 +40,20 @@
                            th:text="${version.originalFileName}">File</a>
                         <span class="meta-item text-subtle"
                               th:text="${#numbers.formatDecimal(version.fileSize / 1024.0, 1, 1)} + ' KB'">0 KB</span>
-                        <span th:if="${version.uploadedBy != null}" class="meta-item text-xs text-muted"
-                              th:text="'Uploaded by: ' + (${maskUploaders} ? 'Anonymous student' : ${version.uploadedBy.name})">Uploaded by User</span>
+                        <span th:if="${version.uploadedBy != null}" class="meta-item text-xs"
+                              th:text="'Uploaded by ' + (${maskUploaders} ? 'Anonymous student' : ${version.uploadedBy.name})">Uploader</span>
                     </div>
                     <div th:if="${version.changesSummary != null and !version.changesSummary.isBlank()}"
                          class="text-sm text-muted mt-1" th:text="'“' + ${version.changesSummary} + '”'">Change note</div>
                 </div>
 
                 <!-- Feedback on this version -->
-                <div th:each="feedback : ${version.feedbacks}" class="timeline-item">
+                <div th:each="feedback : ${version.feedbacks}" class="timeline-item is-feedback">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <div class="flex items-center gap-2">
-                            <strong class="text-accent">Feedback</strong>
-                            <span th:if="${feedback.grade != null}"
-                                  class="badge badge-submitted"
-                                  th:text="'Score: ' + ${feedback.grade} + '/100'"
-                                  style="font-size:0.72rem; padding:0.15rem 0.5rem;">75/100</span>
+                            <strong class="text-sm text-accent">Feedback</strong>
+                            <span th:if="${feedback.grade != null}" class="badge badge-submitted"
+                                  th:text="'Score: ' + ${feedback.grade} + '/100'">75/100</span>
                         </div>
                         <span class="text-xs text-subtle"
                               th:text="${#temporals.format(feedback.timestamp, 'dd MMM yyyy, HH:mm')}">Time</span>
@@ -65,24 +66,20 @@
         </div>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <!-- AI insight panel — status-aware                                       -->
-    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- ════════════════════════════════════════════════════════════════════
+         AI insight panel — aiInsightPanel(insight)
+         Status-aware: PENDING / PROCESSING poll via app.js (.insight-polling),
+         COMPLETED renders tabbed intelligence, FAILED offers a retry.
+         Hook contract: .insight-polling[data-id], [data-retry-analysis],
+         .ai-complete, .ai-tab-btn[data-ai-tab], .ai-tab-content, tab ids.
+         ════════════════════════════════════════════════════════════════════ -->
     <div th:fragment="aiInsightPanel(insight)">
 
-        <div th:if="${insight == null}" class="empty-state text-sm ai-empty">
+        <div th:if="${insight == null}" class="empty-state empty-state-compact text-sm ai-empty">
             AI analysis has not started yet.
         </div>
 
-        <div th:if="${insight != null}" class="ai-panel">
-            <div class="ai-panel-head">
-                <div>
-                    <div class="eyebrow">AI analysis</div>
-                    <h3>Document intelligence</h3>
-                </div>
-                <span th:class="'badge badge-' + ${#strings.toLowerCase(insight.status.name())}"
-                      th:text="${#strings.replace(insight.status.name(), '_', ' ')}">STATUS</span>
-            </div>
+        <div th:if="${insight != null}">
 
             <!-- PENDING -->
             <div th:if="${insight.status.name() == 'PENDING'}"
@@ -91,7 +88,7 @@
                     <div class="ai-spinner"></div>
                     <div>
                         <strong class="text-sm">Queued for analysis</strong>
-                        <p class="text-muted text-sm">Your document is in the processing queue.</p>
+                        <p class="text-muted text-sm">Your document is in the processing queue. This page updates automatically.</p>
                     </div>
                 </div>
             </div>
@@ -101,13 +98,13 @@
                  class="muted-panel insight-polling ai-state ai-state-info" th:attr="data-id=${insight.id}">
                 <div class="flex items-center gap-2 mb-4">
                     <div class="ai-spinner"></div>
-                    <strong class="text-sm">Analysing your document...</strong>
+                    <strong class="text-sm">Analysing your document…</strong>
                 </div>
                 <div class="skeleton-wrapper mb-4">
                     <div class="skeleton skeleton-title"></div>
-                    <div class="skeleton skeleton-text"></div>
-                    <div class="skeleton skeleton-text" style="width: 80%;"></div>
-                    <div class="skeleton skeleton-text" style="width: 90%;"></div>
+                    <div class="skeleton"></div>
+                    <div class="skeleton" style="width: 80%;"></div>
+                    <div class="skeleton" style="width: 90%;"></div>
                 </div>
                 <div class="ai-steps">
                     <div class="ai-step ai-step-active">Extracting document text</div>
@@ -115,40 +112,36 @@
                     <div class="ai-step">Mapping knowledge model tags</div>
                     <div class="ai-step">Precomputing recommendations</div>
                 </div>
-                <p class="text-muted text-sm mt-2">
-                    This usually takes a few seconds. The page updates automatically.
-                </p>
+                <p class="text-muted text-sm mt-2">Usually takes a few seconds — the page refreshes itself.</p>
             </div>
 
             <!-- COMPLETED -->
             <div th:if="${insight.status.name() == 'COMPLETED'}" class="ai-complete">
-                <!-- Tabs Navigation -->
-                <div class="ai-tabs">
+                <div class="ai-tabs" role="tablist">
                     <button type="button" class="ai-tab-btn active" data-ai-tab="tab-summary">Summary</button>
-                    <button type="button" class="ai-tab-btn" th:if="${insight.problemStatement != null}" data-ai-tab="tab-problem">Problem</button>
-                    <button type="button" class="ai-tab-btn" th:if="${not #lists.isEmpty(insight.objectives)}" data-ai-tab="tab-objectives">Objectives</button>
+                    <button type="button" class="ai-tab-btn" th:if="${insight.problemStatement != null}"
+                            data-ai-tab="tab-problem">Problem</button>
+                    <button type="button" class="ai-tab-btn" th:if="${not #lists.isEmpty(insight.objectives)}"
+                            data-ai-tab="tab-objectives">Objectives</button>
                 </div>
 
-                <!-- Tab Contents -->
-                <!-- Summary Tab -->
                 <div id="tab-summary" class="ai-tab-content active">
-                    <div class="ai-content-box summary-box">
-                        <p class="ai-summary readable" th:text="${insight.summary}">Summary text...</p>
+                    <div class="ai-content-box">
+                        <p class="ai-summary readable" th:text="${insight.summary}">Summary text…</p>
                     </div>
                 </div>
 
-                <!-- Problem Tab -->
                 <div id="tab-problem" class="ai-tab-content" th:if="${insight.problemStatement != null}">
-                    <div class="ai-content-box problem-box">
-                        <p class="ai-summary readable" th:text="${insight.problemStatement}">Problem statement...</p>
+                    <div class="ai-content-box">
+                        <p class="ai-summary readable" th:text="${insight.problemStatement}">Problem statement…</p>
                     </div>
                 </div>
 
-                <!-- Objectives Tab -->
                 <div id="tab-objectives" class="ai-tab-content" th:if="${not #lists.isEmpty(insight.objectives)}">
-                    <div class="ai-content-box objectives-box">
+                    <div class="ai-content-box">
                         <div class="ai-obj-item" th:each="obj : ${insight.objectives}">
-                            <svg class="ai-obj-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <svg class="ai-obj-icon" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                             <span th:text="${obj}">Objective</span>
@@ -156,27 +149,17 @@
                     </div>
                 </div>
 
-                <!-- Keywords (Always Visible at bottom) -->
-                <div th:if="${not #lists.isEmpty(insight.keywords)}" class="ai-section mt-4 pt-4" style="border-top: 1px solid var(--border-muted); margin-top: 1.25rem; padding-top: 1rem;">
-                    <div class="eyebrow flex items-center gap-2" style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.5rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);">
-                            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                            <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                        </svg>
-                        Keywords
-                    </div>
+                <!-- Keywords — always visible below the tabs -->
+                <div th:if="${not #lists.isEmpty(insight.keywords)}" class="ai-keywords">
+                    <div class="eyebrow">Keywords</div>
                     <div class="topic-list">
                         <span th:each="kw : ${insight.keywords}" class="chip" th:text="${kw}">keyword</span>
                     </div>
                 </div>
-
-
-<!-- Tab switching handled by app.js (initAiTabs, event delegation) -->
             </div>
 
             <!-- FAILED -->
-            <div th:if="${insight.status.name() == 'FAILED'}"
-                 class="muted-panel ai-state ai-state-danger">
+            <div th:if="${insight.status.name() == 'FAILED'}" class="muted-panel ai-state ai-state-danger">
                 <strong class="text-sm">Analysis failed</strong>
                 <p class="text-muted text-sm mt-2"
                    th:text="${insight.errorMessage != null} ? ${insight.errorMessage} : 'The AI system could not process this document.'">
@@ -190,14 +173,16 @@
         </div>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <!-- Similar projects / collaboration discovery                            -->
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <!-- readOnly=true renders a discovery-only view (no collaborate actions) —
-         used on the lecturer review page to surface overlapping submissions.   -->
+    <!-- ════════════════════════════════════════════════════════════════════
+         Similar projects / six-signal recommendations —
+         similarProjectsPanel(similarSubmissions, requestStatusesBySubmissionId, readOnly)
+         readOnly=true renders a discovery-only view (no collaborate actions),
+         used on the lecturer review page to surface overlapping submissions.
+         Each card states WHY it matched (reason line + per-signal breakdown).
+         ════════════════════════════════════════════════════════════════════ -->
     <div th:fragment="similarProjectsPanel(similarSubmissions, requestStatusesBySubmissionId, readOnly)">
 
-        <div th:if="${#lists.isEmpty(similarSubmissions)}" class="empty-state text-sm ai-empty">
+        <div th:if="${#lists.isEmpty(similarSubmissions)}" class="empty-state empty-state-compact text-sm ai-empty">
             No similar work found yet. Recommendations improve as more projects are analysed.
         </div>
 
@@ -205,21 +190,21 @@
             <div th:each="sim : ${similarSubmissions}" class="recommendation-card"
                  th:with="reqStatus=${requestStatusesBySubmissionId != null ? requestStatusesBySubmissionId[sim.submission.id] : null}">
 
-                <!-- Title + match -->
+                <!-- Title + intuitive match score -->
                 <div class="recommendation-head">
                     <div class="list-row-main">
                         <a class="list-row-title" th:href="@{'/projects/' + ${sim.submission.id}}"
                            th:text="${sim.submission.title}">Title</a>
-                        <div class="text-xs text-muted mt-2" th:text="${sim.submission.unit.unitName}">Unit</div>
+                        <div class="text-xs text-muted mt-1" th:text="${sim.submission.unit.unitName}">Unit</div>
                     </div>
                     <span class="match-pill"
                           th:classappend="${sim.matchLabel == 'Strong match'} ? 'match-pill-strong' : (${sim.matchLabel == 'Related work'} ? 'match-pill-related' : 'match-pill-weak')">
-                        <span th:text="${#numbers.formatDecimal(sim.scoreNormalized * 100, 1, 0)} + '%'">0%</span>
                         <span th:text="${sim.matchLabel}">Label</span>
+                        <span th:text="${#numbers.formatDecimal(sim.scoreNormalized * 100, 1, 0)} + '%'">0%</span>
                     </span>
                 </div>
 
-                <!-- Computed reason -->
+                <!-- Which signal fired, in plain words -->
                 <div class="match-reason" th:if="${sim.reason != null}">
                     <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                         <path d="M8 1.5a5.5 5.5 0 0 0-3.09 10.05c.34.24.59.62.59 1.05v.4h5v-.4c0-.43.25-.81.59-1.05A5.5 5.5 0 0 0 8 1.5zM6 14.5A1.5 1.5 0 0 0 7.5 16h1a1.5 1.5 0 0 0 1.5-1.5v-.5h-4v.5z"/>
@@ -227,11 +212,11 @@
                     <span th:text="${sim.reason}">Reason</span>
                 </div>
 
-                <!-- Summary -->
+                <!-- AI summary of the matched project -->
                 <p class="text-sm mt-2 recommendation-summary" th:if="${sim.submission.aiInsight != null}"
                    th:text="${sim.submission.aiInsight.summary}">Summary</p>
 
-                <!-- Shared focus tags — kept minimal; the reason line carries the story -->
+                <!-- Shared focus tags -->
                 <div th:if="${not #lists.isEmpty(sim.sharedTechnologies) or not #lists.isEmpty(sim.sharedResearchAreas)}" class="mt-2">
                     <div class="topic-list">
                         <span th:each="area : ${sim.sharedResearchAreas}" class="chip chip-gold" th:text="${area}">area</span>
@@ -239,7 +224,7 @@
                     </div>
                 </div>
 
-                <!-- Why this match — transparent per-signal breakdown -->
+                <!-- Six-signal transparency -->
                 <details class="match-breakdown">
                     <summary>Why this match</summary>
                     <div class="match-breakdown-body">
@@ -315,9 +300,10 @@
         </div>
     </div>
 
-    <!-- ════════════════════════════════════════════════════════════════════ -->
-    <!-- Lecturer recommendations (Phase 5 — pure aggregation, no LLM)         -->
-    <!-- ════════════════════════════════════════════════════════════════════ -->
+    <!-- ════════════════════════════════════════════════════════════════════
+         Suggested reviewers — lecturerMatchesPanel(lecturerMatches)
+         Pure aggregation over review history: no LLM involved.
+         ════════════════════════════════════════════════════════════════════ -->
     <div th:fragment="lecturerMatchesPanel(lecturerMatches)">
 
         <div th:if="${#lists.isEmpty(lecturerMatches)}" class="empty-state empty-state-compact text-sm">
@@ -331,7 +317,7 @@
                 <div class="lecturer-match-main">
                     <div class="lecturer-match-name" th:text="${lm.lecturer.name}">Lecturer</div>
                     <div class="lecturer-match-meta">
-                        <span th:text="${lm.reviewedCount} + (${lm.reviewedCount == 1} ? ' project reviewed' : ' projects reviewed')">0 projects reviewed</span>
+                        <span th:text="${lm.reviewedCount} + (${lm.reviewedCount == 1} ? ' project reviewed' : ' projects reviewed')">0 reviewed</span>
                         <span th:if="${lm.sameDepartment}"> · your department</span>
                     </div>
                     <div class="lecturer-match-tags">

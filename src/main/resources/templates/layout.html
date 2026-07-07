@@ -15,10 +15,20 @@
     <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
+    <a class="skip-link" href="#mainContent">Skip to content</a>
+
     <header th:replace="~{fragments/navbar :: navbar}"></header>
 
-    <main class="container" th:insert="${content}">
-        <!-- Page Content Injected Here -->
+    <main id="mainContent" class="container" th:insert="${content}">
+        <!-- Page content injected here -->
     </main>
+
+    <footer class="app-footer">
+        <span>UniSubmit — academic submission &amp; collaboration platform</span>
+        <span class="flex items-center gap-4">
+            <a sec:authorize="isAuthenticated()" th:href="@{/explore}">Explore the archive</a>
+            <a sec:authorize="isAuthenticated()" th:href="@{/notifications}">Notifications</a>
+        </span>
+    </footer>
 </body>
 </html>

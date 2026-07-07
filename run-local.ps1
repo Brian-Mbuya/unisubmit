@@ -4,7 +4,11 @@
 #   "h2"       — H2 in-memory DB, no external DB needed (default)
 #   "supabase" — Remote Supabase PostgreSQL (requires network access)
 #
-# Usage:  .\run-local.ps1
+# Usage:  .\run-local.ps1 [-Port 8080]
+
+param(
+    [int]$Port = 8080
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -60,13 +64,13 @@ if ($Mode -eq "supabase") {
     }
     $env:PGPASSWORD = (Get-Content $pwFile -Raw).Trim()
 
-    & ".\mvnw.cmd" spring-boot:run
+    & ".\mvnw.cmd" spring-boot:run "-Dspring-boot.run.arguments=--server.port=$Port"
 
 } else {
     # ── H2 mode: fully local, no external DB required ─────────────────────────
     Write-Host "[INFO] Starting with H2 in-memory database (local profile)..." -ForegroundColor Green
-    Write-Host "[INFO] App:        http://localhost:8080" -ForegroundColor Green
-    Write-Host "[INFO] H2 Console: http://localhost:8080/h2-console" -ForegroundColor Green
+    Write-Host "[INFO] App:        http://localhost:$Port" -ForegroundColor Green
+    Write-Host "[INFO] H2 Console: http://localhost:$Port/h2-console" -ForegroundColor Green
 
-    & ".\mvnw.cmd" spring-boot:run "-Dspring-boot.run.profiles=local"
+    & ".\mvnw.cmd" spring-boot:run "-Dspring-boot.run.profiles=local" "-Dspring-boot.run.arguments=--server.port=$Port"
 }

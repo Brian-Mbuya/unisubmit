@@ -3,18 +3,23 @@
       th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='faculties')}">
 <body>
 <div>
-    <div class="page-head mb-6">
+    <div class="page-head">
         <div>
-            <div class="eyebrow">Admin console</div>
+            <div class="eyebrow">Academic structure</div>
             <h1>Faculties</h1>
             <p class="subtitle">Manage academic faculties across the university.</p>
         </div>
-        <button class="btn" onclick="openModal('createFacultyModal')">+ Create Faculty</button>
+        <button class="btn" onclick="openModal('createFacultyModal')">+ Create faculty</button>
     </div>
 
     <div class="card card-pad-0">
+        <div class="table-toolbar">
+            <span class="text-sm text-muted" th:text="${#lists.size(faculties)} + ' faculties'">0</span>
+            <input type="search" class="form-control" placeholder="Filter faculties…"
+                   data-table-search="#facultiesTable" aria-label="Filter faculties">
+        </div>
         <div class="table-wrap">
-            <table>
+            <table id="facultiesTable">
                 <thead>
                     <tr>
                         <th>Code</th>
@@ -29,7 +34,7 @@
                         th:data-code="${f.code}"
                         th:data-name="${f.name}">
                         <td><code th:text="${f.code}"></code></td>
-                        <td th:text="${f.name}"></td>
+                        <td class="fw-600" th:text="${f.name}"></td>
                         <td th:text="${f.departments.size()}"></td>
                         <td class="text-right">
                             <button class="btn btn-sm btn-secondary edit-faculty-btn">Edit</button>
@@ -41,7 +46,7 @@
                         </td>
                     </tr>
                     <tr th:if="${faculties.empty}">
-                        <td colspan="4" class="text-center text-muted py-8">
+                        <td colspan="4">
                             <div class="empty-state">
                                 <h3>No faculties yet</h3>
                                 <p>Create a faculty above to begin structuring academic data.</p>
@@ -57,22 +62,22 @@
     <div id="createFacultyModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'createFacultyModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h2 class="m-0">Create Faculty</h2>
+                <h2 class="m-0">Create faculty</h2>
                 <button class="btn btn-sm btn-secondary" onclick="closeModal('createFacultyModal')">✕</button>
             </div>
             <form th:action="@{/admin/faculties}" method="post" class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">Faculty Code <span class="text-danger">*</span></label>
+                    <label class="form-label">Faculty code <span class="text-danger">*</span></label>
                     <input type="text" name="code" class="form-control" required placeholder="e.g. ENG" maxlength="10">
                     <small class="field-hint">Short uppercase code</small>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Faculty Name <span class="text-danger">*</span></label>
+                    <label class="form-label">Faculty name <span class="text-danger">*</span></label>
                     <input type="text" name="name" class="form-control" required placeholder="e.g. Faculty of Engineering">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('createFacultyModal')">Cancel</button>
-                    <button type="submit" class="btn">Create Faculty</button>
+                    <button type="submit" class="btn">Create faculty</button>
                 </div>
             </form>
         </div>
@@ -82,22 +87,22 @@
     <div id="editFacultyModal" class="modal-overlay" style="display:none;" onclick="closeOnOverlay(event,'editFacultyModal')">
         <div class="modal-card">
             <div class="modal-header">
-                <h2 class="m-0">Edit Faculty</h2>
+                <h2 class="m-0">Edit faculty</h2>
                 <button class="btn btn-sm btn-secondary" onclick="closeModal('editFacultyModal')">✕</button>
             </div>
             <form id="editFacultyForm" method="post" class="modal-body">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <div class="form-group">
-                    <label class="form-label">Faculty Code <span class="text-danger">*</span></label>
+                    <label class="form-label">Faculty code <span class="text-danger">*</span></label>
                     <input id="editFacultyCode" type="text" name="code" class="form-control" required maxlength="10">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Faculty Name <span class="text-danger">*</span></label>
+                    <label class="form-label">Faculty name <span class="text-danger">*</span></label>
                     <input id="editFacultyName" type="text" name="name" class="form-control" required>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('editFacultyModal')">Cancel</button>
-                    <button type="submit" class="btn">Save Changes</button>
+                    <button type="submit" class="btn">Save changes</button>
                 </div>
             </form>
         </div>

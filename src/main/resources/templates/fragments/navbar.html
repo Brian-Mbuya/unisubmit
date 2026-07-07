@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <body>
-    <header class="header" th:fragment="navbar">
-        <div class="flex items-center">
-            <!-- Neutral, configurable wordmark -->
+    <header class="topbar" th:fragment="navbar">
+        <div class="topbar-left">
             <div class="logo">
                 <a th:href="@{/}" aria-label="UniSubmit home">
                     <svg class="logo-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -17,7 +16,7 @@
                 </a>
             </div>
 
-            <!-- Role-aware primary navigation -->
+            <!-- Role-aware primary navigation (app.js marks the active link) -->
             <nav class="nav" id="primaryNav" sec:authorize="isAuthenticated()" aria-label="Primary">
                 <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/student/dashboard}">Projects</a>
                 <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/student/announcements}">Announcements</a>
@@ -30,8 +29,19 @@
             </nav>
         </div>
 
-        <div class="user-nav" sec:authorize="isAuthenticated()">
-            <!-- Notification bell (all roles) -->
+        <!-- Global hybrid search — BM25 + semantic, available on every page -->
+        <div class="global-search" sec:authorize="isAuthenticated()">
+            <form th:action="@{/explore}" method="get" role="search" aria-label="Search the project archive">
+                <input type="hidden" name="tab" value="search">
+                <svg class="search-glyph" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                </svg>
+                <input type="search" name="q" placeholder="Search projects, topics, keywords…"
+                       autocomplete="off" aria-label="Search query">
+            </form>
+        </div>
+
+        <div class="topbar-right" sec:authorize="isAuthenticated()">
             <a th:href="@{/notifications}" class="header-link" aria-label="Notifications" id="notificationBell">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                     <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/>
@@ -48,7 +58,7 @@
 
             <span class="user-chip">
                 <span class="avatar" th:text="${#strings.substring(#authentication.name, 0, 1)}">U</span>
-                <span class="text-muted" sec:authentication="name">User</span>
+                <span class="user-chip-name" sec:authentication="name">User</span>
             </span>
 
             <form th:action="@{/logout}" method="post" class="inline">

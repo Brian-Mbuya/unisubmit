@@ -5,23 +5,36 @@
         <div class="page-head">
             <div>
                 <div class="eyebrow">Lecturer review</div>
-                <h1 th:text="${submission.title}">Submission title</h1>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 th:text="${submission.title}">Submission title</h1>
+                    <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>
+                </div>
                 <p class="subtitle">
                     By <span th:text="${blindReview} ? 'Anonymous student' : ${submission.student.name}">Student</span>
-                    <span aria-hidden="true">/</span>
+                    <span aria-hidden="true">·</span>
                     <span th:text="${submission.unit.unitName}">Unit</span>
                 </p>
             </div>
-            <div class="header-actions">
-                <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>
+            <div class="page-head-actions">
                 <a th:href="@{/lecturer/dashboard}" class="btn btn-secondary btn-sm">Back to queue</a>
             </div>
         </div>
 
-        <div th:if="${param.success}" class="alert alert-success mt-2" th:text="${param.success}">Success</div>
-        <div th:if="${param.error}" class="alert alert-error mt-2" th:text="${param.error}">Error</div>
+        <!-- Persistent blind-review state indicator -->
+        <div th:if="${blindReview}" class="blind-banner mb-4" role="status">
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7.028 7.028 0 0 0-2.79.588l.77.771A5.944 5.944 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.134 13.134 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755-.165.165-.337.328-.517.486l.708.709z"/>
+                <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829l.822.822zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829z"/>
+                <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
+            </svg>
+            <span>Blind review is active — student identity stays hidden until you submit a grade.</span>
+            <span class="blind-banner-note">The document itself may still contain identifying details. Mode is set in application.yml.</span>
+        </div>
 
-        <div class="split-layout review-workspace">
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+        <div class="review-workspace">
+            <!-- ── Document, pinned while you scroll the review column ─── -->
             <section class="document-panel" aria-label="Submitted document"
                      th:with="latest=${#lists.isEmpty(submission.versions) ? null : submission.versions[submission.versions.size() - 1]}">
 
@@ -29,7 +42,6 @@
                      th:with="fileUrl=@{'/files/' + ${latest.filePath}},
                               isPdf=${latest.fileType == 'application/pdf'},
                               isText=${latest.fileType == 'text/plain'}">
-                    <!-- Toolbar: file identity + actions -->
                     <div class="doc-preview-toolbar">
                         <div class="doc-preview-fileinfo">
                             <span class="doc-file-badge"
@@ -51,12 +63,12 @@
                             th:src="${fileUrl}">
                     </iframe>
 
-                    <!-- Plain text: fetched and typeset like a document, not a raw dump -->
+                    <!-- Plain text: fetched and typeset -->
                     <div th:if="${isText}" class="doc-text-preview" th:attr="data-doc-text-src=${fileUrl}">
                         <span class="text-muted text-sm">Loading document…</span>
                     </div>
 
-                    <!-- Word / other formats the browser cannot render inline -->
+                    <!-- Word / other formats without an inline preview -->
                     <div th:if="${!isPdf and !isText}" class="doc-preview-fallback">
                         <h3 th:text="${latest.originalFileName}">document.docx</h3>
                         <p class="text-sm mt-2 mb-4">This format has no inline browser preview — open or download it to review.</p>
@@ -84,25 +96,72 @@
                 </script>
             </section>
 
-            <aside class="panel-scroll review-side" aria-label="Review details">
-                <section class="card">
+            <!-- ── Review column: decide first, context below ──────────── -->
+            <aside class="review-side" aria-label="Review details">
+
+                <!-- Primary task: the decision -->
+                <section class="card accent-blue" th:if="${submission.status.name() != 'APPROVED'}">
                     <div class="card-head">
-                        <h2>Submission details</h2>
-                        <span th:if="${blindReview}" class="badge badge-review" title="Student identity is hidden until you submit a grade — the document itself may still contain identifying details.">Blind review</span>
+                        <h2>Review decision</h2>
+                        <span th:if="${blindReview}" class="badge badge-admin"
+                              title="Student identity is hidden until you submit a grade.">Blind review</span>
                     </div>
+                    <form th:action="@{'/lecturer/submission/' + ${submission.id} + '/review'}" method="post" data-review-form>
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                        <input type="hidden" name="status" value="UNDER_REVIEW" data-review-status>
+
+                        <div class="review-actions mb-4" role="group" aria-label="Choose review outcome">
+                            <button type="button" class="btn btn-review btn-selected" data-review-action="UNDER_REVIEW">
+                                Keep under review
+                            </button>
+                            <button type="button" class="btn btn-warning" data-review-action="REJECTED">
+                                Request changes
+                            </button>
+                            <button type="button" class="btn btn-accent" data-review-action="APPROVED">
+                                Approve
+                            </button>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="reviewMessage">Remarks</label>
+                            <textarea name="message" id="reviewMessage" class="form-control form-control-tall" rows="4"
+                                      placeholder="Add feedback for the student."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="reviewGrade">
+                                Grade <span class="text-muted text-xs">(optional, 0–100)</span>
+                            </label>
+                            <input type="number" name="grade" id="reviewGrade" class="form-control review-grade-input"
+                                   min="0" max="100" placeholder="e.g. 75">
+                            <div th:if="${blindReview}" class="field-hint">Submitting a grade reveals the student's identity.</div>
+                        </div>
+
+                        <button type="submit" class="btn btn-block">Submit review</button>
+                    </form>
+                </section>
+
+                <section class="muted-panel accent-green" th:if="${submission.status.name() == 'APPROVED'}">
+                    <strong class="text-sm">Approved and locked</strong>
+                    <p class="text-muted text-sm">No further review action is available for this submission.</p>
+                </section>
+
+                <!-- Facts -->
+                <section class="card">
+                    <div class="card-head"><h2>Submission details</h2></div>
                     <div class="info-row">
                         <span class="label">Student</span>
                         <span th:if="${!blindReview}" th:text="${submission.student.name}">Name</span>
                         <span th:if="${blindReview}" class="text-muted italic">Anonymous until graded</span>
                     </div>
                     <div class="info-row" th:if="${submission.projectGroup != null and !blindReview}">
-                        <span class="label">Project Group</span>
+                        <span class="label">Project group</span>
                         <strong th:text="${submission.projectGroup.name}">Group Name</strong>
                     </div>
                     <div class="info-row" th:if="${submission.projectGroup != null and !blindReview}">
-                        <span class="label">Group Members</span>
+                        <span class="label">Group members</span>
                         <span>
-                            <span th:each="m, iter : ${submission.projectGroup.members}" 
+                            <span th:each="m, iter : ${submission.projectGroup.members}"
                                   th:text="${m.name} + ${iter.last ? '' : ', '}">Member</span>
                         </span>
                     </div>
@@ -124,62 +183,15 @@
                     </div>
                 </section>
 
-                <!-- Primary task first: the review decision -->
-                <section class="card" th:if="${submission.status.name() != 'APPROVED'}">
-                    <div class="card-head">
-                        <h2>Review action</h2>
-                    </div>
-                    <form th:action="@{'/lecturer/submission/' + ${submission.id} + '/review'}" method="post" data-review-form>
-                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                        <input type="hidden" name="status" value="UNDER_REVIEW" data-review-status>
-
-                        <div class="form-group">
-                            <label class="form-label" for="reviewMessage">Remarks</label>
-                            <textarea name="message" id="reviewMessage" class="form-control form-control-tall" rows="4"
-                                      placeholder="Add feedback for the student."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label" for="reviewGrade">
-                                Grade <span class="text-muted text-xs">(optional, 0–100)</span>
-                            </label>
-                            <input type="number" name="grade" id="reviewGrade" class="form-control review-grade-input"
-                                   min="0" max="100" placeholder="e.g. 75">
-                        </div>
-
-                        <div class="review-actions" role="group" aria-label="Choose review outcome">
-                            <button type="button" class="btn btn-review btn-selected" data-review-action="UNDER_REVIEW">
-                                Keep under review
-                            </button>
-                            <button type="button" class="btn btn-warning" data-review-action="REJECTED">
-                                Request changes
-                            </button>
-                            <button type="button" class="btn btn-accent" data-review-action="APPROVED">
-                                Approve
-                            </button>
-                        </div>
-
-                        <button type="submit" class="btn btn-block mt-4">Submit review</button>
-                    </form>
-                </section>
-
-                <section class="muted-panel approved-note" th:if="${submission.status.name() == 'APPROVED'}">
-                    <strong class="text-sm">Approved and locked</strong>
-                    <p class="text-muted text-sm">No further review action is available for this submission.</p>
-                </section>
-
+                <!-- AI reading of the document -->
                 <section class="card">
-                    <div class="card-head">
-                        <h2>AI insights</h2>
-                    </div>
+                    <div class="card-head"><h2>AI insights</h2></div>
                     <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
                 </section>
 
-                <!-- Overlapping submissions (Phase 5 — lecturer-side transparency) -->
+                <!-- Overlap radar: six-signal similarity, read-only -->
                 <section class="card">
-                    <div class="card-head">
-                        <h2>Similar work</h2>
-                    </div>
+                    <div class="card-head"><h2>Similar work</h2></div>
                     <p class="field-hint mb-2">
                         Other submissions with overlapping topics, technologies or research areas —
                         useful for spotting duplicated or related work during review.
@@ -187,13 +199,11 @@
                     <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${null}, true)}"></div>
                 </section>
 
+                <!-- History -->
                 <section class="card">
-                    <div class="card-head">
-                        <h2>Activity timeline</h2>
-                    </div>
+                    <div class="card-head"><h2>Activity timeline</h2></div>
                     <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions}, ${blindReview})}"></div>
                 </section>
-
             </aside>
         </div>
     </div>

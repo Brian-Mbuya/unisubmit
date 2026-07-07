@@ -3,137 +3,146 @@
       th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='dashboard')}">
 <body>
 <div>
-    <div class="page-head mb-6">
+    <div class="page-head">
         <div>
+            <div class="eyebrow">Admin console</div>
             <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
             <p class="subtitle">Here's a snapshot of the system.</p>
         </div>
     </div>
 
-    <!-- Stats Strip -->
-    <div class="stat-strip mb-8">
-        <div class="stat">
-            <div class="stat-label">Total Students</div>
+    <!-- Population stats -->
+    <div class="stat-strip">
+        <div class="stat stat-blue">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <div class="stat-label">Students</div>
             <div class="stat-value" th:text="${statStudents}">0</div>
         </div>
-        <div class="stat">
-            <div class="stat-label">Total Lecturers</div>
+        <div class="stat stat-green">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+            <div class="stat-label">Lecturers</div>
             <div class="stat-value" th:text="${statLecturers}">0</div>
         </div>
-        <div class="stat">
-            <div class="stat-label">Total Courses</div>
-            <div class="stat-value is-accent" th:text="${statCourses}">0</div>
+        <div class="stat stat-amber">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+            <div class="stat-label">Programmes</div>
+            <div class="stat-value" th:text="${statCourses}">0</div>
         </div>
-        <div class="stat">
-            <div class="stat-label">Total Units</div>
-            <div class="stat-value is-accent" th:text="${statUnits}">0</div>
+        <div class="stat stat-purple">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
+            <div class="stat-label">Units</div>
+            <div class="stat-value" th:text="${statUnits}">0</div>
         </div>
-        <div class="stat">
+        <div class="stat stat-gold">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/></svg>
             <div class="stat-label">Faculties</div>
             <div class="stat-value" th:text="${statFaculties}">0</div>
         </div>
-        <div class="stat">
+        <div class="stat stat-red">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
             <div class="stat-label">Departments</div>
             <div class="stat-value" th:text="${statDepartments}">0</div>
         </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="card mb-6">
-        <div class="card-head">
-            <h2>Quick Actions</h2>
-        </div>
-        <div class="quick-action-grid">
-            <a th:href="@{/admin/faculties}" class="quick-action-card">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21V12h6v9"/></svg>
-                <span>Manage Faculties</span>
-            </a>
-            <a th:href="@{/admin/departments}" class="quick-action-card">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-                <span>Manage Departments</span>
-            </a>
-            <a th:href="@{/admin/programmes}" class="quick-action-card">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                <span>Manage Programmes</span>
-            </a>
-             <a th:href="@{/admin/units}" class="quick-action-card">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
-                <span>Manage Units</span>
-            </a>
-            <a th:href="@{/admin/accounts}" class="quick-action-card">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                <span>Accounts</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- System Info & Visualization -->
-    <div class="detail-grid mb-6">
-        <!-- Left Column: Academic Structure & System Health -->
-        <div class="col">
+    <div class="page-grid">
+        <!-- ── Main: submissions overview + quick actions ──────────────── -->
+        <div class="page-main">
             <div class="card">
-                <div class="card-head"><h2>Academic Structure</h2></div>
-                <div class="p-2">
-                    <div class="info-row">
-                        <span class="text-muted">Faculties</span>
-                        <a th:href="@{/admin/faculties}" th:text="${statFaculties}" class="text-accent fw-600">0</a>
-                    </div>
-                    <div class="info-row">
-                        <span class="text-muted">Departments</span>
-                        <a th:href="@{/admin/departments}" th:text="${statDepartments}" class="text-accent fw-600">0</a>
-                    </div>
-                    <div class="info-row">
-                        <span class="text-muted">Programmes</span>
-                        <a th:href="@{/admin/programmes}" th:text="${statCourses}" class="text-accent fw-600">0</a>
-                    </div>
-                    <div class="info-row">
-                        <span class="text-muted">Units</span>
-                        <a th:href="@{/admin/units}" th:text="${statUnits}" class="text-accent fw-600">0</a>
-                    </div>
-                    <div class="info-row">
-                        <span class="text-muted">Curriculum Items</span>
-                        <span th:text="${statCurricula}" class="text-accent fw-600">0</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-head"><h2>System Health</h2></div>
-                <div class="p-2">
-                    <div class="info-row">
-                        <span class="text-muted">Application</span>
-                        <span class="text-accent fw-600" style="display: inline-flex; align-items: center;">
-                            <span class="health-pulse is-success"></span>Operational
-                        </span>
-                    </div>
-                    <div class="info-row">
-                        <span class="text-muted">Database</span>
-                        <span class="text-accent fw-600" style="display: inline-flex; align-items: center;">
-                            <span class="health-pulse is-success"></span>Connected
-                        </span>
-                    </div>
-                    <div class="info-row">
-                        <span class="text-muted">File Storage</span>
-                        <span class="text-accent fw-600" style="display: inline-flex; align-items: center;">
-                            <span class="health-pulse is-success"></span>Online
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Right Column: Submissions Breakdown Chart -->
-        <div class="col">
-            <div class="card" style="height: 100%; display: flex; flex-direction: column;">
-                <div class="card-head"><h2>Submissions Breakdown</h2></div>
-                <div style="flex: 1; position: relative; min-height: 220px; width: 100%; display: flex; justify-content: center; align-items: center;">
+                <div class="card-head"><h2>Submissions breakdown</h2></div>
+                <div style="position: relative; min-height: 260px;">
                     <canvas id="submissionsChart"></canvas>
                 </div>
             </div>
+
+            <div class="card">
+                <div class="card-head"><h2>Quick actions</h2></div>
+                <div class="quick-action-grid">
+                    <a th:href="@{/admin/faculties}" class="quick-action-card">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 21V7l9-4 9 4v14"/><path d="M9 21V12h6v9"/></svg>
+                        <span>Manage faculties</span>
+                    </a>
+                    <a th:href="@{/admin/departments}" class="quick-action-card">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                        <span>Manage departments</span>
+                    </a>
+                    <a th:href="@{/admin/programmes}" class="quick-action-card">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        <span>Manage programmes</span>
+                    </a>
+                    <a th:href="@{/admin/units}" class="quick-action-card">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+                        <span>Manage units</span>
+                    </a>
+                    <a th:href="@{/admin/accounts}" class="quick-action-card">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span>Accounts</span>
+                    </a>
+                    <a th:href="@{/admin/landscape}" class="quick-action-card">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="16" r="2"/><circle cx="12" cy="7" r="2"/><circle cx="18" cy="13" r="2"/><path d="M7.5 14.5 10.5 9M13.7 8.2l2.8 3.3"/></svg>
+                        <span>Research landscape</span>
+                    </a>
+                </div>
+            </div>
         </div>
+
+        <!-- ── Rail: structure + health ────────────────────────────────── -->
+        <aside class="page-rail" aria-label="System overview">
+            <div class="card">
+                <div class="card-head"><h2>Academic structure</h2></div>
+                <div class="figure-row">
+                    <span class="figure-label">Faculties</span>
+                    <a th:href="@{/admin/faculties}" th:text="${statFaculties}" class="figure-value text-accent">0</a>
+                </div>
+                <div class="figure-row">
+                    <span class="figure-label">Departments</span>
+                    <a th:href="@{/admin/departments}" th:text="${statDepartments}" class="figure-value text-accent">0</a>
+                </div>
+                <div class="figure-row">
+                    <span class="figure-label">Programmes</span>
+                    <a th:href="@{/admin/programmes}" th:text="${statCourses}" class="figure-value text-accent">0</a>
+                </div>
+                <div class="figure-row">
+                    <span class="figure-label">Units</span>
+                    <a th:href="@{/admin/units}" th:text="${statUnits}" class="figure-value text-accent">0</a>
+                </div>
+                <div class="figure-row">
+                    <span class="figure-label">Curriculum items</span>
+                    <a th:href="@{/admin/curricula}" th:text="${statCurricula}" class="figure-value text-accent">0</a>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h2>System health</h2></div>
+                <div class="figure-row">
+                    <span class="figure-label">Application</span>
+                    <span class="text-accent fw-600 inline-flex items-center"><span class="health-pulse is-success"></span>Operational</span>
+                </div>
+                <div class="figure-row">
+                    <span class="figure-label">Database</span>
+                    <span class="text-accent fw-600 inline-flex items-center"><span class="health-pulse is-success"></span>Connected</span>
+                </div>
+                <div class="figure-row">
+                    <span class="figure-label">File storage</span>
+                    <span class="text-accent fw-600 inline-flex items-center"><span class="health-pulse is-success"></span>Online</span>
+                </div>
+            </div>
+
+            <div class="card accent-gold">
+                <h3 class="mb-1">AI pipeline views</h3>
+                <p class="text-sm text-muted mb-2 no-margin">
+                    The k-means topic map and the recommender's measured quality live under
+                    Intelligence in the sidebar.
+                </p>
+                <div class="flex gap-2 mt-2">
+                    <a th:href="@{/admin/landscape}" class="btn btn-secondary btn-sm">Landscape</a>
+                    <a th:href="@{/admin/evaluation}" class="btn btn-secondary btn-sm">Evaluation</a>
+                </div>
+            </div>
+        </aside>
     </div>
 
-    <!-- Inline Script for Chart.js Submissions Doughnut Chart -->
+    <!-- Chart.js doughnut — submissions by lifecycle state -->
     <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function() {
             const ctx = document.getElementById('submissionsChart').getContext('2d');
@@ -161,11 +170,11 @@
                         '#485058'  // Archived
                     ],
                     borderWidth: 1,
-                    borderColor: '#1b1e22'
+                    borderColor: '#1a1d21'
                 }]
             };
 
-            const config = {
+            new Chart(ctx, {
                 type: 'doughnut',
                 data: data,
                 options: {
@@ -176,19 +185,14 @@
                             position: 'right',
                             labels: {
                                 color: '#eae7e0',
-                                font: {
-                                    family: 'Inter',
-                                    size: 11
-                                },
+                                font: { family: 'Inter', size: 11 },
                                 boxWidth: 12
                             }
                         }
                     },
                     cutout: '70%'
                 }
-            };
-
-            new Chart(ctx, config);
+            });
         });
     </script>
 </div>

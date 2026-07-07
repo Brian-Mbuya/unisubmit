@@ -4,105 +4,150 @@
     <div>
         <div class="page-head">
             <div>
+                <div class="eyebrow">Review queue</div>
                 <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
-                <p class="subtitle">Submissions grouped by the units assigned to you.</p>
+                <p class="subtitle"
+                   th:text="${pendingReviews > 0
+                            ? (pendingReviews + (pendingReviews == 1 ? ' submission is' : ' submissions are') + ' waiting for your review.')
+                            : 'All caught up — nothing waiting for review right now.'}">Review queue</p>
             </div>
+            <a th:href="@{/lecturer/announcements}" class="btn btn-secondary">Post an announcement</a>
         </div>
 
-        <div class="stat-strip">
-            <div class="stat">
-                <div class="stat-label">Pending reviews</div>
-                <div class="stat-value is-warning" th:text="${pendingReviews}">0</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">Completed decisions</div>
-                <div class="stat-value is-accent" th:text="${completedReviews}">0</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">Visible in current filter</div>
-                <div class="stat-value" th:text="${#lists.size(submissions)}">0</div>
-            </div>
-            <div class="stat">
-                <div class="stat-label">Assigned units shown</div>
-                <div class="stat-value" th:text="${#maps.size(submissionsByUnit)}">0</div>
-            </div>
-        </div>
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
 
-        <div class="filter-bar mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center gap-2 flex-wrap">
-                <label>Status</label>
+        <!-- Sticky filters — status and submission type combine via URL params -->
+        <div class="subnav">
+            <div class="subnav-group filter-bar">
+                <span class="subnav-label">Status</span>
                 <a th:href="@{/lecturer/dashboard(statusFilter='', typeFilter=${typeFilter})}"
                    th:class="${statusFilter == null || statusFilter == '' ? 'filter-btn active' : 'filter-btn'}">All</a>
                 <a th:href="@{/lecturer/dashboard(statusFilter='SUBMITTED', typeFilter=${typeFilter})}"
                    th:class="${statusFilter == 'SUBMITTED' ? 'filter-btn active' : 'filter-btn'}">Submitted</a>
                 <a th:href="@{/lecturer/dashboard(statusFilter='UNDER_REVIEW', typeFilter=${typeFilter})}"
-                   th:class="${statusFilter == 'UNDER_REVIEW' ? 'filter-btn active' : 'filter-btn'}">Under Review</a>
+                   th:class="${statusFilter == 'UNDER_REVIEW' ? 'filter-btn active' : 'filter-btn'}">Under review</a>
                 <a th:href="@{/lecturer/dashboard(statusFilter='APPROVED', typeFilter=${typeFilter})}"
                    th:class="${statusFilter == 'APPROVED' ? 'filter-btn active' : 'filter-btn'}">Approved</a>
                 <a th:href="@{/lecturer/dashboard(statusFilter='REJECTED', typeFilter=${typeFilter})}"
-                   th:class="${statusFilter == 'REJECTED' ? 'filter-btn active' : 'filter-btn'}">Changes Requested</a>
+                   th:class="${statusFilter == 'REJECTED' ? 'filter-btn active' : 'filter-btn'}">Changes requested</a>
             </div>
-            <div class="flex items-center gap-2 flex-wrap">
-                <label>Submission type</label>
+            <div class="subnav-group filter-bar">
+                <span class="subnav-label">Type</span>
                 <a th:href="@{/lecturer/dashboard(statusFilter=${statusFilter}, typeFilter='ALL')}"
-                   th:class="${typeFilter == null || typeFilter == '' || typeFilter == 'ALL' ? 'filter-btn active' : 'filter-btn'}">All Work</a>
+                   th:class="${typeFilter == null || typeFilter == '' || typeFilter == 'ALL' ? 'filter-btn active' : 'filter-btn'}">All work</a>
                 <a th:href="@{/lecturer/dashboard(statusFilter=${statusFilter}, typeFilter='GROUP')}"
-                   th:class="${typeFilter == 'GROUP' ? 'filter-btn active' : 'filter-btn'}">👥 Group Work</a>
+                   th:class="${typeFilter == 'GROUP' ? 'filter-btn active' : 'filter-btn'}">Group</a>
                 <a th:href="@{/lecturer/dashboard(statusFilter=${statusFilter}, typeFilter='INDIVIDUAL')}"
-                   th:class="${typeFilter == 'INDIVIDUAL' ? 'filter-btn active' : 'filter-btn'}">👤 Individual Work</a>
+                   th:class="${typeFilter == 'INDIVIDUAL' ? 'filter-btn active' : 'filter-btn'}">Individual</a>
             </div>
         </div>
 
-        <div th:if="${#maps.isEmpty(submissionsByUnit)}" class="empty-state">
-            <h3>No submissions found</h3>
-            <p th:if="${statusFilter != null}">No submissions match this filter. <a th:href="@{/lecturer/dashboard}">Clear filter</a></p>
-            <p th:if="${statusFilter == null}">Submissions appear here once students submit work for your assigned units.</p>
-        </div>
+        <div class="page-grid">
+            <!-- ── Main: the queue, grouped by unit ────────────────────── -->
+            <div class="page-main">
 
-        <div th:if="${not #maps.isEmpty(submissionsByUnit)}">
-            <section th:each="entry : ${submissionsByUnit}" class="unit-group">
-                <div class="unit-group-header">
-                    <span>
-                        <span th:text="${entry.key.unitName}">Unit Name</span>
-                        <span class="unit-group-sub"
-                              th:text="${entry.key.department.name + ' / ' + (not entry.value.empty and entry.value[0].curriculum != null and entry.value[0].curriculum.programme != null ? entry.value[0].curriculum.programme.name : '—')}">Department / Course</span>
-                    </span>
-                    <span class="flex items-center gap-2">
-                        <a th:href="@{'/lecturer/units/' + ${entry.key.id} + '/marks.csv'}"
-                           class="btn btn-secondary btn-sm">Export marks (CSV)</a>
-                        <span class="badge badge-submitted" th:text="${#lists.size(entry.value)} + ' submissions'">0 submissions</span>
-                    </span>
+                <div th:if="${#maps.isEmpty(submissionsByUnit)}" class="empty-state">
+                    <h3>No submissions found</h3>
+                    <p th:if="${statusFilter != null}">No submissions match this filter. <a th:href="@{/lecturer/dashboard}">Clear filter</a></p>
+                    <p th:if="${statusFilter == null}">Submissions appear here once students submit work for your assigned units.</p>
                 </div>
 
-
-
-                <div th:if="${#lists.isEmpty(entry.value)}" class="empty-state">
-                    <p>No submissions in this unit match the current filter.</p>
-                </div>
-
-                <div class="row-list" th:if="${not #lists.isEmpty(entry.value)}">
-                    <div th:each="sub : ${entry.value}" class="list-row">
-                        <div class="list-row-main">
-                            <a th:href="@{'/lecturer/submission/' + ${sub.id}}"
-                               class="list-row-title"
-                               th:text="${sub.title}">Submission title</a>
-                            <span class="badge badge-draft ml-2" 
-                                  th:if="${sub.projectGroup != null}" 
-                                  th:text="'👥 Group: ' + ${sub.projectGroup.name}">Group</span>
-                            <span class="badge badge-draft ml-2" 
-                                  th:if="${sub.projectGroup == null}">👤 Individual</span>
-                            <div class="meta-line">
-                                <span th:text="${sub.student.name}">Student</span>
-                                <span th:text="${#temporals.format(sub.updatedAt, 'dd MMM yyyy, HH:mm')}">Updated</span>
-                            </div>
+                <section th:each="entry : ${submissionsByUnit}" class="card card-pad-0">
+                    <div class="card-head">
+                        <div>
+                            <h2 th:text="${entry.key.unitName}">Unit Name</h2>
+                            <div class="text-xs text-muted mt-1"
+                                 th:text="${entry.key.department.name + ' / ' + (not entry.value.empty and entry.value[0].curriculum != null and entry.value[0].curriculum.programme != null ? entry.value[0].curriculum.programme.name : '—')}">Department / Course</div>
                         </div>
-                        <div class="list-row-side">
-                            <div th:replace="~{fragments/components :: statusBadge(${sub.status.name()})}"></div>
-                            <a th:href="@{'/lecturer/submission/' + ${sub.id}}" class="btn btn-sm btn-secondary">Review</a>
+                        <div class="flex items-center gap-2">
+                            <span class="badge badge-submitted" th:text="${#lists.size(entry.value)} + ' submissions'">0</span>
+                            <a th:href="@{'/lecturer/units/' + ${entry.key.id} + '/marks.csv'}"
+                               class="btn btn-secondary btn-sm">Export marks (CSV)</a>
                         </div>
                     </div>
+
+                    <div th:if="${#lists.isEmpty(entry.value)}" class="empty-state empty-state-compact">
+                        <p>No submissions in this unit match the current filter.</p>
+                    </div>
+
+                    <div class="table-wrap" th:if="${not #lists.isEmpty(entry.value)}">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Submission</th>
+                                    <th>Student</th>
+                                    <th>Type</th>
+                                    <th>Updated</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="sub : ${entry.value}">
+                                    <td>
+                                        <a th:href="@{'/lecturer/submission/' + ${sub.id}}"
+                                           class="list-row-title text-sm"
+                                           th:text="${sub.title}">Submission title</a>
+                                    </td>
+                                    <td class="text-sm" th:text="${sub.student.name}">Student</td>
+                                    <td>
+                                        <span class="badge badge-draft" th:if="${sub.projectGroup != null}"
+                                              th:text="'Group: ' + ${sub.projectGroup.name}">Group</span>
+                                        <span class="badge badge-draft" th:if="${sub.projectGroup == null}">Individual</span>
+                                    </td>
+                                    <td class="text-xs text-muted"
+                                        th:text="${#temporals.format(sub.updatedAt, 'dd MMM yyyy, HH:mm')}">Updated</td>
+                                    <td>
+                                        <div th:replace="~{fragments/components :: statusBadge(${sub.status.name()})}"></div>
+                                    </td>
+                                    <td class="text-right">
+                                        <a th:href="@{'/lecturer/submission/' + ${sub.id}}" class="btn btn-sm btn-secondary">Review</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ── Rail: workload at a glance ──────────────────────────── -->
+            <aside class="page-rail" aria-label="Workload overview">
+                <div class="card">
+                    <div class="card-head"><h2>Workload</h2></div>
+                    <div class="figure-row">
+                        <span class="figure-label">Pending reviews</span>
+                        <span class="figure-value is-amber" th:text="${pendingReviews}">0</span>
+                    </div>
+                    <div class="figure-row">
+                        <span class="figure-label">Completed decisions</span>
+                        <span class="figure-value is-green" th:text="${completedReviews}">0</span>
+                    </div>
+                    <div class="figure-row">
+                        <span class="figure-label">Visible in filter</span>
+                        <span class="figure-value is-blue" th:text="${#lists.size(submissions)}">0</span>
+                    </div>
+                    <div class="figure-row">
+                        <span class="figure-label">Units shown</span>
+                        <span class="figure-value" th:text="${#maps.size(submissionsByUnit)}">0</span>
+                    </div>
                 </div>
-            </section>
+
+                <div class="card accent-gold">
+                    <h3 class="mb-1">Similar-work radar</h3>
+                    <p class="text-sm text-muted no-margin">
+                        Every review page lists submissions that overlap with the one under
+                        review — duplicated or related work surfaces automatically while you grade.
+                    </p>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><h2>Shortcuts</h2></div>
+                    <div class="flex flex-col gap-2">
+                        <a th:href="@{/lecturer/announcements}" class="btn btn-secondary btn-sm w-full">Announcements &amp; deadlines</a>
+                        <a th:href="@{/explore}" class="btn btn-secondary btn-sm w-full">Search the archive</a>
+                    </div>
+                </div>
+            </aside>
         </div>
     </div>
 </body>

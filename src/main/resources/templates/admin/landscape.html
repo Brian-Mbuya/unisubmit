@@ -3,12 +3,12 @@
       th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='landscape')}">
 <body>
 <div>
-    <div class="page-head mb-6">
+    <div class="page-head">
         <div>
-            <div class="eyebrow">Admin console</div>
-            <h1>Research Landscape</h1>
+            <div class="eyebrow">Intelligence</div>
+            <h1>Research landscape</h1>
             <p class="subtitle">
-                Every analysed submission, clustered by topic and projected onto two dimensions.
+                Every analysed submission, clustered by topic (k-means) and projected onto two dimensions (PCA).
             </p>
         </div>
     </div>
@@ -18,53 +18,70 @@
         <p>The map appears once at least two submissions have completed AI analysis.</p>
     </div>
 
-    <div th:if="${not #lists.isEmpty(landscape.points)}">
-        <div class="card mb-4">
-            <div class="card-head">
-                <h2>Topic map</h2>
-                <span class="badge badge-submitted"
-                      th:text="${#lists.size(landscape.points)} + ' projects · ' + ${landscape.vectorSource}">n</span>
+    <div th:if="${not #lists.isEmpty(landscape.points)}" class="page-grid">
+        <!-- ── Main: the topic map ─────────────────────────────────────── -->
+        <div class="page-main">
+            <div class="card">
+                <div class="card-head">
+                    <h2>Topic map</h2>
+                    <span class="badge badge-submitted"
+                          th:text="${#lists.size(landscape.points)} + ' projects · ' + ${landscape.vectorSource}">n</span>
+                </div>
+
+                <div class="landscape-svg-wrap">
+                    <svg viewBox="0 0 100 70" xmlns="http://www.w3.org/2000/svg" role="img"
+                         aria-label="Research landscape scatter plot">
+                        <!-- soft quadrant grid -->
+                        <line x1="0" y1="35" x2="100" y2="35" stroke="currentColor" stroke-opacity="0.07" stroke-width="0.2"/>
+                        <line x1="50" y1="0" x2="50" y2="70" stroke="currentColor" stroke-opacity="0.07" stroke-width="0.2"/>
+
+                        <a th:each="p : ${landscape.points}" th:href="@{'/projects/' + ${p.submissionId}}">
+                            <circle class="landscape-dot"
+                                    th:cx="${p.x}"
+                                    th:cy="${p.y * 0.7}"
+                                    r="1.8"
+                                    th:attr="fill=${clusterColors[p.cluster % clusterColors.size()]}"
+                                    fill-opacity="0.85">
+                                <title th:text="${p.title + ' — ' + p.unitName}">title</title>
+                            </circle>
+                        </a>
+                    </svg>
+                </div>
+
+                <p class="field-hint mt-4">
+                    Hover a dot for the project title; click to open it. Nearby dots share topic
+                    vocabulary — tight clusters flag crowded problem spaces, isolated dots flag
+                    novel work.
+                </p>
             </div>
-
-            <div class="landscape-svg-wrap">
-                <svg viewBox="0 0 100 70" xmlns="http://www.w3.org/2000/svg" role="img"
-                     aria-label="Research landscape scatter plot">
-                    <!-- soft quadrant grid -->
-                    <line x1="0" y1="35" x2="100" y2="35" stroke="currentColor" stroke-opacity="0.07" stroke-width="0.2"/>
-                    <line x1="50" y1="0" x2="50" y2="70" stroke="currentColor" stroke-opacity="0.07" stroke-width="0.2"/>
-
-                    <a th:each="p : ${landscape.points}" th:href="@{'/projects/' + ${p.submissionId}}">
-                        <circle class="landscape-dot"
-                                th:cx="${p.x}"
-                                th:cy="${p.y * 0.7}"
-                                r="1.8"
-                                th:attr="fill=${clusterColors[p.cluster % clusterColors.size()]}"
-                                fill-opacity="0.85">
-                            <title th:text="${p.title + ' — ' + p.unitName}">title</title>
-                        </circle>
-                    </a>
-                </svg>
-            </div>
-
-            <div class="landscape-legend">
-                <span th:each="c : ${landscape.clusters}" class="landscape-legend-item">
-                    <span class="landscape-legend-swatch"
-                          th:style="'background:' + ${clusterColors[c.index % clusterColors.size()]}"></span>
-                    <span>
-                        <strong th:text="${c.size} + (${c.size == 1} ? ' project' : ' projects')">n</strong>
-                        <span th:if="${not #lists.isEmpty(c.topTerms)}"
-                              th:text="' — ' + ${#strings.listJoin(c.topTerms, ', ')}">terms</span>
-                    </span>
-                </span>
-            </div>
-
-            <p class="field-hint mt-4">
-                Positions come from a 2-component PCA of each project's topic vector; colours are
-                k-means clusters. Hover a dot for the project title, click to open it.
-                With the SPECTER sidecar enabled the map uses real document embeddings;
-                otherwise it falls back to keyword/tag vectors.
-            </p>
         </div>
+
+        <!-- ── Rail: clusters + method ─────────────────────────────────── -->
+        <aside class="page-rail" aria-label="Cluster legend">
+            <div class="card">
+                <div class="card-head"><h2>Clusters</h2></div>
+                <div class="landscape-legend">
+                    <span th:each="c : ${landscape.clusters}" class="landscape-legend-item">
+                        <span class="landscape-legend-swatch"
+                              th:style="'background:' + ${clusterColors[c.index % clusterColors.size()]}"></span>
+                        <span>
+                            <strong th:text="${c.size} + (${c.size == 1} ? ' project' : ' projects')">n</strong>
+                            <span th:if="${not #lists.isEmpty(c.topTerms)}"
+                                  th:text="' — ' + ${#strings.listJoin(c.topTerms, ', ')}">terms</span>
+                        </span>
+                    </span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><h2>How it's computed</h2></div>
+                <p class="text-sm text-muted no-margin">
+                    Positions come from a 2-component PCA of each project's topic vector; colours
+                    are k-means clusters. With the SPECTER sidecar enabled the map uses real
+                    document embeddings; otherwise it falls back to keyword/tag vectors.
+                </p>
+            </div>
+        </aside>
     </div>
 </div>
 </body>
