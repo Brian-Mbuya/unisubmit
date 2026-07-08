@@ -9,7 +9,7 @@
                     <path d="M12 6l4.5 4.5h-3v6h-3v-6h-3L12 6z" fill="#fff"/>
                 </svg>
                 <h1>Create your account</h1>
-                <p class="text-muted text-sm">Student self-registration — all fields required</p>
+                <p class="text-muted text-sm">For students — staff accounts are set up by an administrator.</p>
             </div>
 
             <div th:if="${error}" class="alert alert-error" th:text="${error}">Error</div>
@@ -19,14 +19,14 @@
 
                 <!-- Full Name -->
                 <div class="form-group">
-                    <label class="form-label" for="regName">Full name <span class="text-danger">*</span></label>
+                    <label class="form-label" for="regName">Full name</label>
                     <input type="text" id="regName" name="name" class="form-control"
                            th:value="${formName}" placeholder="e.g. Jane Smith" required autofocus>
                 </div>
 
                 <!-- Email -->
                 <div class="form-group">
-                    <label class="form-label" for="regEmail">Email address <span class="text-danger">*</span></label>
+                    <label class="form-label" for="regEmail">Email address</label>
                     <input type="email" id="regEmail" name="email" class="form-control"
                            th:value="${formEmail}" placeholder="you@university.edu" required>
                     <div class="field-hint">This will be your login identifier</div>
@@ -34,25 +34,23 @@
 
                 <!-- Student ID -->
                 <div class="form-group">
-                    <label class="form-label" for="regStudentId">Student ID <span class="text-danger">*</span></label>
+                    <label class="form-label" for="regStudentId">Student ID</label>
                     <input type="text" id="regStudentId" name="studentId" class="form-control"
                            th:value="${formStudentId}" placeholder="e.g. S12345" required>
-                    <div class="field-hint">Your academic identifier assigned by your institution</div>
                 </div>
 
                 <!-- Faculty -->
                 <div class="form-group">
-                    <label class="form-label" for="regFaculty">Faculty <span class="text-danger">*</span></label>
+                    <label class="form-label" for="regFaculty">Faculty</label>
                     <select id="regFaculty" name="facultyId" class="form-control" required
                             th:attr="data-selected=${formFacultyId}">
                         <option value="" disabled selected>Select faculty…</option>
                     </select>
-                    <div class="field-hint">Choose your faculty first, then your department will load</div>
                 </div>
 
                 <!-- Department -->
                 <div class="form-group">
-                    <label class="form-label" for="regDepartment">Department <span class="text-danger">*</span></label>
+                    <label class="form-label" for="regDepartment">Department</label>
                     <select id="regDepartment" name="departmentId" class="form-control" required
                             th:attr="data-selected=${formDepartmentId}" disabled>
                         <option value="" disabled selected>Select department…</option>
@@ -61,7 +59,7 @@
 
                 <!-- Programme -->
                 <div class="form-group">
-                    <label class="form-label" for="regProgramme">Programme <span class="text-danger">*</span></label>
+                    <label class="form-label" for="regProgramme">Programme</label>
                     <select id="regProgramme" name="courseId" class="form-control" required
                             th:attr="data-selected=${formCourseId}" disabled>
                         <option value="" disabled selected>Select programme…</option>
@@ -70,14 +68,14 @@
 
                 <!-- Password -->
                 <div class="form-group">
-                    <label class="form-label" for="regPassword">Password <span class="text-danger">*</span></label>
+                    <label class="form-label" for="regPassword">Password</label>
                     <input type="password" id="regPassword" name="password" class="form-control"
                            placeholder="Minimum 6 characters" minlength="6" required>
                 </div>
 
                 <!-- Confirm Password -->
                 <div class="form-group">
-                    <label class="form-label" for="regConfirmPassword">Confirm password <span class="text-danger">*</span></label>
+                    <label class="form-label" for="regConfirmPassword">Confirm password</label>
                     <input type="password" id="regConfirmPassword" name="confirmPassword" class="form-control"
                            placeholder="Re-enter your password" minlength="6" required>
                     <div id="pwMatchHint" class="field-hint text-danger" style="display:none;">Passwords do not match.</div>
