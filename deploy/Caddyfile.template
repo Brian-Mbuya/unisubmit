@@ -1,0 +1,7 @@
+# Generated into /etc/caddy/Caddyfile by setup-server.sh (placeholder is
+# replaced with your real sslip.io host). Caddy fetches + renews a Let's Encrypt
+# certificate automatically for this hostname.
+__SSLIP_HOST__ {
+	reverse_proxy localhost:8080
+	encode gzip
+}

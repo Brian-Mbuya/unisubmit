@@ -13,20 +13,20 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      # 'update' lets Hibernate create/extend every @Entity table (core + the
-      # new academic/group/notification tables). Reliable for local testing and
-      # non-destructive on an existing schema.
-      # To switch to Flyway-managed migrations later, set this to 'validate',
-      # flip spring.flyway.enabled to true, and ensure a V1__ baseline exists
-      # (plus the V2 enum fix already applied below).
-      ddl-auto: validate
+      # 'update' runs AFTER Flyway and is self-healing: it creates any @Entity
+      # table/column the migrations didn't (courses, curriculum, lecturer_profiles,
+      # join tables, …) and never fails the boot on minor drift. Flyway (below)
+      # still owns the ordered core→academic schema build and data seeds; this is
+      # the safety net that keeps the two in sync.
+      ddl-auto: update
     show-sql: false
   flyway:
-    # Disabled for now: V2 needs a V1__ baseline before it can run on a fresh DB,
-    # and the schema is currently managed by Hibernate (ddl-auto above).
+    # Ordered schema migrations. V1__core_baseline seeds the core tables that
+    # V2→V19 assume, so the whole chain builds a BRAND-NEW database (Supabase)
+    # from nothing. baseline-on-migrate must be false here — otherwise Flyway
+    # would baseline the empty DB and SKIP V1, and V2 would fail on missing tables.
     enabled: true
-    baseline-on-migrate: true
-    baseline-version: 1
+    baseline-on-migrate: false
     locations: classpath:db/migration
   servlet:
     multipart:
@@ -37,13 +37,19 @@ spring:
   ai:
     openai:
       base-url: ${OPENAI_BASE_URL:https://openrouter.ai/api/v1}
-      api-key: ${OPENAI_API_KEY}
+      # Default NO_KEY so the app boots without an LLM key (lean launch). The
+      # services check for NO_KEY and fall back to local heuristics. Set a real
+      # OPENAI_API_KEY in the server env to enable AI insights.
+      api-key: ${OPENAI_API_KEY:NO_KEY}
       chat:
         options:
           model: ${OPENAI_MODEL:openai/gpt-4o-mini}
 
 server:
   port: ${PORT:8080}
+  # Behind Caddy (TLS terminated at the proxy): honour X-Forwarded-* so login
+  # redirects use https and session cookies are marked Secure correctly.
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:framework}
 
 app:
   storage:

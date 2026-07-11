@@ -1,0 +1,49 @@
+name: Deploy to Oracle Cloud
+
+# Build the JAR on GitHub's runner and ship it to the Oracle VM.
+# No Docker anywhere — a plain Spring Boot fat-jar run under systemd.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Build JAR (skip tests)
+        run: mvn -B -ntp -DskipTests package
+
+      - name: Stage jar under a stable name
+        run: cp target/unisubmit-*.jar unisubmit.jar.new
+
+      - name: Copy jar to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          source: unisubmit.jar.new
+          target: /home/ubuntu/
+          overwrite: true
+
+      - name: Install + restart service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.OCI_HOST }}
+          username: ${{ secrets.OCI_USER }}
+          key: ${{ secrets.OCI_SSH_KEY }}
+          script: sudo /usr/local/bin/unisubmit-deploy
