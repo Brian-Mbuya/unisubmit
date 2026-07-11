@@ -25,16 +25,28 @@ public class AuthController {
 
     @GetMapping("/login")
     public String login() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            return "redirect:/";
+        }
         return "login";
     }
 
     @GetMapping("/register")
     public String registerForm() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            return "redirect:/";
+        }
         return "register";
     }
 
     @GetMapping("/forgot-password")
     public String forgotPasswordForm() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !(auth instanceof AnonymousAuthenticationToken)) {
+            return "redirect:/";
+        }
         return "forgot-password";
     }
 
