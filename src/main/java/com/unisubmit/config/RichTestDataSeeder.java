@@ -61,7 +61,7 @@ public class RichTestDataSeeder implements CommandLineRunner {
                               AppNotificationRepository notificationRepository,
                               ProjectGroupRepository groupRepository,
                               CollaborationRequestRepository collaborationRequestRepository,
-                              org.springframework.beans.factory.annotation.Value("${app.storage.upload-dir:uploads}") String uploadDir) {
+                              @org.springframework.beans.factory.annotation.Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.userRepository = userRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.lecturerProfileRepository = lecturerProfileRepository;
