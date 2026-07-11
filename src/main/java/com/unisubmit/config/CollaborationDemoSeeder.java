@@ -483,6 +483,18 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                     if (u.getLecturerProfile() != null) lecturerProfileRepository.delete(u.getLecturerProfile());
                     userRepository.delete(u);
                 });
+
+            // Force Hibernate to commit the deletions to DB immediately before seed inserts execute
+            studentProfileRepository.flush();
+            lecturerProfileRepository.flush();
+            userRepository.flush();
+            teachingAssignmentRepository.flush();
+            enrollmentRepository.flush();
+            curriculumRepository.flush();
+            unitRepository.flush();
+            courseRepository.flush();
+            departmentRepository.flush();
+            facultyRepository.flush();
         } catch (Exception ex) {
             log.warn("Wiping old demo data failed or was partially completed: {}", ex.getMessage(), ex);
         }
