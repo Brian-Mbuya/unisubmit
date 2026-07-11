@@ -22,7 +22,8 @@ ENV PORT=8080
 ENV APP_UPLOAD_DIR=/app/uploads
 
 EXPOSE 8080
-VOLUME ["/app/uploads"]
+# NOTE: no `VOLUME` instruction — Railway rejects it. For persistent uploads,
+# attach a Railway Volume mounted at /app/uploads (or a host mount elsewhere).
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD ["sh", "-c", "curl -fsS http://127.0.0.1:${PORT}/health || exit 1"]
