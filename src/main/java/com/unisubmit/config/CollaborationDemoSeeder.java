@@ -454,18 +454,28 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
 
             aiInsightRepository.deleteAll();
 
-            // 6. Delete teaching assignments, enrollments, and curricula
+            // 6. Nullify references on ALL student/lecturer profiles to allow Course/Department deletion
+            studentProfileRepository.findAll().forEach(sp -> {
+                sp.setProgramme(null);
+                studentProfileRepository.save(sp);
+            });
+            lecturerProfileRepository.findAll().forEach(lp -> {
+                lp.setDepartment(null);
+                lecturerProfileRepository.save(lp);
+            });
+
+            // 7. Delete teaching assignments, enrollments, and curricula
             teachingAssignmentRepository.deleteAll();
             enrollmentRepository.deleteAll();
             curriculumRepository.deleteAll();
 
-            // 7. Delete units, courses, departments, faculties
+            // 8. Delete units, courses, departments, faculties
             unitRepository.deleteAll();
             courseRepository.deleteAll();
             departmentRepository.deleteAll();
             facultyRepository.deleteAll();
             
-            // 8. Delete demo users and profiles
+            // 9. Delete demo users and profiles
             userRepository.findAll().stream()
                 .filter(u -> u.getUsername().endsWith("@demo.unisubmit") || "demo.lecturer".equals(u.getUsername()))
                 .forEach(u -> {
