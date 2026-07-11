@@ -424,6 +424,7 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         return sb.toString();
     }
 
+    @org.springframework.transaction.annotation.Transactional
     private void wipeOldDemoData() {
         try {
             // 1. Delete collaboration requests
