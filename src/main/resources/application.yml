@@ -26,7 +26,8 @@ spring:
     # from nothing. baseline-on-migrate must be false here — otherwise Flyway
     # would baseline the empty DB and SKIP V1, and V2 would fail on missing tables.
     enabled: true
-    baseline-on-migrate: false
+    baseline-on-migrate: true
+    baseline-version: 1
     locations: classpath:db/migration
   servlet:
     multipart:
