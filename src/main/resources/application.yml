@@ -57,6 +57,8 @@ app:
     upload-dir: ${APP_UPLOAD_DIR:uploads}
 
 unisubmit:
+  demo:
+    seed-collaboration: true
   ai:
     # Upper bound (seconds) for one full analysis run — GROBID + LLM can be slow.
     timeout-seconds: ${AI_TIMEOUT_SECONDS:120}
