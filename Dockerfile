@@ -25,7 +25,21 @@ EXPOSE 8080
 # NOTE: no `VOLUME` instruction — Railway rejects it. For persistent uploads,
 # attach a Railway Volume mounted at /app/uploads (or a host mount elsewhere).
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+# Give the app 120 s to boot on first run (Flyway migrations + Hibernate ddl-auto
+# against a remote Supabase DB can take 30-60 s on a cold container).
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
   CMD ["sh", "-c", "curl -fsS http://127.0.0.1:${PORT}/health || exit 1"]
 
-ENTRYPOINT ["sh", "-c", "java -jar /app/unisubmit.jar"]
+# Memory budget for Railway's container (512 MB limit on Hobby plan):
+#   -Xms64m   — start JVM with a small heap; let it grow as needed
+#   -Xmx384m  — hard cap: leaves ~128 MB for the OS + non-heap (Metaspace, threads)
+#   -XX:MaxMetaspaceSize=128m — prevent Metaspace from growing unbounded
+#   -XX:+UseG1GC — lower pause times and better memory compaction than default GC
+#   -Djava.security.egd — faster SecureRandom on Linux (avoids /dev/random blocking)
+ENTRYPOINT ["sh", "-c", "java \
+  -Xms64m \
+  -Xmx384m \
+  -XX:MaxMetaspaceSize=128m \
+  -XX:+UseG1GC \
+  -Djava.security.egd=file:/dev/./urandom \
+  -jar /app/unisubmit.jar"]
