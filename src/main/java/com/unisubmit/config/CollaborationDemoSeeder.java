@@ -111,6 +111,7 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                                List<String> techs, List<String> areas) {}
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void run(String... args) {
         boolean alreadyHasNewSeeding = facultyRepository.findAll().stream()
                 .anyMatch(f -> "DEMO-HS".equals(f.getCode()));
