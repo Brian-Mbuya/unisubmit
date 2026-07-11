@@ -57,6 +57,12 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
     private final LecturerProfileRepository lecturerProfileRepository;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final EnrollmentRepository enrollmentRepository;
+    
+    private final UserRepository userRepository;
+    private final FeedbackRepository feedbackRepository;
+    private final ProjectGroupRepository groupRepository;
+    private final CollaborationRequestRepository collaborationRequestRepository;
+    
     private final Path uploadRoot;
 
     public CollaborationDemoSeeder(UserService userService, KnowledgeTagService tagService,
@@ -72,6 +78,10 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                                    LecturerProfileRepository lecturerProfileRepository,
                                    TeachingAssignmentRepository teachingAssignmentRepository,
                                    EnrollmentRepository enrollmentRepository,
+                                   UserRepository userRepository,
+                                   FeedbackRepository feedbackRepository,
+                                   ProjectGroupRepository groupRepository,
+                                   CollaborationRequestRepository collaborationRequestRepository,
                                    @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.userService = userService;
         this.tagService = tagService;
@@ -87,6 +97,10 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         this.lecturerProfileRepository = lecturerProfileRepository;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
         this.enrollmentRepository = enrollmentRepository;
+        this.userRepository = userRepository;
+        this.feedbackRepository = feedbackRepository;
+        this.groupRepository = groupRepository;
+        this.collaborationRequestRepository = collaborationRequestRepository;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -98,13 +112,22 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (studentProfileRepository.findByAdmissionNumber(MARKER_ADMISSION).isPresent()) {
-            return; // already seeded
+        boolean alreadyHasNewSeeding = facultyRepository.findAll().stream()
+                .anyMatch(f -> "DEMO-HS".equals(f.getCode()));
+        if (alreadyHasNewSeeding) {
+            return; // already seeded with expanded list
         }
+
+        boolean hasOldSeeding = facultyRepository.findAll().stream()
+                .anyMatch(f -> "DEMO-AS".equals(f.getCode()));
+        if (hasOldSeeding) {
+            log.info("Old demo seeding detected. Wiping old demo data for self-healing update...");
+            wipeOldDemoData();
+        }
+
         try {
             seed();
-            log.info("Collaboration demo data seeded: 3 departments, 1 lecturer, 6 students + "
-                    + "analysed submissions with documents.");
+            log.info("Collaboration demo data seeded: 4 faculties, 8 departments, 9 programmes, 1 lecturer, 6 students.");
         } catch (Exception ex) {
             log.warn("Collaboration demo seeding skipped due to error: {}", ex.getMessage(), ex);
         }
@@ -399,5 +422,48 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    private void wipeOldDemoData() {
+        try {
+            // Delete collaboration requests
+            collaborationRequestRepository.deleteAll();
+            // Delete feedbacks
+            feedbackRepository.deleteAll();
+            // Delete project groups
+            groupRepository.deleteAll();
+            // Delete submissions, versions, AI insights
+            submissionRepository.findAll().stream()
+                .filter(s -> s.getStudent().getUsername().endsWith("@demo.unisubmit"))
+                .forEach(s -> {
+                    if (s.getAiInsight() != null) {
+                        aiInsightRepository.delete(s.getAiInsight());
+                    }
+                    versionRepository.deleteAll(s.getVersions());
+                    submissionRepository.delete(s);
+                });
+            // Delete teaching assignments
+            teachingAssignmentRepository.deleteAll();
+            // Delete enrollments
+            enrollmentRepository.deleteAll();
+            // Delete curricula
+            curriculumRepository.deleteAll();
+            // Delete units, courses, departments, faculties
+            unitRepository.deleteAll();
+            courseRepository.deleteAll();
+            departmentRepository.deleteAll();
+            facultyRepository.deleteAll();
+            
+            // Delete demo users and profiles
+            userRepository.findAll().stream()
+                .filter(u -> u.getUsername().endsWith("@demo.unisubmit") || "demo.lecturer".equals(u.getUsername()))
+                .forEach(u -> {
+                    if (u.getStudentProfile() != null) studentProfileRepository.delete(u.getStudentProfile());
+                    if (u.getLecturerProfile() != null) lecturerProfileRepository.delete(u.getLecturerProfile());
+                    userRepository.delete(u);
+                });
+        } catch (Exception ex) {
+            log.warn("Wiping old demo data failed or was partially completed: {}", ex.getMessage());
+        }
     }
 }
