@@ -62,6 +62,9 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
     private final FeedbackRepository feedbackRepository;
     private final ProjectGroupRepository groupRepository;
     private final CollaborationRequestRepository collaborationRequestRepository;
+    private final CollaborationMatchRepository collaborationMatchRepository;
+    private final SubmissionSimilarityRepository similarityRepository;
+    private final SubmissionRelationRepository relationRepository;
     
     private final Path uploadRoot;
 
@@ -82,6 +85,9 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                                    FeedbackRepository feedbackRepository,
                                    ProjectGroupRepository groupRepository,
                                    CollaborationRequestRepository collaborationRequestRepository,
+                                   CollaborationMatchRepository collaborationMatchRepository,
+                                   SubmissionSimilarityRepository similarityRepository,
+                                   SubmissionRelationRepository relationRepository,
                                    @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.userService = userService;
         this.tagService = tagService;
@@ -101,6 +107,9 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         this.feedbackRepository = feedbackRepository;
         this.groupRepository = groupRepository;
         this.collaborationRequestRepository = collaborationRequestRepository;
+        this.collaborationMatchRepository = collaborationMatchRepository;
+        this.similarityRepository = similarityRepository;
+        this.relationRepository = relationRepository;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -428,11 +437,21 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
     @org.springframework.transaction.annotation.Transactional
     private void wipeOldDemoData() {
         try {
-            // 1. Delete collaboration requests
+            // 1. Delete matching, similarity, and relation records referencing submissions
+            collaborationMatchRepository.deleteAll();
+            similarityRepository.deleteAll();
+            relationRepository.deleteAll();
             collaborationRequestRepository.deleteAll();
+
+            // Flush match deletions to avoid constraint issues before deleting submissions
+            collaborationMatchRepository.flush();
+            similarityRepository.flush();
+            relationRepository.flush();
+            collaborationRequestRepository.flush();
 
             // 2. Delete feedbacks
             feedbackRepository.deleteAll();
+            feedbackRepository.flush();
 
             // 3. Nullify circular and referencing keys on all submissions
             submissionRepository.findAll().forEach(s -> {
@@ -440,9 +459,11 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                 s.setAiInsight(null);
                 submissionRepository.save(s);
             });
+            submissionRepository.flush();
 
             // 4. Delete project groups
             groupRepository.deleteAll();
+            groupRepository.flush();
 
             // 5. Delete submissions, versions, and AI insights
             submissionRepository.findAll().stream()
@@ -451,8 +472,10 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                     versionRepository.deleteAll(s.getVersions());
                     submissionRepository.delete(s);
                 });
+            submissionRepository.flush();
 
             aiInsightRepository.deleteAll();
+            aiInsightRepository.flush();
 
             // 6. Nullify references on ALL student/lecturer profiles to allow Course/Department deletion
             studentProfileRepository.findAll().forEach(sp -> {
