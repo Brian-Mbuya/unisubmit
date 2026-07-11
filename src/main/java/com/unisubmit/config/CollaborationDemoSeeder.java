@@ -113,30 +113,83 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
     private void seed() throws Exception {
         Files.createDirectories(uploadRoot);
 
-        Faculty faculty = new Faculty();
-        faculty.setName("Faculty of Applied Sciences (Demo)");
-        faculty.setCode("DEMO-AS");
-        faculty = facultyRepository.save(faculty);
+        Faculty facultyAS = new Faculty();
+        facultyAS.setName("Faculty of Applied Sciences (Demo)");
+        facultyAS.setCode("DEMO-AS");
+        facultyAS = facultyRepository.save(facultyAS);
+
+        Faculty facultyHS = new Faculty();
+        facultyHS.setName("Faculty of Health Sciences (Demo)");
+        facultyHS.setCode("DEMO-HS");
+        facultyHS = facultyRepository.save(facultyHS);
+
+        Faculty facultyED = new Faculty();
+        facultyED.setName("Faculty of Education (Demo)");
+        facultyED.setCode("DEMO-ED");
+        facultyED = facultyRepository.save(facultyED);
+
+        Faculty facultyBE = new Faculty();
+        facultyBE.setName("Faculty of Business & Economics (Demo)");
+        facultyBE.setCode("DEMO-BE");
+        facultyBE = facultyRepository.save(facultyBE);
 
         Department[] depts = {
-                department(faculty, "Department of Computer Science", "DEMO-CS"),
-                department(faculty, "Department of Electrical Engineering", "DEMO-EE"),
-                department(faculty, "Department of Public Health", "DEMO-PH")
+                // Applied Sciences (0, 1, 2)
+                department(facultyAS, "Department of Computer Science", "DEMO-CS"),
+                department(facultyAS, "Department of Electrical Engineering", "DEMO-EE"),
+                department(facultyAS, "Department of Public Health", "DEMO-PH"),
+                // Health Sciences (3, 4)
+                department(facultyHS, "Department of Nursing Practice", "DEMO-NUR"),
+                department(facultyHS, "Department of Clinical Medicine", "DEMO-MED"),
+                // Education (5)
+                department(facultyED, "Department of Educational Foundations", "DEMO-EDF"),
+                // Business & Economics (6, 7)
+                department(facultyBE, "Department of Finance and Accounting", "DEMO-ACC"),
+                department(facultyBE, "Department of Business Administration", "DEMO-BAD")
         };
+
         Course[] programmes = {
+                // Applied Sciences (0, 1, 2)
                 programme(depts[0], "BSc Computer Science (Demo)", "DEMO-BCS"),
                 programme(depts[1], "BSc Electrical Engineering (Demo)", "DEMO-BEE"),
-                programme(depts[2], "BSc Public Health (Demo)", "DEMO-BPH")
+                programme(depts[2], "BSc Public Health (Demo)", "DEMO-BPH"),
+                // Health Sciences (3, 4)
+                programme(depts[3], "BSc Nursing (Demo)", "DEMO-BNUR"),
+                programme(depts[4], "Bachelor of Medicine & Surgery (Demo)", "DEMO-MBCHB"),
+                // Education (5, 6)
+                programme(depts[5], "Bachelor of Education (Arts) (Demo)", "DEMO-BED-ARTS"),
+                programme(depts[5], "Bachelor of Education (Science) (Demo)", "DEMO-BED-SCI"),
+                // Business & Economics (7, 8)
+                programme(depts[6], "Bachelor of Commerce (Finance) (Demo)", "DEMO-BCOM-FIN"),
+                programme(depts[7], "Bachelor of Business Administration (Demo)", "DEMO-BBA")
         };
+
         Unit[] units = {
+                // Applied Sciences (0, 1, 2)
                 unit(depts[0], "DCS410", "Applied Machine Learning"),
                 unit(depts[1], "DEE420", "Embedded Systems Design"),
-                unit(depts[2], "DPH430", "Population Health Analytics")
+                unit(depts[2], "DPH430", "Population Health Analytics"),
+                // Health Sciences (3, 4)
+                unit(depts[3], "DNUR410", "Advanced Clinical Nursing Practice"),
+                unit(depts[4], "DMED420", "Principles of Internal Medicine"),
+                // Education (5, 6)
+                unit(depts[5], "DED410", "Philosophy of Education"),
+                unit(depts[5], "DED420", "Educational Technology Methods"),
+                // Business & Economics (7, 8)
+                unit(depts[6], "DBC410", "Corporate Financial Management"),
+                unit(depts[7], "DBC420", "Strategic Management & Policy")
         };
+
         Curriculum[] curricula = {
                 curriculum(programmes[0], units[0]),
                 curriculum(programmes[1], units[1]),
-                curriculum(programmes[2], units[2])
+                curriculum(programmes[2], units[2]),
+                curriculum(programmes[3], units[3]),
+                curriculum(programmes[4], units[4]),
+                curriculum(programmes[5], units[5]),
+                curriculum(programmes[6], units[6]),
+                curriculum(programmes[7], units[7]),
+                curriculum(programmes[8], units[8])
         };
 
         // A reviewing lecturer assigned to all three demo units, so the review
