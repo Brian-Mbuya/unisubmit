@@ -67,6 +67,7 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
     private final SubmissionRelationRepository relationRepository;
     private final AppNotificationRepository appNotificationRepository;
     private final AuditLogRepository auditLogRepository;
+    private final AnnouncementRepository announcementRepository;
     
     private final Path uploadRoot;
 
@@ -92,6 +93,7 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                                    SubmissionRelationRepository relationRepository,
                                    AppNotificationRepository appNotificationRepository,
                                    AuditLogRepository auditLogRepository,
+                                   AnnouncementRepository announcementRepository,
                                    @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.userService = userService;
         this.tagService = tagService;
@@ -116,6 +118,7 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         this.relationRepository = relationRepository;
         this.appNotificationRepository = appNotificationRepository;
         this.auditLogRepository = auditLogRepository;
+        this.announcementRepository = announcementRepository;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -450,6 +453,7 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
             collaborationRequestRepository.deleteAll();
             appNotificationRepository.deleteAll();
             auditLogRepository.deleteAll();
+            announcementRepository.deleteAll();
 
             // Flush deletions to avoid constraint issues before deleting submissions
             collaborationMatchRepository.flush();
@@ -458,6 +462,7 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
             collaborationRequestRepository.flush();
             appNotificationRepository.flush();
             auditLogRepository.flush();
+            announcementRepository.flush();
 
             // 2. Delete feedbacks
             feedbackRepository.deleteAll();
