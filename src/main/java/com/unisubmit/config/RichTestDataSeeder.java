@@ -85,7 +85,9 @@ public class RichTestDataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) {
         // Idempotence check: check if our custom announcement exists
-        if (announcementRepository.findByTitle("[Demo Assignment] Literature Review Draft").isPresent()) {
+        boolean alreadySeeded = announcementRepository.findAll().stream()
+                .anyMatch(a -> a.getTitle().equals("[Demo Assignment] Literature Review Draft"));
+        if (alreadySeeded) {
             log.info("Rich test data already seeded.");
             return;
         }
@@ -109,10 +111,16 @@ public class RichTestDataSeeder implements CommandLineRunner {
             return;
         }
 
-        // 2. Fetch demo Faculty/Department/Course/Unit/Curriculum
-        Department csDept = departmentRepository.findByCode("DEMO-CS").orElse(null);
-        Course csCourse = courseRepository.findByCode("DEMO-BCS").orElse(null);
-        Unit amlUnit = unitRepository.findByCode("DCS410").orElse(null);
+        // 2. Fetch demo Faculty/Department/Course/Unit/Curriculum via stream-filtering
+        Department csDept = departmentRepository.findAll().stream()
+                .filter(d -> "DEMO-CS".equals(d.getCode()))
+                .findFirst().orElse(null);
+        Course csCourse = courseRepository.findAll().stream()
+                .filter(c -> "DEMO-BCS".equals(c.getCode()))
+                .findFirst().orElse(null);
+        Unit amlUnit = unitRepository.findAll().stream()
+                .filter(u -> "DCS410".equals(u.getCode()))
+                .findFirst().orElse(null);
         Curriculum csCurriculum = null;
         if (csCourse != null && amlUnit != null) {
             List<Curriculum> list = curriculumRepository.findByProgrammeId(csCourse.getId());
