@@ -1,36 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <!-- Dark charcoal background -->
-  <rect width="48" height="48" rx="10" fill="#121417"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Rounded charcoal background -->
+  <rect width="100" height="100" rx="22" fill="#121417"/>
 
-  <!-- Open book base — jade green -->
-  <path d="M8 31 C8 31 14 27 24 29 C34 27 40 31 40 31 L40 17 C40 17 34 13 24 15 C14 13 8 17 8 17 Z"
-        fill="#2e8f7f" opacity="0.15"/>
+  <!-- Book Pages (Jade Green #2e8f7f) -->
+  <path d="M 8,76 C 20,91 38,94 50,94 C 62,94 80,91 92,76 L 92,30 C 80,23 62,17 50,22 C 38,17 20,23 8,30 Z" fill="none" stroke="#2e8f7f" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M 14,71 C 24,83 40,86 50,86 C 60,86 76,83 86,71 L 86,25 C 76,19 60,13 50,18 C 40,13 24,19 14,25 Z" fill="none" stroke="#2e8f7f" stroke-width="2.5" stroke-linejoin="round" opacity="0.8"/>
+  <path d="M 20,66 C 28,75 42,78 50,78 C 58,78 72,75 80,66 L 80,20 C 72,15 58,9 50,14 C 42,9 28,15 20,20 Z" fill="none" stroke="#2e8f7f" stroke-width="2" stroke-linejoin="round" opacity="0.6"/>
 
-  <!-- Left page -->
-  <path d="M8 31 L8 17 C8 17 14 13 24 15 L24 29 C14 27 8 31 8 31 Z"
-        fill="none" stroke="#2e8f7f" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- U Monogram (Jade Green) -->
+  <path d="M 30,24 L 30,58 C 30,68 43,68 43,58 L 43,28" fill="none" stroke="#2e8f7f" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Right page -->
-  <path d="M40 31 L40 17 C40 17 34 13 24 15 L24 29 C34 27 40 31 40 31 Z"
-        fill="none" stroke="#2e8f7f" stroke-width="1.6" stroke-linejoin="round"/>
+  <!-- S Monogram / Node line (Gold/Brass #cda660) -->
+  <!-- Thick S outline -->
+  <path d="M 25,53 C 17,60 18,77 30,81 C 42,85 48,74 49,66 C 50,54 60,45 63,39 C 66,33 79,29 75,19 C 71,9 56,16 54,24" fill="none" stroke="#cda660" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Overlaid diagonal node connector line -->
+  <path d="M 25,53 L 49,66 L 60,44 L 71,32 L 80,24" fill="none" stroke="#cda660" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
 
-  <!-- Spine -->
-  <line x1="24" y1="15" x2="24" y2="29" stroke="#5fbfab" stroke-width="1.4" stroke-linecap="round"/>
-
-  <!-- Network nodes — brass/gold accent -->
-  <!-- Node: top-left -->
-  <circle cx="12" cy="12" r="2.2" fill="#cda660"/>
-  <!-- Node: top-right -->
-  <circle cx="36" cy="12" r="2.2" fill="#cda660"/>
-  <!-- Node: bottom-center -->
-  <circle cx="24" cy="38" r="2.2" fill="#cda660"/>
-
-  <!-- Connector lines between nodes and book -->
-  <line x1="12" y1="14" x2="14" y2="18"  stroke="#cda660" stroke-width="1.1" stroke-linecap="round" opacity="0.7"/>
-  <line x1="36" y1="14" x2="34" y2="18"  stroke="#cda660" stroke-width="1.1" stroke-linecap="round" opacity="0.7"/>
-  <line x1="24" y1="36" x2="24" y2="31"  stroke="#cda660" stroke-width="1.1" stroke-linecap="round" opacity="0.7"/>
-  <!-- Cross-links between nodes -->
-  <line x1="12" y1="12" x2="36" y2="12"  stroke="#cda660" stroke-width="0.9" stroke-linecap="round" opacity="0.35"/>
-  <line x1="12" y1="12" x2="24" y2="38"  stroke="#cda660" stroke-width="0.9" stroke-linecap="round" opacity="0.35"/>
-  <line x1="36" y1="12" x2="24" y2="38"  stroke="#cda660" stroke-width="0.9" stroke-linecap="round" opacity="0.35"/>
+  <!-- Nodes (Gold) -->
+  <circle cx="25" cy="53" r="3.5" fill="#cda660" stroke="#121417" stroke-width="1.2"/>
+  <circle cx="49" cy="66" r="3.5" fill="#cda660" stroke="#121417" stroke-width="1.2"/>
+  <circle cx="60" cy="44" r="3.5" fill="#cda660" stroke="#121417" stroke-width="1.2"/>
+  <circle cx="71" cy="32" r="3.5" fill="#cda660" stroke="#121417" stroke-width="1.2"/>
+  <circle cx="80" cy="24" r="3.5" fill="#cda660" stroke="#121417" stroke-width="1.2"/>
 </svg>
