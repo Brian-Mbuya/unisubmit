@@ -83,6 +83,22 @@ public class GlobalExceptionHandler {
                 .body(ex.getReason() != null ? ex.getReason() : "");
     }
 
+    /**
+     * Real 404s (unmatched URLs, missing static resources) must reach the themed
+     * templates/error/404.html — NOT the catch-all below, which would silently
+     * bounce the user to the Referer (masking the 404, spamming the error log,
+     * and risking a redirect loop when the referring page is the broken one).
+     */
+    @ExceptionHandler({org.springframework.web.servlet.resource.NoResourceFoundException.class,
+            org.springframework.web.servlet.NoHandlerFoundException.class})
+    public String handleNoResource(Exception ex,
+                                   HttpServletRequest request,
+                                   jakarta.servlet.http.HttpServletResponse response) {
+        log.warn("404 Not Found: {}", request.getRequestURI());
+        response.setStatus(404);
+        return "error/404";
+    }
+
     /** Catch-all for unexpected errors — logs full stack trace */
     @ExceptionHandler(Exception.class)
     public String handleGeneral(Exception ex,
