@@ -65,6 +65,8 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
     private final CollaborationMatchRepository collaborationMatchRepository;
     private final SubmissionSimilarityRepository similarityRepository;
     private final SubmissionRelationRepository relationRepository;
+    private final AppNotificationRepository appNotificationRepository;
+    private final AuditLogRepository auditLogRepository;
     
     private final Path uploadRoot;
 
@@ -88,6 +90,8 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                                    CollaborationMatchRepository collaborationMatchRepository,
                                    SubmissionSimilarityRepository similarityRepository,
                                    SubmissionRelationRepository relationRepository,
+                                   AppNotificationRepository appNotificationRepository,
+                                   AuditLogRepository auditLogRepository,
                                    @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.userService = userService;
         this.tagService = tagService;
@@ -110,6 +114,8 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
         this.collaborationMatchRepository = collaborationMatchRepository;
         this.similarityRepository = similarityRepository;
         this.relationRepository = relationRepository;
+        this.appNotificationRepository = appNotificationRepository;
+        this.auditLogRepository = auditLogRepository;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -442,12 +448,16 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
             similarityRepository.deleteAll();
             relationRepository.deleteAll();
             collaborationRequestRepository.deleteAll();
+            appNotificationRepository.deleteAll();
+            auditLogRepository.deleteAll();
 
-            // Flush match deletions to avoid constraint issues before deleting submissions
+            // Flush deletions to avoid constraint issues before deleting submissions
             collaborationMatchRepository.flush();
             similarityRepository.flush();
             relationRepository.flush();
             collaborationRequestRepository.flush();
+            appNotificationRepository.flush();
+            auditLogRepository.flush();
 
             // 2. Delete feedbacks
             feedbackRepository.deleteAll();
