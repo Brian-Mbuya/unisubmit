@@ -119,7 +119,7 @@ public class RichTestDataSeeder implements CommandLineRunner {
                 .filter(c -> "DEMO-BCS".equals(c.getCode()))
                 .findFirst().orElse(null);
         Unit amlUnit = unitRepository.findAll().stream()
-                .filter(u -> "DCS410".equals(u.getCode()))
+                .filter(u -> "DCS410".equals(u.getUnitCode()))
                 .findFirst().orElse(null);
         Curriculum csCurriculum = null;
         if (csCourse != null && amlUnit != null) {
