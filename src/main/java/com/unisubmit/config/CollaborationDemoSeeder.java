@@ -426,35 +426,44 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
 
     private void wipeOldDemoData() {
         try {
-            // Delete collaboration requests
+            // 1. Delete collaboration requests
             collaborationRequestRepository.deleteAll();
-            // Delete feedbacks
+
+            // 2. Delete feedbacks
             feedbackRepository.deleteAll();
-            // Delete project groups
+
+            // 3. Nullify circular and referencing keys on all submissions
+            submissionRepository.findAll().forEach(s -> {
+                s.setProjectGroup(null);
+                s.setAiInsight(null);
+                submissionRepository.save(s);
+            });
+
+            // 4. Delete project groups
             groupRepository.deleteAll();
-            // Delete submissions, versions, AI insights
+
+            // 5. Delete submissions, versions, and AI insights
             submissionRepository.findAll().stream()
-                .filter(s -> s.getStudent().getUsername().endsWith("@demo.unisubmit"))
+                .filter(s -> s.getStudent().getUsername().endsWith("@demo.unisubmit") || "student".equals(s.getStudent().getUsername()))
                 .forEach(s -> {
-                    if (s.getAiInsight() != null) {
-                        aiInsightRepository.delete(s.getAiInsight());
-                    }
                     versionRepository.deleteAll(s.getVersions());
                     submissionRepository.delete(s);
                 });
-            // Delete teaching assignments
+
+            aiInsightRepository.deleteAll();
+
+            // 6. Delete teaching assignments, enrollments, and curricula
             teachingAssignmentRepository.deleteAll();
-            // Delete enrollments
             enrollmentRepository.deleteAll();
-            // Delete curricula
             curriculumRepository.deleteAll();
-            // Delete units, courses, departments, faculties
+
+            // 7. Delete units, courses, departments, faculties
             unitRepository.deleteAll();
             courseRepository.deleteAll();
             departmentRepository.deleteAll();
             facultyRepository.deleteAll();
             
-            // Delete demo users and profiles
+            // 8. Delete demo users and profiles
             userRepository.findAll().stream()
                 .filter(u -> u.getUsername().endsWith("@demo.unisubmit") || "demo.lecturer".equals(u.getUsername()))
                 .forEach(u -> {
@@ -463,7 +472,7 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                     userRepository.delete(u);
                 });
         } catch (Exception ex) {
-            log.warn("Wiping old demo data failed or was partially completed: {}", ex.getMessage());
+            log.warn("Wiping old demo data failed or was partially completed: {}", ex.getMessage(), ex);
         }
     }
 }
