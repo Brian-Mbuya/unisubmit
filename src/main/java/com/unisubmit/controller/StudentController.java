@@ -126,6 +126,9 @@ public class StudentController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/student/submission/new" + (groupId != null ? "?groupId=" + groupId : "");
         }
+        // One-shot flash that triggers the "submission received" success moment
+        // on the dashboard (see student/dashboard.html).
+        redirectAttributes.addFlashAttribute("submissionReceived", title);
         return "redirect:/student/dashboard";
     }
 

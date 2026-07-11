@@ -107,7 +107,7 @@ html { font-size: 16px; -webkit-text-size-adjust: 100%; }
 
 body {
     font-family: var(--font-sans);
-    font-size: 0.875rem;
+    font-size: 0.9375rem; /* 15px — mobile-first readability (was 14px) */
     line-height: 1.55;
     color: var(--text);
     background: var(--canvas);
@@ -202,6 +202,16 @@ code {
 
 /* Primary nav — role-aware; .nav-link.active set by app.js */
 .nav { display: flex; align-items: center; gap: 0.1rem; }
+/* Mobile-only sign-out entry inside the collapsed nav (shown ≤520px) */
+.nav-signout { display: none; }
+.nav-link-button {
+    background: none;
+    border: none;
+    width: 100%;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
 .nav-link {
     position: relative;
     display: inline-flex;
@@ -541,7 +551,7 @@ code {
     width: 100%;
     padding: 0.5rem 0.7rem;
     font: inherit;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--text);
     background: var(--surface-muted);
     border: 1px solid var(--border);
@@ -1160,6 +1170,13 @@ input[type="file"].form-control::file-selector-button {
 }
 .skeleton-title { width: 55%; height: 1rem; }
 @keyframes skeleton-shimmer { to { background-position: -200% 0; } }
+
+/* Skeleton variants — drop these in wherever data is still on its way,
+   so a panel is never blank while waiting. */
+.skeleton-text   { height: 0.8rem; }
+.skeleton-row    { height: 2.4rem; border-radius: var(--radius); }
+.skeleton-circle { width: 2rem; height: 2rem; border-radius: 50%; flex-shrink: 0; }
+.skeleton-suggestion { height: 2.1rem; border-radius: var(--radius-sm); }
 
 .ai-steps { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.75rem; }
 .ai-step {
@@ -1850,6 +1867,97 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
 
 [hidden] { display: none !important; }
 
+/* ── 24b · Error pages ───────────────────────────────────────────────────────
+   Self-contained templates in templates/error/ — no navbar, no model state.
+   Warm, calm, one obvious way back. */
+.error-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    animation: page-in 0.35s ease both;
+}
+.error-mark { border-radius: 13px; box-shadow: var(--shadow-card); margin-bottom: 1.75rem; }
+.error-code {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 0.8rem;
+}
+.error-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 5vw, 2.1rem);
+    line-height: 1.2;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+.error-text {
+    color: var(--text-muted);
+    max-width: 44ch;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    margin: 0 auto 1.75rem;
+}
+.error-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+.error-actions .btn { min-height: 44px; padding: 0.6rem 1.3rem; font-size: 0.875rem; }
+.error-foot { margin-top: 2.75rem; font-size: 0.76rem; color: var(--text-subtle); }
+
+/* ── 24c · Success moment & gentle motion ────────────────────────────────────
+   "Submission received" — a small, satisfying confirmation. All motion here is
+   neutralised by the prefers-reduced-motion guard at the bottom of this file. */
+.success-moment {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1rem 1.15rem;
+    margin-bottom: 1rem;
+    background: var(--tint-green-bg);
+    border: 1px solid var(--tint-green-bd);
+    border-radius: var(--radius-lg);
+    animation: moment-rise 0.45s cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+.success-moment-title {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--tint-green-fg);
+}
+.success-moment-text { font-size: 0.83rem; color: var(--text-muted); margin-top: 0.15rem; }
+.success-check { flex-shrink: 0; margin-top: 0.1rem; }
+.success-check .success-check-ring {
+    stroke: var(--success);
+    opacity: 0.45;
+}
+.success-check .success-check-path {
+    stroke: var(--success);
+    stroke-dasharray: 24;
+    stroke-dashoffset: 24;
+    animation: check-draw 0.45s ease 0.25s forwards;
+}
+@keyframes moment-rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+@keyframes check-draw { to { stroke-dashoffset: 0; } }
+
+/* Whole-page arrival: a soft fade only (no transform, so sticky panels are
+   unaffected). Skipped entirely under reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+    .container, .admin-layout { animation: page-in 0.3s ease both; }
+}
+@keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+
 /* ── 25 · Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
     .review-workspace { grid-template-columns: minmax(0, 1.15fr) minmax(340px, 1fr); }
@@ -1873,8 +1981,27 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
 }
 
 @media (max-width: 860px) {
+    /* Hard guarantee: no sideways scroll on a phone. `clip` (unlike `hidden`)
+       does not create a scroll container, so position: sticky keeps working. */
+    html, body { overflow-x: clip; }
+
     .container { padding: 1.1rem 1rem 2.5rem; }
     .app-footer { padding: 1rem; }
+
+    /* Thumb-first: comfortable ≥44px tap targets on the controls people
+       actually tap. Desktop keeps its denser sizing. */
+    .btn, .btn-sm { min-height: 44px; }
+    .filter-btn { min-height: 44px; padding: 0.3rem 0.85rem; }
+    .header-link, .menu-toggle { width: 44px; height: 44px; }
+    .ai-tab-btn, .explore-tab { min-height: 44px; }
+    .form-control { min-height: 44px; }
+    .admin-sidebar a { min-height: 44px; align-items: center; }
+    .search-item { min-height: 44px; }
+    .nav-link { min-height: 44px; }
+
+    /* 16px inputs stop iOS Safari from zooming into every field. */
+    .form-control,
+    .global-search input[type="search"] { font-size: 1rem; }
 
     /* Header: collapse nav into disclosure menu, hide search bar to icon-less */
     .global-search { display: none; }
@@ -1926,6 +2053,7 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
     .page-head-actions { width: 100%; }
 
     .card .row-list { margin: 0 -1.35rem; }
+    .card-pad-0 .row-list { margin: 0; } /* zero-padding cards must not bleed */
     .list-row { flex-direction: column; gap: 0.5rem; }
     .list-row-side { flex-direction: row; align-items: center; text-align: left; }
 
@@ -1939,9 +2067,36 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
     .stat-strip { grid-template-columns: minmax(0, 1fr); }
     .quick-action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .tags-grid { grid-template-columns: minmax(0, 1fr); }
+
+    /* Slim header that fits 360px with 44px tap targets: the Sign out button
+       moves from the top bar into the collapsed menu (see navbar.html). */
+    .topbar { padding: 0 0.75rem; gap: 0.6rem; }
+    .topbar-right { gap: 0.35rem; }
+    .topbar-signout { display: none; }
+    .nav .nav-signout {
+        display: block;
+        margin-top: 0.35rem;
+        padding-top: 0.35rem;
+        border-top: 1px solid var(--border-muted);
+    }
+
+    .page-head .subtitle { font-size: 0.875rem; }
+    .card { padding: 1.1rem 1rem; }
+    .card .row-list { margin: 0 -1rem; }
+    .card .row-list > * { padding-left: 1rem; padding-right: 1rem; }
+    .card-pad-0 .row-list { margin: 0; }
+    .error-actions .btn { width: 100%; }
 }
 
-/* Reduced motion */
+/* Reduced motion — every animation and transition in this file collapses to
+   an instant, including delayed ones (delays zeroed so end states apply
+   immediately, e.g. the success checkmark). */
 @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0.01ms !important;
+    }
+    html { scroll-behavior: auto !important; }
 }

@@ -84,12 +84,17 @@
             <!-- PENDING -->
             <div th:if="${insight.status.name() == 'PENDING'}"
                  class="muted-panel insight-polling ai-state ai-state-warning" th:attr="data-id=${insight.id}">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 mb-4">
                     <div class="ai-spinner"></div>
                     <div>
                         <strong class="text-sm">Queued for analysis</strong>
                         <p class="text-muted text-sm">Your document is in the processing queue. This page updates automatically.</p>
                     </div>
+                </div>
+                <div class="skeleton-wrapper">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton"></div>
+                    <div class="skeleton" style="width: 85%;"></div>
                 </div>
             </div>
 

@@ -200,11 +200,17 @@
       const file = fileInput.files[0];
       if (!file) return;
 
-      // Show spinner, loading text, and container
+      // Show spinner, loading text, and skeleton rows — never a blank panel
       container.style.display = "block";
       spinner.style.display = "inline-block";
       statusText.textContent = "AI is analyzing document and generating title suggestions...";
       list.innerHTML = "";
+      for (let i = 0; i < 3; i++) {
+        const bone = document.createElement("div");
+        bone.className = "skeleton skeleton-suggestion";
+        bone.setAttribute("aria-hidden", "true");
+        list.appendChild(bone);
+      }
 
       const formData = new FormData();
       formData.append("file", file);
@@ -220,6 +226,7 @@
         .then((res) => res.json())
         .then((data) => {
           spinner.style.display = "none";
+          list.innerHTML = ""; // clear skeleton placeholders
           if (data.error) {
             statusText.textContent = "⚠️ Could not generate suggestions: " + data.error;
             return;
@@ -264,10 +271,20 @@
         })
         .catch((err) => {
           spinner.style.display = "none";
+          list.innerHTML = ""; // clear skeleton placeholders
           statusText.textContent = "⚠️ Error generating title suggestions.";
           console.error("Error fetching draft title suggestions:", err);
         });
     });
+  }
+
+  /* Installable app: register the service worker (served from the origin root
+     so its scope covers the whole app). Fails silently on old browsers. */
+  function initServiceWorker() {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker
+      .register("/sw.js")
+      .catch((err) => console.warn("Service worker registration failed:", err));
   }
 
   document.addEventListener("DOMContentLoaded", function () {
@@ -281,5 +298,6 @@
     initSubmissionFilters();
     initAiTabs();
     initDraftTitleSuggestions();
+    initServiceWorker();
   });
 })();

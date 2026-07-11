@@ -26,6 +26,13 @@
                 <a sec:authorize="hasRole('LECTURER')" class="nav-link" th:href="@{/lecturer/announcements}">Announcements</a>
                 <a sec:authorize="hasRole('ADMIN')"    class="nav-link" th:href="@{/admin/dashboard}">Administration</a>
                 <a class="nav-link" th:href="@{/explore}">Explore</a>
+
+                <!-- Mobile-only sign out: shown ≤520px inside the collapsed menu,
+                     where the top-bar button no longer fits (see base.css §25) -->
+                <form th:action="@{/logout}" method="post" class="nav-signout">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="nav-link nav-link-button">Sign out</button>
+                </form>
             </nav>
         </div>
 
@@ -61,7 +68,7 @@
                 <span class="user-chip-name" sec:authentication="name">User</span>
             </span>
 
-            <form th:action="@{/logout}" method="post" class="inline">
+            <form th:action="@{/logout}" method="post" class="inline topbar-signout">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                 <button type="submit" class="btn btn-secondary btn-sm">Sign out</button>
             </form>

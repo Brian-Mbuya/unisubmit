@@ -26,6 +26,22 @@
 
         <div th:replace="~{fragments/alerts :: alerts}"></div>
 
+        <!-- Success moment: shown once, right after a new submission lands -->
+        <div th:if="${submissionReceived}" class="success-moment" role="status">
+            <svg class="success-check" width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+                <circle class="success-check-ring" cx="17" cy="17" r="15" stroke-width="2"/>
+                <path class="success-check-path" d="M10.5 17.5l4.5 4.5 8.5-9.5" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>
+                <strong class="success-moment-title">Submission received — nice work.</strong>
+                <p class="success-moment-text">
+                    <span th:text="'“' + ${submissionReceived} + '”'">“Your project”</span>
+                    is safely in as version 1. The AI is already reading it — insights appear on the project page shortly.
+                </p>
+            </div>
+        </div>
+
         <!-- First-run empty state -->
         <div th:if="${#lists.isEmpty(submissions)}" class="empty-state">
             <svg class="empty-state-svg" width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">

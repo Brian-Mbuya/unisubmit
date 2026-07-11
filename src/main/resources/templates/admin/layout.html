@@ -12,6 +12,10 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <!-- Installable app (PWA): manifest + theme + iOS icon. SW registered in app.js. -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" content="#121417">
+    <link rel="apple-touch-icon" th:href="@{/icons/apple-touch-icon.png}">
     <script th:src="@{/js/app.js}" defer></script>
     <!-- Chart.js powers the admin dashboard visualisations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
