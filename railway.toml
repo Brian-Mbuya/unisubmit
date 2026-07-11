@@ -1,8 +1,14 @@
+# Railway deployment (temporary host while the Oracle VM is pending).
+# Builds the repo's multi-stage Dockerfile on Railway's servers (no local Docker
+# needed) and runs the jar via the Dockerfile's ENTRYPOINT. Database stays on
+# Supabase — set the connection vars in the Railway service "Variables" tab.
+# See deploy/RAILWAY.md.
 [build]
-builder = "NIXPACKS"
+builder = "DOCKERFILE"
 
 [deploy]
-startCommand = "java -jar target/unisubmit-0.0.1-SNAPSHOT.jar"
 healthcheckPath = "/health"
+# App boots + runs Flyway/Hibernate against Supabase on first start — give it room.
+healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

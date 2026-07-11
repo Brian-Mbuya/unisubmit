@@ -3,8 +3,11 @@ name: Deploy to Oracle Cloud
 # Build the JAR on GitHub's runner and ship it to the Oracle VM.
 # No Docker anywhere — a plain Spring Boot fat-jar run under systemd.
 on:
-  push:
-    branches: [ main ]
+  # Auto-deploy is handled by Railway for now (see deploy/RAILWAY.md), so this
+  # Oracle workflow is manual-only to avoid failing on every push. When you move
+  # to the Oracle VM, re-enable the push trigger by uncommenting the two lines:
+  #   push:
+  #     branches: [ main ]
   workflow_dispatch: {}
 
 concurrency:
