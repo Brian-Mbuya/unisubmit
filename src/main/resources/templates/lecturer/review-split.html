@@ -146,8 +146,11 @@
                     <p class="text-muted text-sm">No further review action is available for this submission.</p>
                 </section>
 
+                <!-- Context: facts, AI reading, overlap, history — one quiet surface -->
+                <div class="card card-stack">
+
                 <!-- Facts -->
-                <section class="card">
+                <section class="card-section">
                     <div class="card-head"><h2>Submission details</h2></div>
                     <div class="info-row">
                         <span class="label">Student</span>
@@ -184,26 +187,26 @@
                 </section>
 
                 <!-- AI reading of the document -->
-                <section class="card">
+                <section class="card-section">
                     <div class="card-head"><h2>AI insights</h2></div>
                     <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
                 </section>
 
                 <!-- Overlap radar: six-signal similarity, read-only -->
-                <section class="card">
+                <section class="card-section">
                     <div class="card-head"><h2>Similar work</h2></div>
                     <p class="field-hint mb-2">
-                        Other submissions with overlapping topics, technologies or research areas —
-                        useful for spotting duplicated or related work during review.
+                        Overlapping topics and technologies — spot duplicated or related work while you review.
                     </p>
                     <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${null}, true)}"></div>
                 </section>
 
                 <!-- History -->
-                <section class="card">
+                <section class="card-section">
                     <div class="card-head"><h2>Activity timeline</h2></div>
                     <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions}, ${blindReview})}"></div>
                 </section>
+                </div>
             </aside>
         </div>
     </div>

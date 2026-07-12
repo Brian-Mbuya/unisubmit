@@ -70,10 +70,11 @@
     --tint-purple-bg: #24222d;  --tint-purple-fg: #aaa0d2; --tint-purple-bd: #393450;
     --tint-gray-bg: #25292c;    --tint-gray-fg: #a6a299;   --tint-gray-bd: #353a3e;
 
-    /* Elevation */
-    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.30), 0 3px 14px rgba(0, 0, 0, 0.22);
-    --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.45);
+    /* Elevation — kept quiet: the tonal step surface-vs-canvas does most of
+       the work, so shadows only whisper. (Calmed in the harmony pass.) */
+    --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.30);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22);
+    --shadow-hover: 0 3px 12px rgba(0, 0, 0, 0.30);
     --shadow-pop: 0 14px 40px rgba(0, 0, 0, 0.55);
 
     /* Geometry */
@@ -613,11 +614,21 @@ input[type="file"].form-control::file-selector-button {
     border: 1px solid var(--border-muted);
     border-radius: var(--radius-lg);
     padding: 1.25rem 1.35rem;
-    box-shadow: var(--shadow-card);
+    /* No shadow: hairline + tonal step are enough. Keeps pages reading as one
+       composition instead of a pile of floating boxes. */
 }
 .card + .card { margin-top: 1rem; }
 .page-main > .card + .card,
 .page-rail > .card + .card { margin-top: 0; } /* grids own the gap */
+
+/* Quiet grouping — one surface, hairline-divided sections.
+   <div class="card card-stack"><section class="card-section">…</section>…</div>
+   Related panels merge into a single calm surface instead of separate boxes. */
+.card-stack { padding: 0; }
+.card-stack > .card-section { padding: 1.15rem 1.35rem 1.3rem; }
+.card-stack > .card-section + .card-section { border-top: 1px solid var(--border-muted); }
+/* Empty states inside a merged section drop their dashed box — the words are enough */
+.card-section .empty-state { border: none; background: none; padding: 1rem 0.5rem; }
 
 .card.is-link { transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.14s ease; }
 .card.is-link:hover { border-color: var(--border-strong); box-shadow: var(--shadow-hover); transform: translateY(-1px); }
@@ -1031,12 +1042,12 @@ input[type="file"].form-control::file-selector-button {
 .recommendation-list { display: flex; flex-direction: column; gap: 0.9rem; }
 .recommendation-card {
     background: var(--surface-muted);
-    border: 1px solid var(--border-muted);
+    border: 1px solid transparent; /* soft inset panel, not another outlined box */
     border-radius: var(--radius);
     padding: 1rem 1.1rem;
     transition: border-color 0.14s ease;
 }
-.recommendation-card:hover { border-color: var(--border-strong); }
+.recommendation-card:hover { border-color: var(--border-muted); }
 .recommendation-head {
     display: flex;
     align-items: flex-start;
@@ -1127,7 +1138,7 @@ input[type="file"].form-control::file-selector-button {
     gap: 0.65rem;
     padding: 0.7rem 0.8rem;
     background: var(--surface-muted);
-    border: 1px solid var(--border-muted);
+    border: 1px solid transparent; /* quiet inset, matches .recommendation-card */
     border-radius: var(--radius);
 }
 .lecturer-match-main { min-width: 0; }
@@ -2082,6 +2093,8 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
 
     .page-head .subtitle { font-size: 0.875rem; }
     .card { padding: 1.1rem 1rem; }
+    .card-stack { padding: 0; }
+    .card-stack > .card-section { padding: 1rem; }
     .card .row-list { margin: 0 -1rem; }
     .card .row-list > * { padding-left: 1rem; padding-right: 1rem; }
     .card-pad-0 .row-list { margin: 0; }

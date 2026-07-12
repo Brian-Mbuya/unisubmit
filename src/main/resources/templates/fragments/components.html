@@ -3,6 +3,23 @@
 <body>
 
     <!-- ════════════════════════════════════════════════════════════════════
+         Brand mark — brandMark(markClass)
+         The "completed U": an ivory U whose short right stem is finished by
+         a single brass node — U + i, "Uni", with the connection as the dot.
+         Defined once here; navbar and auth pages reference it. Keep in sync
+         with static/favicon.svg, static/icons/icon.svg and the raster set.
+         Colours are fixed (not tokens): the mark must survive any theme.
+         ════════════════════════════════════════════════════════════════════ -->
+    <svg th:fragment="brandMark(markClass)" th:class="${markClass}"
+         viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"
+         aria-hidden="true" focusable="false">
+        <rect width="100" height="100" rx="22" fill="#2e8f7f"/>
+        <path d="M34 30v26c0 12.5 32 12.5 32 0V45" fill="none" stroke="#f2efe6"
+              stroke-width="12" stroke-linecap="round"/>
+        <circle cx="66" cy="30" r="6" fill="#e0be7e"/>
+    </svg>
+
+    <!-- ════════════════════════════════════════════════════════════════════
          Status badge — statusBadge(status)
          Renders the submission lifecycle state. Class derives from the enum,
          so every state maps to a badge-* rule in base.css.
