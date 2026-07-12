@@ -22,7 +22,7 @@
                 </div>
                 <p class="subtitle" th:text="${submission.unit.unitName + ' · ' + submission.unit.department.name}">Unit</p>
             </div>
-            <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back to projects</a>
+            <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
         </div>
 
         <div th:replace="~{fragments/alerts :: alerts}"></div>
@@ -35,25 +35,24 @@
                     <!-- Primary action: move the work forward -->
                     <section class="card-section" th:if="${submission.status.name() != 'APPROVED'}">
                         <div class="card-head"><h2>Upload a new version</h2></div>
-                        <p class="text-sm text-muted mb-4">PDF, DOC, DOCX, TXT or ODT.</p>
                         <form th:action="@{'/student/submission/' + ${submission.id} + '/version'}" method="post" enctype="multipart/form-data"
                               data-loading-submit="Uploading…">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                             <div class="form-group">
                                 <input type="text" name="changesSummary" class="form-control" maxlength="500"
-                                       placeholder="What changed in this version? (optional)">
+                                       placeholder="What changed? (optional)">
                             </div>
                             <div class="flex gap-2 items-center flex-wrap">
                                 <input type="file" name="file" class="form-control upload-input"
                                        required accept=".pdf,.doc,.docx,.txt,.odt">
                                 <button type="submit" class="btn">Upload version</button>
                             </div>
+                            <div class="field-hint">PDF, DOC, DOCX, TXT or ODT · max 50 MB</div>
                         </form>
                     </section>
 
                     <section class="card-section accent-green" th:if="${submission.status.name() == 'APPROVED'}">
-                        <strong class="text-sm">This submission has been approved.</strong>
-                        <p class="text-muted text-sm no-margin">No further uploads are required.</p>
+                        <strong class="text-sm">Approved — uploads closed.</strong>
                     </section>
 
                     <!-- Document intelligence -->
@@ -78,8 +77,7 @@
                     <!-- Six-signal recommendations, where the work happens -->
                     <section class="card-section">
                         <div class="card-head">
-                            <h2>Related work on campus</h2>
-                            <a th:href="@{/explore(tab='discover')}" class="btn btn-ghost btn-sm">Open Discover →</a>
+                            <h2>Related work</h2>
                         </div>
                         <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${requestStatusesBySubmissionId}, false)}"></div>
                     </section>

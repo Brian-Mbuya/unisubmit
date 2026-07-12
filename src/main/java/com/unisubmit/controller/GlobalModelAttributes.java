@@ -44,15 +44,22 @@ public class GlobalModelAttributes {
         return "Good evening";
     }
 
-    /** The signed-in user's first name for a personal greeting. */
+    /**
+     * The signed-in user's name for a personal greeting. Names that start with
+     * an honorific keep it with the surname ("Dr. Smith"), otherwise the first
+     * name is used ("John") — a bare first word would greet "Dr." on its own.
+     */
     @ModelAttribute("currentFirstName")
     public String currentFirstName(@AuthenticationPrincipal CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.getUser() == null || userDetails.getUser().getName() == null) {
             return "there";
         }
         String name = userDetails.getUser().getName().trim();
-        int space = name.indexOf(' ');
-        return space > 0 ? name.substring(0, space) : name;
+        String[] words = name.split("\\s+");
+        if (words.length >= 2 && words[0].matches("(?i)(dr|prof|mr|mrs|ms|miss|eng|rev)\\.?")) {
+            return words[0] + " " + words[1];
+        }
+        return words[0];
     }
 }
 

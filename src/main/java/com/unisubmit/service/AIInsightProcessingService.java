@@ -628,10 +628,15 @@ public class AIInsightProcessingService {
         String currentTitle = optSub.get().getTitle();
 
         String prompt = """
-            You are an academic project naming expert.
-            Based on the following project analysis, suggest exactly 3 creative, professional,
-            and concise project titles. Each title should be clear, academic in tone, and
-            capture the essence of the project.
+            Suggest exactly 3 titles for this student project.
+            Rules:
+            - Plain and precise: say what the project actually is, nothing more.
+            - Maximum 8 words each. No colons, no subtitles, no buzzwords,
+              no "Leveraging/Enhancing/Navigating/Towards".
+            - Name the concrete subject (e.g. "Hotel Booking Website", not
+              "Designing a User-Centric Hospitality Information System").
+            - If the document is a report or assignment rather than a project,
+              title it as that document, plainly.
 
             Current title: %s
             Summary: %s
@@ -657,7 +662,7 @@ public class AIInsightProcessingService {
                 {
                   "model": "%s",
                   "max_tokens": 300,
-                  "temperature": 0.7,
+                  "temperature": 0.4,
                   "messages": [
                     {
                       "role": "user",
@@ -742,10 +747,14 @@ public class AIInsightProcessingService {
             
             // Now call LLM to generate 3 suggested titles
             String prompt = """
-                You are an academic project naming expert.
-                Based on the following extracted text snippet from a student's project draft document,
-                suggest exactly 3 creative, professional, and academic project titles.
-                The titles should capture the key technical keywords, objectives, and domain of the project.
+                Read this extract from a student's document and suggest exactly 3 titles for it.
+                Rules:
+                - Plain and precise: say what the document actually is, nothing more.
+                - Maximum 8 words each. No colons, no subtitles, no buzzwords,
+                  no "Leveraging/Enhancing/Navigating/Towards".
+                - Match the document's real scope: an attachment or internship report is
+                  "Industrial Attachment Report - <company>", not an invented research project.
+                - Name the concrete subject; mention a technology only if it is central.
 
                 Extracted text:
                 %s
@@ -761,7 +770,7 @@ public class AIInsightProcessingService {
                 {
                   "model": "%s",
                   "max_tokens": 300,
-                  "temperature": 0.7,
+                  "temperature": 0.4,
                   "messages": [
                     {
                       "role": "user",

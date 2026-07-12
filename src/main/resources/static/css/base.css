@@ -1974,6 +1974,39 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
    full-page composite on every navigation — the exact repaint cost a low-RAM
    phone cannot afford. Pages now appear instantly. */
 
+/* ── 24c-ii · Navigation progress bar ────────────────────────────────────────
+   GitHub-style 2px indeterminate bar pinned to the very top of the viewport
+   while a page navigation is in flight. Injected/removed by initNavProgress()
+   in app.js. Compositor-only animation (transform), so it stays cheap. */
+.nav-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    z-index: 120; /* above topbar (40) and modals (60) */
+    overflow: hidden;
+    pointer-events: none;
+    background: rgba(95, 191, 171, 0.12);
+}
+.nav-progress-fill {
+    display: block;
+    height: 100%;
+    width: 38%;
+    border-radius: 2px;
+    background: var(--primary);
+    animation: nav-progress-sweep 1.1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    will-change: transform;
+}
+@keyframes nav-progress-sweep {
+    from { transform: translateX(-110%); }
+    to   { transform: translateX(290%); }
+}
+@media (prefers-reduced-motion: reduce) {
+    /* Static thin bar instead of the animated sweep */
+    .nav-progress-fill { animation: none; width: 100%; opacity: 0.65; }
+}
+
 /* ── 24d · Low-memory rendering ──────────────────────────────────────────────
    content-visibility: auto lets the browser skip layout + paint for content
    that is off-screen — the single biggest render-memory win on a low-RAM
@@ -2092,7 +2125,21 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
     .admin-sidebar a { border-left: none; border-bottom: 2px solid transparent; border-radius: var(--radius-sm) var(--radius-sm) 0 0; white-space: nowrap; }
     .admin-sidebar a.active { border-bottom-color: var(--primary); background: none; }
 
-    .subnav { position: static; }
+    .subnav { position: static; row-gap: 0.35rem; }
+
+    /* Filter chips: one horizontally swipeable row per group — no wrap, no
+       eyebrow labels, GitHub-style. Scrollbar hidden; chips remain focusable. */
+    .subnav .subnav-group { width: 100%; }
+    .filter-bar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+        padding: 3px 1px; /* keep focus rings visible inside the scroll box */
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .filter-bar::-webkit-scrollbar { display: none; }
+
     .stat-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .page-head-actions { width: 100%; }
 
@@ -2105,6 +2152,52 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
     .explore-hero { padding: 1.25rem 1rem 0; }
     .search-page-form { flex-wrap: wrap; }
     .search-page-form .btn { flex: 1; }
+}
+
+@media (max-width: 640px) {
+    /* GitHub-density on phones: smaller display heading, tighter page head,
+       denser list rows. */
+    h1 { font-size: 1.28rem; }
+    .page-head { margin-bottom: 0.9rem; }
+    .page-head .subtitle { margin-top: 0.15rem; }
+    .list-row { padding: 0.7rem 0; }
+    .meta-line { gap: 0.25rem 0.7rem; }
+    .empty-state { padding: 1.75rem 1.25rem; }
+
+    /* Stacked table rows (opt-in via .table-stack on the .table-wrap).
+       Presentation only — the table DOM is untouched, so table search,
+       row data-attributes and CSV export keep working. Row: title line
+       first, then the remaining cells flow inline like meta chips, with
+       the action pushed to the right. */
+    .table-stack { overflow-x: visible; }
+    .table-stack table,
+    .table-stack tbody { display: block; width: 100%; }
+    .table-stack thead { display: none; }
+    .table-stack tbody tr {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.3rem 0.75rem;
+        padding: 0.8rem 1.25rem;
+        border-bottom: 1px solid var(--border-muted);
+    }
+    .table-stack tbody tr:last-child { border-bottom: none; }
+    .table-stack tbody tr:hover { background: rgba(255, 255, 255, 0.015); }
+    .table-stack tbody td {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        padding: 0;
+        border-bottom: none;
+    }
+    .table-stack tbody td:first-child,
+    .table-stack tbody td.stack-full {
+        display: block;
+        flex: 1 1 100%;
+        overflow-wrap: anywhere;
+    }
+    .table-stack tbody td:last-child { margin-left: auto; }
+    .table-stack tbody td:empty { display: none; }
 }
 
 @media (max-width: 520px) {

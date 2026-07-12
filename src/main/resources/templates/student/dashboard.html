@@ -8,14 +8,8 @@
         <div class="page-head">
             <div>
                 <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
-                <p class="subtitle"
-                   th:text="${#lists.isEmpty(submissions) ? 'Ready to start something new?' :
-                            (changes.size() > 0 ? 'A couple of projects need changes — let''s move them forward.' :
-                            (active.size() > 0 ? 'Work in review — nice momentum.' :
-                            'Here''s your work at a glance.'))}">Here's your work at a glance.</p>
             </div>
             <div class="page-head-actions">
-                <a th:href="@{/explore(tab='discover')}" class="btn btn-secondary">Find collaborators</a>
                 <a th:href="@{/student/submission/new}" class="btn" id="newSubmissionBtn">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.25 7.25V1.75a.75.75 0 0 1 1.5 0v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5h-5.5a.75.75 0 0 1 0-1.5z"/></svg>
                     New submission
@@ -36,7 +30,6 @@
                 <strong class="success-moment-title">Submission received.</strong>
                 <p class="success-moment-text">
                     <span th:text="'&quot;' + ${submissionReceived} + '&quot;'">"Your project"</span>
-                    is in as version 1. AI insights will appear shortly.
                 </p>
             </div>
         </div>
@@ -54,8 +47,7 @@
                 <line x1="9" y1="14" x2="13" y2="14" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"/>
             </svg>
             <h3>No projects yet</h3>
-            <p>Create your first submission to start tracking versions, reviews, and AI insights.</p>
-            <a th:href="@{/student/submission/new}" class="btn mt-4">Create a submission</a>
+            <a th:href="@{/student/submission/new}" class="btn mt-4">New submission</a>
         </div>
 
         <div th:if="${not #lists.isEmpty(submissions)}" class="page-grid">
@@ -65,7 +57,6 @@
 
                 <div class="subnav subnav-flush">
                     <div class="subnav-group filter-bar">
-                        <span class="subnav-label">Status</span>
                         <button class="filter-btn active" data-submission-filter="all">All</button>
                         <button class="filter-btn" data-submission-filter="draft">Draft</button>
                         <button class="filter-btn" data-submission-filter="proposal">Proposal</button>
@@ -92,18 +83,12 @@
                                         <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v12.5A1.75 1.75 0 0 1 14.25 16H1.75A1.75 1.75 0 0 1 0 14.25zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25z"/></svg>
                                         <span th:text="${sub.unit.unitName}">Unit</span>
                                     </span>
-                                    <span class="meta-item text-subtle"
-                                          th:text="${sub.unit.department.name + ' · ' + (sub.curriculum != null and sub.curriculum.programme != null ? sub.curriculum.programme.name : '—')}">Dept · Course</span>
                                     <span class="meta-item">
                                         <span th:if="${not #lists.isEmpty(sub.unit.lecturers)}" th:text="${sub.unit.lecturers[0].name}">Lecturer</span>
                                         <span th:if="${#lists.isEmpty(sub.unit.lecturers)}" class="text-warning">No lecturer assigned</span>
                                     </span>
-                                    <span class="meta-item" th:text="${#lists.size(sub.versions) + (#lists.size(sub.versions) == 1 ? ' version' : ' versions')}">1 version</span>
-                                    <span class="meta-item" th:if="${sub.aiInsight != null}">
-                                        <span th:if="${sub.aiInsight.status.name() == 'COMPLETED'}" class="badge badge-ai-ready">
-                                            <span class="dot dot-completed"></span>AI ready
-                                        </span>
-                                        <span th:if="${sub.aiInsight.status.name() != 'COMPLETED'}" class="inline-flex items-center gap-1">
+                                    <span class="meta-item" th:if="${sub.aiInsight != null and sub.aiInsight.status.name() != 'COMPLETED'}">
+                                        <span class="inline-flex items-center gap-1">
                                             <span class="dot" th:classappend="'dot-' + ${#strings.toLowerCase(sub.aiInsight.status.name())}"></span>
                                             <span th:text="${sub.aiInsight.status.name() == 'FAILED' ? 'AI failed' : 'AI analysing'}">AI</span>
                                         </span>
@@ -124,8 +109,7 @@
 
                     <!-- Filter empty state (app.js toggles) -->
                     <div id="filterEmptyState" class="empty-state" hidden>
-                        <h3>No projects match this filter</h3>
-                        <p>Try a different status.</p>
+                        <p>Nothing matches this filter.</p>
                     </div>
                 </div>
             </div>
@@ -134,10 +118,9 @@
             <aside class="page-rail" aria-label="Project overview">
 
                 <div class="card accent-danger" th:if="${changes.size() > 0}">
-                    <h3 class="mb-1">Needs your attention</h3>
-                    <p class="text-sm text-muted">
+                    <p class="text-sm no-margin">
                         <strong th:text="${changes.size()}">1</strong>
-                        project(s) have changes requested — upload a new version to move them forward.
+                        <span th:text="${changes.size() == 1 ? ' project needs changes.' : ' projects need changes.'}"> project needs changes.</span>
                     </p>
                 </div>
 
@@ -159,15 +142,6 @@
                         <div class="figure-row">
                             <span class="figure-label">Changes requested</span>
                             <span class="figure-value is-red" th:text="${changes.size()}">0</span>
-                        </div>
-                    </section>
-
-                    <section class="card-section">
-                        <div class="card-head"><h2>Shortcuts</h2></div>
-                        <div class="flex flex-col gap-2">
-                            <a th:href="@{/student/announcements}" class="btn btn-secondary btn-sm w-full">Assignments &amp; notices</a>
-                            <a th:href="@{/groups}" class="btn btn-secondary btn-sm w-full">Project groups</a>
-                            <a th:href="@{/student/inbox}" class="btn btn-secondary btn-sm w-full">Collaboration inbox</a>
                         </div>
                     </section>
                 </div>

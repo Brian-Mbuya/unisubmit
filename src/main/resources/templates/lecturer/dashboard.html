@@ -6,11 +6,9 @@
             <div>
                 <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
                 <p class="subtitle"
-                   th:text="${pendingReviews > 0
-                            ? (pendingReviews + (pendingReviews == 1 ? ' submission is' : ' submissions are') + ' waiting for your review.')
-                            : 'All caught up — nothing waiting for review right now.'}">Review queue</p>
+                   th:text="${pendingReviews > 0 ? pendingReviews + ' waiting for review' : 'All caught up'}">Review queue</p>
             </div>
-            <a th:href="@{/lecturer/announcements}" class="btn btn-secondary">Post an announcement</a>
+            <a th:href="@{/lecturer/announcements}" class="btn btn-secondary">Post announcement</a>
         </div>
 
         <div th:replace="~{fragments/alerts :: alerts}"></div>
@@ -18,7 +16,6 @@
         <!-- Sticky filters — status and submission type combine via URL params -->
         <div class="subnav">
             <div class="subnav-group filter-bar">
-                <span class="subnav-label">Status</span>
                 <a th:href="@{/lecturer/dashboard(statusFilter='', typeFilter=${typeFilter})}"
                    th:class="${statusFilter == null || statusFilter == '' ? 'filter-btn active' : 'filter-btn'}">All</a>
                 <a th:href="@{/lecturer/dashboard(statusFilter='SUBMITTED', typeFilter=${typeFilter})}"
@@ -31,7 +28,6 @@
                    th:class="${statusFilter == 'REJECTED' ? 'filter-btn active' : 'filter-btn'}">Changes requested</a>
             </div>
             <div class="subnav-group filter-bar">
-                <span class="subnav-label">Type</span>
                 <a th:href="@{/lecturer/dashboard(statusFilter=${statusFilter}, typeFilter='ALL')}"
                    th:class="${typeFilter == null || typeFilter == '' || typeFilter == 'ALL' ? 'filter-btn active' : 'filter-btn'}">All work</a>
                 <a th:href="@{/lecturer/dashboard(statusFilter=${statusFilter}, typeFilter='GROUP')}"
@@ -46,9 +42,8 @@
             <div class="page-main">
 
                 <div th:if="${#maps.isEmpty(submissionsByUnit)}" class="empty-state">
-                    <h3>No submissions found</h3>
-                    <p th:if="${statusFilter != null}">No submissions match this filter. <a th:href="@{/lecturer/dashboard}">Clear filter</a></p>
-                    <p th:if="${statusFilter == null}">Submissions appear here once students submit work for your assigned units.</p>
+                    <p th:if="${statusFilter != null}">Nothing matches this filter. <a th:href="@{/lecturer/dashboard}">Clear filter</a></p>
+                    <p th:if="${statusFilter == null}">No submissions yet.</p>
                 </div>
 
                 <section th:each="entry : ${submissionsByUnit}" class="card card-pad-0">
@@ -59,17 +54,17 @@
                                  th:text="${entry.key.department.name + ' / ' + (not entry.value.empty and entry.value[0].curriculum != null and entry.value[0].curriculum.programme != null ? entry.value[0].curriculum.programme.name : '—')}">Department / Course</div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="badge badge-submitted" th:text="${#lists.size(entry.value)} + ' submissions'">0</span>
+                            <span class="badge badge-submitted" th:text="${#lists.size(entry.value)}">0</span>
                             <a th:href="@{'/lecturer/units/' + ${entry.key.id} + '/marks.csv'}"
-                               class="btn btn-secondary btn-sm">Export marks (CSV)</a>
+                               download class="btn btn-secondary btn-sm">Export CSV</a>
                         </div>
                     </div>
 
                     <div th:if="${#lists.isEmpty(entry.value)}" class="empty-state empty-state-compact">
-                        <p>No submissions in this unit match the current filter.</p>
+                        <p>Nothing matches this filter.</p>
                     </div>
 
-                    <div class="table-wrap" th:if="${not #lists.isEmpty(entry.value)}">
+                    <div class="table-wrap table-stack" th:if="${not #lists.isEmpty(entry.value)}">
                         <table>
                             <thead>
                                 <tr>
@@ -129,14 +124,6 @@
                         <div class="figure-row">
                             <span class="figure-label">Units shown</span>
                             <span class="figure-value" th:text="${#maps.size(submissionsByUnit)}">0</span>
-                        </div>
-                    </section>
-
-                    <section class="card-section">
-                        <div class="card-head"><h2>Shortcuts</h2></div>
-                        <div class="flex flex-col gap-2">
-                            <a th:href="@{/lecturer/announcements}" class="btn btn-secondary btn-sm w-full">Announcements &amp; deadlines</a>
-                            <a th:href="@{/explore}" class="btn btn-secondary btn-sm w-full">Search the archive</a>
                         </div>
                     </section>
                 </div>

@@ -36,7 +36,7 @@
     <div th:fragment="feedbackTimeline(versions, maskUploaders)">
 
         <div th:if="${#lists.isEmpty(versions)}" class="empty-state empty-state-compact">
-            No activity yet — waiting for the first upload.
+            No activity yet.
         </div>
 
         <div class="timeline" th:if="${not #lists.isEmpty(versions)}">
@@ -93,7 +93,7 @@
     <div th:fragment="aiInsightPanel(insight)">
 
         <div th:if="${insight == null}" class="empty-state empty-state-compact text-sm ai-empty">
-            AI analysis has not started yet.
+            No analysis yet.
         </div>
 
         <div th:if="${insight != null}">
@@ -103,10 +103,7 @@
                  class="muted-panel insight-polling ai-state ai-state-warning" th:attr="data-id=${insight.id}">
                 <div class="flex items-center gap-2 mb-4">
                     <div class="ai-spinner"></div>
-                    <div>
-                        <strong class="text-sm">Queued for analysis</strong>
-                        <p class="text-muted text-sm">Your document is in the processing queue. This page updates automatically.</p>
-                    </div>
+                    <strong class="text-sm">Queued — updates automatically.</strong>
                 </div>
                 <div class="skeleton-wrapper">
                     <div class="skeleton skeleton-title"></div>
@@ -120,21 +117,14 @@
                  class="muted-panel insight-polling ai-state ai-state-info" th:attr="data-id=${insight.id}">
                 <div class="flex items-center gap-2 mb-4">
                     <div class="ai-spinner"></div>
-                    <strong class="text-sm">Analysing your document…</strong>
+                    <strong class="text-sm">Analysing…</strong>
                 </div>
-                <div class="skeleton-wrapper mb-4">
+                <div class="skeleton-wrapper">
                     <div class="skeleton skeleton-title"></div>
                     <div class="skeleton"></div>
                     <div class="skeleton" style="width: 80%;"></div>
                     <div class="skeleton" style="width: 90%;"></div>
                 </div>
-                <div class="ai-steps">
-                    <div class="ai-step ai-step-active">Extracting document text</div>
-                    <div class="ai-step">Analysing document content</div>
-                    <div class="ai-step">Mapping knowledge model tags</div>
-                    <div class="ai-step">Precomputing recommendations</div>
-                </div>
-                <p class="text-muted text-sm mt-2">Usually takes a few seconds — the page refreshes itself.</p>
             </div>
 
             <!-- COMPLETED -->
@@ -205,7 +195,7 @@
     <div th:fragment="similarProjectsPanel(similarSubmissions, requestStatusesBySubmissionId, readOnly)">
 
         <div th:if="${#lists.isEmpty(similarSubmissions)}" class="empty-state empty-state-compact text-sm ai-empty">
-            No similar work found yet. Recommendations improve as more projects are analysed.
+            No similar work yet.
         </div>
 
         <div th:if="${not #lists.isEmpty(similarSubmissions)}" class="recommendation-list">
@@ -280,7 +270,6 @@
                             <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.unitScore * 100} + '%'"></span></span>
                             <span class="signal-value" th:text="${sim.sameUnit} ? 'Yes' : (${sim.unitScore > 0} ? 'Dept' : 'No')">No</span>
                         </div>
-                        <p class="signal-note">Weighted blend of all six signals — configurable in application.yml.</p>
                     </div>
                 </details>
 
@@ -329,8 +318,7 @@
     <div th:fragment="lecturerMatchesPanel(lecturerMatches)">
 
         <div th:if="${#lists.isEmpty(lecturerMatches)}" class="empty-state empty-state-compact text-sm">
-            No reviewer suggestions yet — matches appear once lecturers have
-            reviewed projects that share your technologies or research areas.
+            No suggestions yet.
         </div>
 
         <div th:if="${not #lists.isEmpty(lecturerMatches)}" class="lecturer-match-list">

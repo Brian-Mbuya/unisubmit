@@ -17,13 +17,13 @@
                 <div class="form-group">
                     <label class="form-label" for="file">Document</label>
                     <input type="file" id="file" name="file" class="form-control" required accept=".pdf,.doc,.docx,.txt,.odt">
-                    <div class="field-hint">PDF, DOC, DOCX, TXT, or ODT — up to 50 MB.</div>
+                    <div class="field-hint">PDF, DOC, DOCX, TXT or ODT · max 50 MB</div>
 
                     <!-- AI title suggestions — populated by app.js after the file is attached -->
                     <div id="new-title-suggestions-container" class="muted-panel accent-blue mt-4" style="display: none;">
                         <div class="flex items-center gap-2 mb-2">
                             <div class="ai-spinner" id="suggestions-spinner" style="display: none;"></div>
-                            <span class="text-xs text-muted fw-600" id="suggestions-status-text">AI is suggesting project titles…</span>
+                            <span class="text-xs text-muted fw-600" id="suggestions-status-text">Suggested titles</span>
                         </div>
                         <div class="flex flex-col gap-2" id="new-title-suggestions-list">
                             <!-- suggestions populated here -->

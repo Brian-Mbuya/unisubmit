@@ -3,10 +3,7 @@
 <body>
     <div>
         <div class="page-head">
-            <div>
-                <h1>Discover collaborators</h1>
-                <p class="subtitle">Partner matches from across the university.</p>
-            </div>
+            <h1>Discover</h1>
         </div>
 
         <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}">Saved</div>
@@ -16,7 +13,7 @@
         <div class="card discover-visibility">
             <div class="flex items-center justify-between gap-4 flex-wrap">
                 <div>
-                    <strong class="text-sm">Discoverable for collaboration</strong>
+                    <strong class="text-sm">Discoverable</strong>
                     <p class="field-hint no-margin">When on, your projects can be matched with others'.</p>
                 </div>
                 <form th:action="@{/discover/visibility}" method="post" class="inline-form">
@@ -32,22 +29,17 @@
 
         <!-- AI-off notice -->
         <div th:if="${!aiConfigured and totalCount > 0}" class="alert alert-info">
-            No AI provider is configured, so these are <strong>mechanical shortlist</strong> matches
-            (topic/skill overlap across departments) awaiting AI assessment. With a key configured,
-            each becomes a graded pitch explaining exactly what each side gains.
+            AI is off — these are topic-overlap matches.
         </div>
 
         <!-- Opted out -->
         <div th:if="${!discoverable}" class="empty-state">
-            <h3>Collaboration discovery is off</h3>
-            <p>Turn discoverability on above to see who you could work with.</p>
+            <p>Discovery is off — opt in above.</p>
         </div>
 
         <!-- Empty -->
         <div th:if="${discoverable and totalCount == 0}" class="empty-state">
-            <h3>No collaboration matches yet</h3>
-            <p>Matches appear once your projects and others' have been AI-analysed. They surface
-               partners from other units and departments — not your own classmates.</p>
+            <p>No matches yet.</p>
         </div>
 
         <!-- Grouped opportunities -->
@@ -77,13 +69,12 @@
                                       th:classappend="${o.value.name() == 'HIGH' ? 'match-pill-strong' : (o.value.name() == 'MEDIUM' ? 'match-pill-related' : 'match-pill-weak')}"
                                       th:text="${o.value.name() == 'HIGH' ? 'High-value' : (o.value.name() == 'MEDIUM' ? 'Good match' : 'Shortlisted')}">
                                     value</span>
-                                <span th:if="${o.crossDepartment()}" class="chip chip-gold">Cross-department</span>
+                                <span th:if="${o.crossDepartment()}" class="chip chip-gold">Cross-dept</span>
                             </div>
                         </div>
 
                         <!-- AI pitch -->
                         <div th:if="${o.pitch != null}" class="assistant-callout mt-4">
-                            <div class="assistant-callout-label">AI-suggested collaboration</div>
                             <p class="assistant-callout-text" th:text="${o.pitch}">Pitch</p>
                         </div>
 
@@ -109,7 +100,7 @@
 
                         <!-- Which of your projects this matches -->
                         <div class="text-xs text-subtle mt-4">
-                            Matched with your project:
+                            Via your
                             <a th:href="@{'/student/submission/' + ${o.yourProject.id}}"
                                th:text="${o.yourProject.title}">Your project</a>
                         </div>
@@ -126,9 +117,9 @@
                                        th:value="${o.pitch != null
                                                  ? ('Hi ' + o.partner.student.name + ' — UniSubmit suggested we connect. ' + o.pitch)
                                                  : ('Hi ' + o.partner.student.name + ', I found your project through UniSubmit and think we could collaborate.')}">
-                                <button type="submit" class="btn btn-accent btn-sm">Request to connect</button>
+                                <button type="submit" class="btn btn-accent btn-sm">Connect</button>
                             </form>
-                            <span th:if="${o.requestAlreadySent}" class="badge badge-review">Request sent</span>
+                            <span th:if="${o.requestAlreadySent}" class="badge badge-review">Sent</span>
                         </div>
                     </div>
                 </div>

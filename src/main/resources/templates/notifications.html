@@ -3,28 +3,22 @@
 <body>
     <div>
         <div class="page-head">
-            <div>
-                <h1>Notifications</h1>
-                <p class="subtitle">Feedback, status changes, and deadline reminders — newest first.</p>
-            </div>
+            <h1>Notifications</h1>
             <form th:action="@{/notifications/mark-read}" method="post" class="inline">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-                <button type="submit" class="btn btn-secondary">Mark all as read</button>
+                <button type="submit" class="btn btn-secondary">Mark all read</button>
             </form>
         </div>
 
         <div th:replace="~{fragments/alerts :: alerts}"></div>
 
-        <div class="page-grid">
-            <div class="page-main">
-                <!-- Empty state -->
-                <div th:if="${#lists.isEmpty(notifications)}" class="empty-state">
-                    <h3>No notifications yet</h3>
-                    <p>You'll see alerts here when you receive feedback, a status change, or a deadline reminder.</p>
-                </div>
+        <!-- Empty state -->
+        <div th:if="${#lists.isEmpty(notifications)}" class="empty-state">
+            <p>No notifications yet.</p>
+        </div>
 
-                <!-- Feed -->
-                <div th:if="${not #lists.isEmpty(notifications)}" class="card">
+        <!-- Feed -->
+        <div th:if="${not #lists.isEmpty(notifications)}" class="card">
                     <div class="row-list">
                         <div th:each="n : ${notifications}"
                              th:class="'notification-item' + (${n.read} ? '' : ' unread')">
@@ -45,31 +39,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <aside class="page-rail" aria-label="Notification summary">
-                <div class="card">
-                    <div class="card-head"><h2>Summary</h2></div>
-                    <div class="figure-row">
-                        <span class="figure-label">Total</span>
-                        <span class="figure-value" th:text="${#lists.size(notifications)}">0</span>
-                    </div>
-                    <div class="figure-row">
-                        <span class="figure-label">Unread</span>
-                        <span class="figure-value is-blue" th:text="${#lists.size(notifications.?[!read])}">0</span>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-head"><h2>Where alerts come from</h2></div>
-                    <p class="text-sm text-muted no-margin">
-                        Lecturer feedback, submission status changes, assignment deadlines and
-                        collaboration requests all land here — the bell in the header shows the
-                        unread count on every page.
-                    </p>
-                </div>
-            </aside>
-        </div>
     </div>
 </body>
 </html>

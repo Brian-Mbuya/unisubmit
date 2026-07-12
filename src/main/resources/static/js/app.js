@@ -209,7 +209,7 @@
       // Show spinner, loading text, and skeleton rows — never a blank panel
       container.style.display = "block";
       spinner.style.display = "inline-block";
-      statusText.textContent = "AI is analyzing document and generating title suggestions...";
+      statusText.textContent = "Suggesting titles…";
       list.innerHTML = "";
       for (let i = 0; i < 3; i++) {
         const bone = document.createElement("div");
@@ -234,7 +234,7 @@
           spinner.style.display = "none";
           list.innerHTML = ""; // clear skeleton placeholders
           if (data.error) {
-            statusText.textContent = "⚠️ Could not generate suggestions: " + data.error;
+            statusText.textContent = "Couldn't suggest titles: " + data.error;
             return;
           }
           if (data.suggestions && data.suggestions.length > 0) {
@@ -244,15 +244,15 @@
             titleInput.style.borderColor = "var(--primary)";
             setTimeout(() => { titleInput.style.borderColor = ""; }, 1500);
 
-            statusText.textContent = "✨ AI auto-populated title. Click an alternative below to swap:";
-            data.suggestions.forEach((title, index) => {
+            statusText.textContent = "Suggested titles";
+            data.suggestions.forEach((title) => {
               const item = document.createElement("button");
               item.type = "button";
               item.className = "btn btn-secondary btn-sm text-left w-full justify-start py-2 px-3 mt-1";
               item.style.textAlign = "left";
               item.style.whiteSpace = "normal";
               item.style.display = "block";
-              item.textContent = `Option ${index + 1}: ${title}`;
+              item.textContent = title;
               item.addEventListener("click", () => {
                 titleInput.value = title;
                 titleInput.focus();
@@ -272,13 +272,13 @@
               list.appendChild(item);
             });
           } else {
-            statusText.textContent = "⚠️ " + (data.message || "No suggestions returned.");
+            statusText.textContent = data.message || "No suggestions.";
           }
         })
         .catch((err) => {
           spinner.style.display = "none";
           list.innerHTML = ""; // clear skeleton placeholders
-          statusText.textContent = "⚠️ Error generating title suggestions.";
+          statusText.textContent = "Couldn't suggest titles.";
           console.error("Error fetching draft title suggestions:", err);
         });
     });
@@ -297,21 +297,20 @@
       form.addEventListener("submit", (event) => {
         if (event.defaultPrevented) return; // page validation cancelled it
         const btn = form.querySelector('button[type="submit"], input[type="submit"]');
-        if (!btn || btn.disabled) return;
-        // Defer one tick so the submission (and the button's own value, if it
-        // has a name) is fully captured before the button is disabled.
-        window.setTimeout(() => {
-          btn.dataset.restoreLabel = btn.innerHTML;
-          btn.disabled = true;
-          btn.setAttribute("aria-busy", "true");
-          const label = form.getAttribute("data-loading-submit") || "Working…";
-          btn.textContent = "";
-          const spinner = document.createElement("span");
-          spinner.className = "ai-spinner";
-          spinner.setAttribute("aria-hidden", "true");
-          btn.appendChild(spinner);
-          btn.appendChild(document.createTextNode(" " + label));
-        }, 0);
+        if (!btn || btn.disabled || btn.getAttribute("aria-busy") === "true") return;
+        // Spinner applies IMMEDIATELY so even a fast submit shows feedback.
+        btn.dataset.restoreLabel = btn.innerHTML;
+        btn.setAttribute("aria-busy", "true");
+        const label = form.getAttribute("data-loading-submit") || "Working…";
+        btn.textContent = "";
+        const spinner = document.createElement("span");
+        spinner.className = "ai-spinner";
+        spinner.setAttribute("aria-hidden", "true");
+        btn.appendChild(spinner);
+        btn.appendChild(document.createTextNode(" " + label));
+        // Only the disable is deferred one tick, so the submission (and the
+        // button's own value, if it has a name) is fully captured first.
+        window.setTimeout(() => { btn.disabled = true; }, 0);
       });
     });
 
@@ -327,6 +326,67 @@
         }
       });
     });
+  }
+
+  /* GitHub-style navigation feedback: a thin indeterminate bar fixed to the
+     very top of the viewport while a full page navigation is in flight.
+     Additive — shows on same-origin link clicks and on form submits that do
+     not already show a button spinner ([data-loading-submit]). Cleared on
+     pagehide/pageshow so a bfcache-restored page never keeps a stale bar. */
+  function initNavProgress() {
+    let bar = null;
+    let safetyTimer = null;
+
+    function show() {
+      if (bar) return;
+      bar = document.createElement("div");
+      bar.className = "nav-progress";
+      bar.setAttribute("role", "progressbar");
+      bar.setAttribute("aria-label", "Loading page");
+      const fill = document.createElement("span");
+      fill.className = "nav-progress-fill";
+      bar.appendChild(fill);
+      document.body.appendChild(bar);
+      // Safety: if the navigation never happens (cancelled, download without
+      // a download attribute, offline), don't leave the bar sweeping forever.
+      safetyTimer = window.setTimeout(hide, 15000);
+    }
+
+    function hide() {
+      if (safetyTimer) { window.clearTimeout(safetyTimer); safetyTimer = null; }
+      if (bar) { bar.remove(); bar = null; }
+    }
+
+    document.addEventListener("click", (event) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = event.target.closest ? event.target.closest("a[href]") : null;
+      if (!link) return;
+      if (link.target && link.target !== "_self") return; // new tab/window
+      if (link.hasAttribute("download")) return;
+      const href = link.getAttribute("href");
+      if (!href || href.charAt(0) === "#") return;
+      let url;
+      try { url = new URL(link.href, window.location.href); } catch (e) { return; }
+      if (url.origin !== window.location.origin) return;
+      if (url.protocol !== "http:" && url.protocol !== "https:") return;
+      // In-page jump: same path + query, only the hash differs
+      if (url.pathname === window.location.pathname &&
+          url.search === window.location.search && url.hash) return;
+      show();
+    });
+
+    document.addEventListener("submit", (event) => {
+      if (event.defaultPrevented) return;
+      const form = event.target;
+      if (!form || form.nodeName !== "FORM") return;
+      if (form.hasAttribute("data-loading-submit")) return; // button spinner covers it
+      if (form.target && form.target !== "_self") return;
+      show();
+    });
+
+    window.addEventListener("pagehide", hide);
+    window.addEventListener("pageshow", hide);
   }
 
   /* Installable app: register the service worker (served from the origin root
@@ -350,6 +410,7 @@
     initAiTabs();
     initDraftTitleSuggestions();
     initLoadingSubmit();
+    initNavProgress();
     initServiceWorker();
   });
 })();

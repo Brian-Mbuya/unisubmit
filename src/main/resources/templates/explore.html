@@ -4,7 +4,7 @@
 <div>
     <!-- Hero -->
     <div class="explore-hero">
-        <h1>Search the project archive</h1>
+        <h1>Explore</h1>
 
         <form th:action="@{/explore}" method="get" class="search-page-form" role="search">
             <input type="hidden" name="tab" value="search">
@@ -27,7 +27,7 @@
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                     <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
                 </svg>
-                Search projects
+                Search
             </a>
             <a th:href="@{/explore(tab='discover')}"
                th:classappend="${activeTab == 'discover'} ? ' explore-tab-active' : ''"
@@ -35,7 +35,7 @@
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                     <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
                 </svg>
-                Find collaborators
+                Discover
                 <span class="tab-count" th:if="${totalCount > 0}" th:text="${totalCount}">0</span>
             </a>
         </div>
@@ -46,12 +46,11 @@
     <!-- SEARCH TAB (no sidebar) -->
     <div th:if="${activeTab == 'search'}">
         <div th:if="${query.isEmpty()}" class="empty-state">
-            <h3>Type a topic to search the archive</h3>
+            <p>Search the archive.</p>
         </div>
 
         <div th:if="${!query.isEmpty() and #lists.isEmpty(hits)}" class="empty-state">
-            <h3>No matching projects</h3>
-            <p>Try broader terms.</p>
+            <p>No matches — try broader terms.</p>
         </div>
 
         <div th:if="${not #lists.isEmpty(hits)}" class="card card-pad-0">
@@ -85,13 +84,11 @@
         <div class="page-main">
 
             <div th:if="${!discoverable}" class="empty-state">
-                <h3>Collaboration discovery is off</h3>
-                <p>Opt in (right) to see matches.</p>
+                <p>Discovery is off — opt in to see matches.</p>
             </div>
 
             <div th:if="${discoverable and totalCount == 0}" class="empty-state">
-                <h3>No collaboration matches yet</h3>
-                <p>Matches appear once projects have been AI-analysed.</p>
+                <p>No matches yet.</p>
             </div>
 
             <div th:if="${discoverable and totalCount > 0}">
