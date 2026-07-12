@@ -106,7 +106,17 @@ public class RecommendationService {
             PairSignals signals = scorePair(current, currentKeywords, currentTechs, currentAreas,
                     candidate, weights);
 
-            if (signals.finalScore() >= 0.05 || signals.sameUnit() || !signals.sharedTechs().isEmpty()) {
+            // Collaboration value comes from shared CONTENT — problem domains,
+            // technologies, research areas, or a genuinely similar topic — NOT
+            // from being in the same class. Same-unit alone is deliberately not
+            // enough to surface a match; otherwise every student in a unit would
+            // be recommended to every other, which defeats the point entirely.
+            boolean meaningfulOverlap = !signals.sharedTechs().isEmpty()
+                    || !signals.sharedAreas().isEmpty()
+                    || !signals.sharedKeywords().isEmpty()
+                    || signals.title() >= 0.30
+                    || signals.semantic() >= 0.30;
+            if (signals.identicalDocument() || meaningfulOverlap) {
                 String reason = signals.identicalDocument()
                         ? "Identical document uploaded — possible duplicate submission"
                         : determineReason(signals.keyword(), signals.title(), signals.sameUnit(),
@@ -300,8 +310,10 @@ public class RecommendationService {
         if (titleScore >= 0.5 && sameUnit) return "Similar topic within same unit";
         if (titleScore >= 0.5) return "Similar topic";
         if (!sharedTechs.isEmpty()) return "Shared technology: " + sharedTechs.get(0);
-        if (sameUnit) return "Same structural domain (Unit)";
-        return "Related content concepts";
+        // NOTE: no "same unit" fallback — a pair whose only link is the unit is
+        // no longer retained as a match (see precomputeForSubmission), so we never
+        // surface being classmates as a reason to collaborate.
+        return "Related work in your field";
     }
 
     private double calculateTitleSimilarity(String t1, String t2) {

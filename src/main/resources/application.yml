@@ -89,7 +89,8 @@ unisubmit:
     weight:
       keyword: 0.5        # free-text keyword overlap (AI insight keywords)
       title: 0.3          # Jaccard word overlap between titles
-      unit: 0.2           # same unit (1.0) / same department (0.5)
+      unit: 0.05          # faint tiebreaker only — being classmates is NOT a
+                          # collaboration signal (see RecommendationService retention)
       semantic: 0.3       # SPECTER2 embedding cosine similarity (when available)
       technology: 0.35    # structured Technology tag overlap (knowledge model)
       research-area: 0.25 # structured ResearchArea tag overlap (knowledge model)
