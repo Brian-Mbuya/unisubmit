@@ -21,13 +21,16 @@ spring:
       ddl-auto: update
     show-sql: false
   flyway:
-    # Ordered schema migrations. V1__core_baseline seeds the core tables that
-    # V2→V19 assume, so the whole chain builds a BRAND-NEW database (Supabase)
-    # from nothing. baseline-on-migrate must be false here — otherwise Flyway
-    # would baseline the empty DB and SKIP V1, and V2 would fail on missing tables.
-    enabled: true
-    baseline-on-migrate: true
-    baseline-version: 1
+    # DISABLED — this database's schema is owned by Hibernate `ddl-auto=update`
+    # (it built all the tables; there is no Flyway history here). Flyway was
+    # crash-looping the app on boot: against a non-empty, Hibernate-built schema
+    # with no history, baseline-on-migrate replayed V2→V19, and the non-idempotent
+    # ALTERs (e.g. V13/V17 add columns that already exist) failed and killed startup.
+    # Hibernate `update` is idempotent and self-healing, so it keeps the schema in
+    # sync on its own. To adopt Flyway later on a known DB, re-enable with
+    # baseline-on-migrate=true and baseline-version=19 (baseline the current schema
+    # instead of replaying migrations onto it).
+    enabled: false
     locations: classpath:db/migration
   servlet:
     multipart:
