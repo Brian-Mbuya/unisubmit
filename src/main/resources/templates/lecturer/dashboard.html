@@ -4,7 +4,6 @@
     <div>
         <div class="page-head">
             <div>
-                <div class="eyebrow">Review queue</div>
                 <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
                 <p class="subtitle"
                    th:text="${pendingReviews > 0
@@ -139,14 +138,6 @@
                             <a th:href="@{/lecturer/announcements}" class="btn btn-secondary btn-sm w-full">Announcements &amp; deadlines</a>
                             <a th:href="@{/explore}" class="btn btn-secondary btn-sm w-full">Search the archive</a>
                         </div>
-                    </section>
-
-                    <section class="card-section">
-                        <h3 class="mb-1">Similar-work radar</h3>
-                        <p class="text-sm text-muted no-margin">
-                            Every review page lists submissions that overlap with the one under
-                            review — related work surfaces automatically while you grade.
-                        </p>
                     </section>
                 </div>
             </aside>

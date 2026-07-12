@@ -75,7 +75,7 @@
     --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.30);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.22);
     --shadow-hover: 0 3px 12px rgba(0, 0, 0, 0.30);
-    --shadow-pop: 0 14px 40px rgba(0, 0, 0, 0.55);
+    --shadow-pop: 0 6px 20px rgba(0, 0, 0, 0.5); /* was 40px blur — large blurs cost raster memory */
 
     /* Geometry */
     --radius-sm: 4px;
@@ -173,8 +173,9 @@ code {
     gap: 1rem;
     height: var(--header-h);
     padding: 0 1.25rem;
-    background: rgba(18, 20, 23, 0.82);
-    backdrop-filter: saturate(160%) blur(14px);
+    /* Solid, no backdrop-filter: blurring a sticky bar re-rasterises on every
+       scroll frame and eats GPU memory on low-RAM phones. */
+    background: var(--canvas);
     border-bottom: 1px solid var(--border-muted);
 }
 .topbar a { color: var(--text); text-decoration: none; }
@@ -433,8 +434,7 @@ code {
     flex-wrap: wrap;
     margin: 0 0 1.25rem;
     padding: 0.55rem 0.25rem;
-    background: rgba(18, 20, 23, 0.88);
-    backdrop-filter: blur(10px);
+    background: var(--canvas); /* solid — no backdrop blur (memory) */
     border-bottom: 1px solid var(--border-muted);
 }
 .subnav-group { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
@@ -495,6 +495,22 @@ code {
 .btn:active { transform: translateY(1px); }
 .btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(95, 191, 171, 0.32); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+
+/* Submit-in-flight (set by initLoadingSubmit in app.js on [data-loading-submit]
+   forms): button is disabled but stays fully readable, with an inline spinner. */
+.btn[aria-busy="true"] { opacity: 1; cursor: progress; }
+.btn .ai-spinner {
+    width: 12px;
+    height: 12px;
+    border-color: rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+}
+.btn-secondary .ai-spinner,
+.btn-draft .ai-spinner,
+.btn-review .ai-spinner {
+    border-color: var(--border-strong);
+    border-top-color: var(--primary);
+}
 
 .btn-accent { background: var(--accent); color: #12271a; }
 .btn-accent:hover { background: var(--accent-strong); color: #12271a; }
@@ -1175,12 +1191,11 @@ input[type="file"].form-control::file-selector-button {
 .skeleton {
     height: 0.8rem;
     border-radius: var(--radius-sm);
-    background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.4s ease infinite;
+    /* Static placeholder — the infinite shimmer repaint was dropped for
+       low-RAM phones; the spinner alongside already signals activity. */
+    background: linear-gradient(90deg, var(--surface-2) 30%, var(--border) 50%, var(--surface-2) 70%);
 }
 .skeleton-title { width: 55%; height: 1rem; }
-@keyframes skeleton-shimmer { to { background-position: -200% 0; } }
 
 /* Skeleton variants — drop these in wherever data is still on its way,
    so a panel is never blank while waiting. */
@@ -1683,13 +1698,8 @@ input[type="file"].form-control::file-selector-button {
 }
 .health-pulse.is-success {
     background: var(--accent);
-    box-shadow: 0 0 0 0 rgba(111, 195, 137, 0.5);
-    animation: health-pulse 2.2s ease-out infinite;
-}
-@keyframes health-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(111, 195, 137, 0.45); }
-    70%  { box-shadow: 0 0 0 6px rgba(111, 195, 137, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(111, 195, 137, 0); }
+    /* Static ring — the infinite pulse animation repainted forever. */
+    box-shadow: 0 0 0 3px rgba(111, 195, 137, 0.22);
 }
 
 /* Research landscape (k-means map) */
@@ -1760,8 +1770,7 @@ input[type="file"].form-control::file-selector-button {
     position: fixed;
     inset: 0;
     z-index: 60;
-    background: rgba(10, 11, 13, 0.72);
-    backdrop-filter: blur(3px);
+    background: rgba(10, 11, 13, 0.78); /* dim only — full-screen blur is a GPU/memory hog */
     display: flex;
     align-items: flex-start;
     justify-content: center;
@@ -1889,7 +1898,6 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
     justify-content: center;
     padding: 2.5rem 1.5rem;
     text-align: center;
-    animation: page-in 0.35s ease both;
 }
 .error-mark { border-radius: 13px; box-shadow: var(--shadow-card); margin-bottom: 1.75rem; }
 .error-code {
@@ -1962,12 +1970,37 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
 }
 @keyframes check-draw { to { stroke-dashoffset: 0; } }
 
-/* Whole-page arrival: a soft fade only (no transform, so sticky panels are
-   unaffected). Skipped entirely under reduced motion. */
-@media (prefers-reduced-motion: no-preference) {
-    .container, .admin-layout { animation: page-in 0.3s ease both; }
+/* Whole-page arrival fade removed: animating the entire page opacity forced a
+   full-page composite on every navigation — the exact repaint cost a low-RAM
+   phone cannot afford. Pages now appear instantly. */
+
+/* ── 24d · Low-memory rendering ──────────────────────────────────────────────
+   content-visibility: auto lets the browser skip layout + paint for content
+   that is off-screen — the single biggest render-memory win on a low-RAM
+   phone. Applied ONLY to self-contained repeating units and stacked sections:
+   nothing here is sticky, contains sticky descendants, or paints outside its
+   own box (timeline items and unread notifications keep their negative-offset
+   ::before markers, so they are deliberately NOT listed — paint containment
+   would clip them). contain-intrinsic-size uses `auto <estimate>`: after the
+   first render the browser remembers the real size, so scroll anchoring stays
+   stable and the scrollbar doesn't jump. */
+.list-row,
+.submission-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 120px;
 }
-@keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+.recommendation-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 240px;
+}
+.lecturer-match {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 96px;
+}
+.card-stack > .card-section {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 280px;
+}
 
 /* ── 25 · Responsive ─────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {

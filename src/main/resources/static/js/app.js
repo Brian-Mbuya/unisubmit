@@ -34,7 +34,13 @@
     document.querySelectorAll(".insight-polling").forEach((panel) => {
       const id = panel.getAttribute("data-id");
       if (!id) return;
+      // Bounded polling: give up after ~2 min so a stuck-PENDING insight can't
+      // poll forever in a backgrounded mobile tab (battery/memory drain, and a
+      // contributor to renderer crashes on constrained devices). Stop on error.
+      let attempts = 0;
+      const MAX_ATTEMPTS = 40;
       const interval = setInterval(() => {
+        if (++attempts > MAX_ATTEMPTS) { clearInterval(interval); return; }
         fetch(`/api/ai-insights/${id}`)
           .then((res) => res.json())
           .then((data) => {
@@ -43,8 +49,8 @@
               window.location.reload();
             }
           })
-          .catch((err) => console.error("AI insight polling error:", err));
-      }, 2000);
+          .catch(() => clearInterval(interval));
+      }, 3000);
     });
   }
 
@@ -278,6 +284,51 @@
     });
   }
 
+  /* Submit feedback: any form marked data-loading-submit disables its submit
+     button once the submit is really going ahead and swaps the label for a
+     small spinner, so slow networks never look frozen. The attribute value is
+     the in-flight label (falls back to "Working…"). Additive — no other hook
+     in this file is touched. */
+  function initLoadingSubmit() {
+    const forms = document.querySelectorAll("form[data-loading-submit]");
+    if (!forms.length) return;
+
+    forms.forEach((form) => {
+      form.addEventListener("submit", (event) => {
+        if (event.defaultPrevented) return; // page validation cancelled it
+        const btn = form.querySelector('button[type="submit"], input[type="submit"]');
+        if (!btn || btn.disabled) return;
+        // Defer one tick so the submission (and the button's own value, if it
+        // has a name) is fully captured before the button is disabled.
+        window.setTimeout(() => {
+          btn.dataset.restoreLabel = btn.innerHTML;
+          btn.disabled = true;
+          btn.setAttribute("aria-busy", "true");
+          const label = form.getAttribute("data-loading-submit") || "Working…";
+          btn.textContent = "";
+          const spinner = document.createElement("span");
+          spinner.className = "ai-spinner";
+          spinner.setAttribute("aria-hidden", "true");
+          btn.appendChild(spinner);
+          btn.appendChild(document.createTextNode(" " + label));
+        }, 0);
+      });
+    });
+
+    // Coming back via the back/forward cache must not leave a dead button.
+    window.addEventListener("pageshow", (event) => {
+      if (!event.persisted) return;
+      document.querySelectorAll('form[data-loading-submit] [aria-busy="true"]').forEach((btn) => {
+        btn.disabled = false;
+        btn.removeAttribute("aria-busy");
+        if (btn.dataset.restoreLabel != null) {
+          btn.innerHTML = btn.dataset.restoreLabel;
+          delete btn.dataset.restoreLabel;
+        }
+      });
+    });
+  }
+
   /* Installable app: register the service worker (served from the origin root
      so its scope covers the whole app). Fails silently on old browsers. */
   function initServiceWorker() {
@@ -298,6 +349,7 @@
     initSubmissionFilters();
     initAiTabs();
     initDraftTitleSuggestions();
+    initLoadingSubmit();
     initServiceWorker();
   });
 })();

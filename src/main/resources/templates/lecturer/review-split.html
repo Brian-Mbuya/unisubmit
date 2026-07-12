@@ -4,7 +4,6 @@
     <div>
         <div class="page-head">
             <div>
-                <div class="eyebrow">Lecturer review</div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 th:text="${submission.title}">Submission title</h1>
                     <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>
@@ -28,7 +27,6 @@
                 <path d="M3.35 5.47c-.18.16-.353.322-.518.487A13.134 13.134 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7.029 7.029 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12-.708.708z"/>
             </svg>
             <span>Blind review is active — student identity stays hidden until you submit a grade.</span>
-            <span class="blind-banner-note">The document itself may still contain identifying details. Mode is set in application.yml.</span>
         </div>
 
         <div th:replace="~{fragments/alerts :: alerts}"></div>
@@ -56,10 +54,11 @@
                         </div>
                     </div>
 
-                    <!-- PDF: native browser viewer -->
+                    <!-- PDF: native browser viewer (lazy: skip loading while off-screen) -->
                     <iframe th:if="${isPdf}"
                             class="doc-viewer"
                             title="Latest uploaded document"
+                            loading="lazy"
                             th:src="${fileUrl}">
                     </iframe>
 
@@ -195,9 +194,6 @@
                 <!-- Overlap radar: six-signal similarity, read-only -->
                 <section class="card-section">
                     <div class="card-head"><h2>Similar work</h2></div>
-                    <p class="field-hint mb-2">
-                        Overlapping topics and technologies — spot duplicated or related work while you review.
-                    </p>
                     <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${null}, true)}"></div>
                 </section>
 

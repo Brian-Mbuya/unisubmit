@@ -35,10 +35,9 @@
                     <!-- Primary action: move the work forward -->
                     <section class="card-section" th:if="${submission.status.name() != 'APPROVED'}">
                         <div class="card-head"><h2>Upload a new version</h2></div>
-                        <p class="text-sm text-muted mb-4">
-                            Each upload becomes a tracked version. PDF, DOC, DOCX, TXT or ODT.
-                        </p>
-                        <form th:action="@{'/student/submission/' + ${submission.id} + '/version'}" method="post" enctype="multipart/form-data">
+                        <p class="text-sm text-muted mb-4">PDF, DOC, DOCX, TXT or ODT.</p>
+                        <form th:action="@{'/student/submission/' + ${submission.id} + '/version'}" method="post" enctype="multipart/form-data"
+                              data-loading-submit="Uploading…">
                             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                             <div class="form-group">
                                 <input type="text" name="changesSummary" class="form-control" maxlength="500"
@@ -82,9 +81,6 @@
                             <h2>Related work on campus</h2>
                             <a th:href="@{/explore(tab='discover')}" class="btn btn-ghost btn-sm">Open Discover →</a>
                         </div>
-                        <p class="field-hint mb-4">
-                            Projects that overlap with yours — send a collaboration request straight from a match.
-                        </p>
                         <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${requestStatusesBySubmissionId}, false)}"></div>
                     </section>
                 </div>
@@ -129,9 +125,6 @@
 
                     <section class="card-section">
                         <div class="card-head"><h2>Suggested reviewers</h2></div>
-                        <p class="field-hint mb-2">
-                            Lecturers who've reviewed work like yours — based on review history.
-                        </p>
                         <div th:replace="~{fragments/components :: lecturerMatchesPanel(${lecturerMatches})}"></div>
                     </section>
                 </div>

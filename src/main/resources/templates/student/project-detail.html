@@ -4,7 +4,6 @@
     <div>
         <div class="page-head">
             <div>
-                <div class="eyebrow">Project archive</div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <h1 th:text="${submission.title}">Project Title</h1>
                     <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>

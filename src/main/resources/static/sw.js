@@ -8,7 +8,7 @@
        CSRF-protected POSTs, and uploads behave exactly as before.
    Bump VERSION whenever the shell assets change shape.
    ============================================================================ */
-const VERSION = "unisubmit-shell-v2";
+const VERSION = "unisubmit-shell-v3";
 const OFFLINE_URL = "/offline.html";
 
 const SHELL = [
@@ -63,11 +63,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Page navigations: always fresh from the network (auth state, CSRF tokens),
-  // with a calm offline page when the connection is gone. Pages themselves are
-  // never cached — nothing personal is ever stored.
+  // Page navigations are handled NATIVELY by the browser — the SW must not
+  // intercept them. Re-issuing a navigation via fetch() and returning the
+  // (redirected) response to respondWith() breaks the login redirect chain
+  // (302 /login → / → /dashboard) on stricter mobile browsers, which shows up
+  // as "reloads back to sign-in" or an error page. Letting the browser own
+  // navigations fixes auth; we only cache static assets below. (The offline
+  // fallback page isn't worth risking the login flow.)
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match(OFFLINE_URL)));
     return;
   }
 

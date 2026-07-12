@@ -7,7 +7,6 @@
 
         <div class="page-head">
             <div>
-                <div class="eyebrow">Your projects</div>
                 <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
                 <p class="subtitle"
                    th:text="${#lists.isEmpty(submissions) ? 'Ready to start something new?' :
@@ -34,10 +33,10 @@
                       stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <div>
-                <strong class="success-moment-title">Submission received — nice work.</strong>
+                <strong class="success-moment-title">Submission received.</strong>
                 <p class="success-moment-text">
-                    <span th:text="'“' + ${submissionReceived} + '”'">“Your project”</span>
-                    is safely in as version 1. The AI is already reading it — insights appear on the project page shortly.
+                    <span th:text="'&quot;' + ${submissionReceived} + '&quot;'">"Your project"</span>
+                    is in as version 1. AI insights will appear shortly.
                 </p>
             </div>
         </div>
@@ -170,14 +169,6 @@
                             <a th:href="@{/groups}" class="btn btn-secondary btn-sm w-full">Project groups</a>
                             <a th:href="@{/student/inbox}" class="btn btn-secondary btn-sm w-full">Collaboration inbox</a>
                         </div>
-                    </section>
-
-                    <section class="card-section">
-                        <h3 class="mb-1">Discover collaborators</h3>
-                        <p class="text-sm text-muted mb-2">
-                            Matches your analysed projects with students whose work complements yours.
-                        </p>
-                        <a th:href="@{/explore(tab='discover')}" class="btn btn-accent btn-sm">Open Discover</a>
                     </section>
                 </div>
             </aside>
