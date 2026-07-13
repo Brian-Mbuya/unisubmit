@@ -53,3 +53,7 @@ assetlinks.json
 !src/main/resources/static/.well-known/assetlinks.json
 boot-*.log
 Readme.html
+
+# Test / scratch data files (never commit)
+sample-students.csv
+sample-*.csv

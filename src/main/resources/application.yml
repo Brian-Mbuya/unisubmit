@@ -61,7 +61,12 @@ app:
 
 unisubmit:
   demo:
-    seed-collaboration: true
+    # OFF by default in production (no fake "Amara Okoye / DEMO-CS" data on a real
+    # pilot). Flip it on for a pitch/demo without a code change by setting the
+    # Railway env var DEMO_SEED_COLLABORATION=true. Local dev keeps it on
+    # (application-local.yml). Disabling only stops RE-seeding — any demo rows
+    # already in the DB remain until cleaned.
+    seed-collaboration: ${DEMO_SEED_COLLABORATION:false}
   ai:
     # Upper bound (seconds) for one full analysis run — GROBID + LLM can be slow.
     timeout-seconds: ${AI_TIMEOUT_SECONDS:120}
