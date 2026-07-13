@@ -74,5 +74,43 @@
             </button>
         </div>
     </header>
+
+    <!-- Mobile app shell: bottom tab bar, shown ≤860px (see base.css §26).
+         Kept in this file so both navigations live together; app.js marks the
+         active link (.bottom-nav__link shares markActiveNav's logic). -->
+    <nav class="bottom-nav" th:fragment="bottomNav" sec:authorize="isAuthenticated()" aria-label="Primary">
+        <a sec:authorize="hasRole('STUDENT')" class="bottom-nav__link" th:href="@{/student/dashboard}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.75 2.5h3.586c.464 0 .909.184 1.237.513l.914.914c.14.141.331.22.53.22h6.233c.966 0 1.75.784 1.75 1.75v6.353a1.75 1.75 0 0 1-1.75 1.75H1.75A1.75 1.75 0 0 1 0 12.25v-8C0 3.284.784 2.5 1.75 2.5z"/></svg>
+            <span>Projects</span>
+        </a>
+        <a sec:authorize="hasRole('STUDENT')" class="bottom-nav__link" th:href="@{/student/announcements}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.25 1.06a.75.75 0 0 1 1 .708v10.464a.75.75 0 0 1-1 .708L7.37 10.75H6.49l.966 3.097A.75.75 0 0 1 6.74 14.5H5.72a.75.75 0 0 1-.7-.475L3.59 10.75h-.84A1.75 1.75 0 0 1 1 9V5.5c0-.966.784-1.75 1.75-1.75h4.62l5.88-2.69z"/></svg>
+            <span>Announcements</span>
+        </a>
+        <a sec:authorize="hasRole('STUDENT')" class="bottom-nav__link" th:href="@{/student/inbox}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2zm.5 2.06v8.19h11.5V4.06L8 8.6 2.25 4.06z"/></svg>
+            <span>Inbox</span>
+        </a>
+        <a sec:authorize="hasRole('LECTURER')" class="bottom-nav__link" th:href="@{/lecturer/dashboard}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/></svg>
+            <span>Review</span>
+        </a>
+        <a sec:authorize="hasRole('LECTURER')" class="bottom-nav__link" th:href="@{/lecturer/announcements}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.25 1.06a.75.75 0 0 1 1 .708v10.464a.75.75 0 0 1-1 .708L7.37 10.75H6.49l.966 3.097A.75.75 0 0 1 6.74 14.5H5.72a.75.75 0 0 1-.7-.475L3.59 10.75h-.84A1.75 1.75 0 0 1 1 9V5.5c0-.966.784-1.75 1.75-1.75h4.62l5.88-2.69z"/></svg>
+            <span>Announcements</span>
+        </a>
+        <a sec:authorize="hasRole('ADMIN')" class="bottom-nav__link" th:href="@{/admin/dashboard}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .5 14 2.5v4.62c0 3.86-2.55 7.02-6 8.38-3.45-1.36-6-4.52-6-8.38V2.5L8 .5z"/></svg>
+            <span>Admin</span>
+        </a>
+        <a sec:authorize="hasRole('ADMIN')" class="bottom-nav__link" th:href="@{/notifications}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/></svg>
+            <span>Alerts</span>
+        </a>
+        <a class="bottom-nav__link" th:href="@{/explore}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm0 14.5A6.5 6.5 0 1 1 8 1.5a6.5 6.5 0 0 1 0 13zM11 5l-1.8 4.2L5 11l1.8-4.2L11 5z"/></svg>
+            <span>Explore</span>
+        </a>
+    </nav>
 </body>
 </html>

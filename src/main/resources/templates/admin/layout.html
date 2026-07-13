@@ -17,6 +17,10 @@
     <meta name="theme-color" content="#121417">
     <link rel="apple-touch-icon" th:href="@{/icons/apple-touch-icon.png}">
     <script th:src="@{/js/app.js}" defer></script>
+    <!-- Prefetch-on-touch for safe GET routes (see main layout for the why) -->
+    <script type="speculationrules">
+        {"prefetch":[{"source":"document","where":{"href_matches":["/student/*","/lecturer/*","/explore*","/groups*","/discover*"]},"eagerness":"moderate"}]}
+    </script>
     <!-- Chart.js powers the admin dashboard visualisations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -90,5 +94,7 @@
         <span>UniSubmit administration console</span>
         <a th:href="@{/}">Back to app</a>
     </footer>
+
+    <nav th:replace="~{fragments/navbar :: bottomNav}"></nav>
 </body>
 </html>

@@ -12,7 +12,7 @@
 
   function markActiveNav() {
     const path = window.location.pathname;
-    document.querySelectorAll(".nav .nav-link").forEach((link) => {
+    document.querySelectorAll(".nav .nav-link, .bottom-nav .bottom-nav__link").forEach((link) => {
       const href = link.getAttribute("href");
       if (href && href !== "/" && path.startsWith(href)) {
         link.classList.add("active");

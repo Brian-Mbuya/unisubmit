@@ -2239,3 +2239,56 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
     }
     html { scroll-behavior: auto !important; }
 }
+
+/* ── 26 · Mobile app shell — bottom tab bar + cross-page transitions ─────── */
+/* Cross-document fade between navigations (Chrome/APK): kills the white
+   flash that makes page loads feel like a website. Progressive enhancement —
+   other engines ignore it; reduced-motion users never see it. */
+@media (prefers-reduced-motion: no-preference) {
+    @view-transition { navigation: auto; }
+}
+
+.bottom-nav { display: none; }
+
+@media (max-width: 860px) {
+    .bottom-nav {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 45; /* above content (topbar 40), below modals */
+        display: flex;
+        background: var(--bg-elevated);
+        border-top: 1px solid var(--border);
+        /* Clear the Android gesture bar in the installed app */
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bottom-nav__link {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 52px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 7px 2px 6px;
+        font-size: 0.65rem;
+        font-weight: 500;
+        color: var(--text-muted);
+    }
+    .bottom-nav__link span {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .bottom-nav__link:hover { color: var(--text); text-decoration: none; }
+    .bottom-nav__link.active { color: var(--primary); }
+    .bottom-nav__link svg { flex: none; }
+
+    /* Content must never hide behind the fixed bar; the footer's links are
+       superseded by the bar, so it retires on signed-in mobile pages. */
+    body:has(.bottom-nav) { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
+    body:has(.bottom-nav) .app-footer { display: none; }
+}

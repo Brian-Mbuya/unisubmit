@@ -17,6 +17,12 @@
     <meta name="theme-color" content="#121417">
     <link rel="apple-touch-icon" th:href="@{/icons/apple-touch-icon.png}">
     <script th:src="@{/js/app.js}" defer></script>
+    <!-- Near-instant taps: Chrome prefetches these routes on hover/first touch.
+         Allowlist ONLY safe GETs — never logout, notifications (marks read),
+         files, or heavy admin tables. -->
+    <script type="speculationrules">
+        {"prefetch":[{"source":"document","where":{"href_matches":["/student/*","/lecturer/*","/explore*","/groups*","/discover*"]},"eagerness":"moderate"}]}
+    </script>
 </head>
 <body>
     <a class="skip-link" href="#mainContent">Skip to content</a>
@@ -34,5 +40,7 @@
             <a sec:authorize="isAuthenticated()" th:href="@{/notifications}">Notifications</a>
         </span>
     </footer>
+
+    <nav th:replace="~{fragments/navbar :: bottomNav}"></nav>
 </body>
 </html>
