@@ -48,7 +48,7 @@
 - [x] **F2.2 Consistency sweep.** DONE (baseline `:focus-visible` ring added §27; `.btn`/`.form-control` keep their own richer treatments; empty states were already normalized by the de-clutter pass). Original spec: Visible `:focus-visible` ring on all interactive elements (buttons, chips, nav links, table rows); empty states all follow one pattern (icon optional, ONE line, muted); check every page's `page-head` for stray subtitles that survived the de-clutter.
 
 ## Phase F3 — OPTIONAL flourish (FABLE · only if tokens remain)
-- [ ] "Why this match" visual: tiny horizontal signal bars (existing `.signal-row` data) in match cards — makes the matching engine legible. No new data needed, presentation only.
+- [x] "Why this match" visual — DONE. Bars already existed (`.signal-row` in `components.html`); F3 made them honest: zero-score rows hidden (no more "Semantic (AI) 0%" on every card while the LLM key is lean), and the "Same unit" bar replaced by a one-line context note ("context only, not scored") to match the RecommendationService retention philosophy. Build green.
 
 ## Phase O1 — CSV bulk import (OPUS · anytime, owner's flagged priority)
 - [ ] **O1.1** Add `org.apache.commons:commons-csv:1.10.0` to `pom.xml`.
@@ -78,4 +78,7 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
 
 ## Log (append a line per session)
 - 2026-07-13 ~03:00 Fable: roadmap created; starting F1.
+- 2026-07-13 Fable: F1 complete (bottom nav, view transitions, prefetch, density/table-stack landed across sessions, SW v4).
+- 2026-07-13 Fable: F2 complete (self-hosted variable fonts 115KB total, /fonts/** permitAll, SW v5, global :focus-visible). Found Chart.js CDN in admin layout → logged as Q1.3.
+- 2026-07-13 Fable: F3 complete (signal bars now hide zero rows; same-unit demoted to context note). ALL FABLE PHASES DONE — remaining work (O1 CSV, O2 architecture, Q1) is Opus-friendly.
 - 2026-07-13 ~03:30 Fable: F1 COMPLETE (bottom nav + view transitions + prefetch + SW v4; density/table-stack found already landed). Next: F2 fonts, or O1 CSV (Opus). NOTE for Q-list: admin/layout.html loads Chart.js from jsdelivr CDN — self-host alongside fonts.

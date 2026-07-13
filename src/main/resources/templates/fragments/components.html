@@ -236,40 +236,39 @@
                     </div>
                 </div>
 
-                <!-- Six-signal transparency -->
+                <!-- Signal transparency — only the signals that actually fired.
+                     Zero rows are noise ("Semantic 0%" with no LLM key reads as
+                     broken), and same-unit is context, not a collaboration
+                     signal (see RecommendationService retention rules). -->
                 <details class="match-breakdown">
                     <summary>Why this match</summary>
                     <div class="match-breakdown-body">
-                        <div class="signal-row">
+                        <div class="signal-row" th:if="${sim.researchAreaScore > 0}">
                             <span class="signal-label">Research areas</span>
                             <span class="signal-track"><span class="signal-fill is-gold" th:style="'width:' + ${sim.researchAreaScore * 100} + '%'"></span></span>
                             <span class="signal-value" th:text="${#numbers.formatDecimal(sim.researchAreaScore * 100, 1, 0)} + '%'">0%</span>
                         </div>
-                        <div class="signal-row">
+                        <div class="signal-row" th:if="${sim.technologyScore > 0}">
                             <span class="signal-label">Technologies</span>
                             <span class="signal-track"><span class="signal-fill is-gold" th:style="'width:' + ${sim.technologyScore * 100} + '%'"></span></span>
                             <span class="signal-value" th:text="${#numbers.formatDecimal(sim.technologyScore * 100, 1, 0)} + '%'">0%</span>
                         </div>
-                        <div class="signal-row">
+                        <div class="signal-row" th:if="${sim.keywordScore > 0}">
                             <span class="signal-label">Keywords</span>
                             <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.keywordScore * 100} + '%'"></span></span>
                             <span class="signal-value" th:text="${#numbers.formatDecimal(sim.keywordScore * 100, 1, 0)} + '%'">0%</span>
                         </div>
-                        <div class="signal-row">
+                        <div class="signal-row" th:if="${sim.titleScore > 0}">
                             <span class="signal-label">Title similarity</span>
                             <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.titleScore * 100} + '%'"></span></span>
                             <span class="signal-value" th:text="${#numbers.formatDecimal(sim.titleScore * 100, 1, 0)} + '%'">0%</span>
                         </div>
-                        <div class="signal-row">
+                        <div class="signal-row" th:if="${sim.semanticScore > 0}">
                             <span class="signal-label">Semantic (AI)</span>
                             <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.semanticScore * 100} + '%'"></span></span>
                             <span class="signal-value" th:text="${#numbers.formatDecimal(sim.semanticScore * 100, 1, 0)} + '%'">0%</span>
                         </div>
-                        <div class="signal-row">
-                            <span class="signal-label">Same unit</span>
-                            <span class="signal-track"><span class="signal-fill" th:style="'width:' + ${sim.unitScore * 100} + '%'"></span></span>
-                            <span class="signal-value" th:text="${sim.sameUnit} ? 'Yes' : (${sim.unitScore > 0} ? 'Dept' : 'No')">No</span>
-                        </div>
+                        <div class="signal-note" th:if="${sim.sameUnit}">Same unit — context only, not scored.</div>
                     </div>
                 </details>
 
