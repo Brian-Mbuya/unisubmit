@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='import')}">
+<body>
+<div>
+    <div class="page-head">
+        <div>
+            <h1>Bulk import</h1>
+            <p class="subtitle">Create student accounts from a CSV — no hand-typing.</p>
+        </div>
+        <a th:href="@{/admin/accounts}" class="btn btn-secondary">Back to accounts</a>
+    </div>
+
+    <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+    <!-- ── RESULTS: accounts created, passwords shown once ─────────────────── -->
+    <div th:if="${creds != null}" class="card">
+        <div class="card-head">
+            <h2>Import complete</h2>
+            <a th:href="@{/admin/import/students/results.csv}" class="btn">Download passwords (CSV)</a>
+        </div>
+        <p class="field-hint mb-4">Passwords are shown here once. Download and share them securely — they can't be retrieved later.</p>
+        <div class="table-wrap table-stack">
+            <table class="table">
+                <thead>
+                    <tr><th>Name</th><th>Student ID</th><th>Email</th><th>Password</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="c : ${creds}">
+                        <td class="stack-full fw-600" th:text="${c.name}">Name</td>
+                        <td th:text="${c.studentId}">ID</td>
+                        <td class="text-muted" th:text="${c.email}">email</td>
+                        <td class="mono" th:text="${c.password}">pw</td>
+                        <td><span th:class="${c.status == 'created' ? 'badge badge-completed' : 'badge badge-rejected'}" th:text="${c.status}">created</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4"><a th:href="@{/admin/import}">Import another file</a></div>
+    </div>
+
+    <!-- ── PREVIEW: validated rows, nothing written yet ───────────────────── -->
+    <div th:if="${creds == null and preview != null}" class="card">
+        <div th:if="${preview.fatalError != null}" class="alert alert-danger" th:text="${preview.fatalError}">error</div>
+
+        <div th:unless="${preview.fatalError != null}">
+            <div class="card-head">
+                <h2>Preview</h2>
+                <span class="text-sm">
+                    <span class="text-success fw-600" th:text="${preview.validCount} + ' ready'">0 ready</span>
+                    <span th:if="${preview.invalidCount > 0}" class="text-danger fw-600" th:text="' · ' + ${preview.invalidCount} + ' with problems'"></span>
+                </span>
+            </div>
+            <div class="table-wrap table-stack">
+                <table class="table">
+                    <thead>
+                        <tr><th>#</th><th>Name</th><th>Email</th><th>Student ID</th><th>Programme</th><th>Result</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="r : ${preview.rows}">
+                            <td class="text-subtle" th:text="${r.line}">1</td>
+                            <td class="stack-full fw-600" th:text="${r.name}">Name</td>
+                            <td class="text-muted" th:text="${r.email}">email</td>
+                            <td th:text="${r.studentId}">ID</td>
+                            <td class="text-muted" th:text="${r.programmeCode != '' ? r.programmeCode : '—'}">—</td>
+                            <td>
+                                <span th:if="${r.valid}" class="badge badge-completed">OK</span>
+                                <span th:unless="${r.valid}" class="badge badge-rejected" th:text="${r.error}">error</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex items-center gap-2 mt-4" th:if="${preview.validCount > 0}">
+                <form th:action="@{/admin/import/students/apply}" method="post" data-loading-submit="Creating accounts…">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="btn" th:text="'Create ' + ${preview.validCount} + ' account(s)'">Create accounts</button>
+                </form>
+                <a th:href="@{/admin/import}" class="btn btn-secondary">Cancel</a>
+            </div>
+            <p th:if="${preview.validCount == 0}" class="field-hint mt-4">No valid rows. Fix the problems above and upload again.</p>
+        </div>
+    </div>
+
+    <!-- ── UPLOAD: default state ──────────────────────────────────────────── -->
+    <div th:if="${creds == null and preview == null}" class="card">
+        <form th:action="@{/admin/import/students/preview}" method="post" enctype="multipart/form-data" data-loading-submit="Reading…">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div class="form-group">
+                <label class="form-label" for="file">Students CSV</label>
+                <input type="file" id="file" name="file" class="form-control" accept=".csv,text/csv" required>
+                <div class="field-hint">
+                    Columns: <span class="mono">name, email, studentId, programmeCode, year</span>.
+                    <a th:href="@{/admin/import/template/students.csv}">Download template</a>.
+                </div>
+            </div>
+            <button type="submit" class="btn">Preview</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

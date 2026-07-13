@@ -50,12 +50,19 @@
 ## Phase F3 — OPTIONAL flourish (FABLE · only if tokens remain)
 - [x] "Why this match" visual — DONE. Bars already existed (`.signal-row` in `components.html`); F3 made them honest: zero-score rows hidden (no more "Semantic (AI) 0%" on every card while the LLM key is lean), and the "Same unit" bar replaced by a one-line context note ("context only, not scored") to match the RecommendationService retention philosophy. Build green.
 
-## Phase O1 — CSV bulk import (OPUS · anytime, owner's flagged priority)
-- [ ] **O1.1** Add `org.apache.commons:commons-csv:1.10.0` to `pom.xml`.
-- [ ] **O1.2** `CsvImportService` (new, `service/`): two importers.
+## Phase O1 — CSV bulk import (OPUS · DONE — students importer shipped)
+> Students importer complete & build-green. Academic-structure importer (O1.2 second
+> bullet) deferred as a clean follow-up — service is structured to add it alongside.
+> Deviations from spec: apply is per-row (not one transaction) so one bad row can't
+> discard a good batch — preview already validates, so partial failure is rare and each
+> row is atomic via UserService.createUser's own @Transactional. DB audit-log skipped
+> (audit_logs.submission_id is NOT NULL; import isn't submission-scoped) — logs via SLF4J.
+- [x] **O1.1** commons-csv 1.11.0 added to `pom.xml`.
+- [x] **O1.2** `CsvImportService` — students importer done (parse+validate no-writes, per-row apply, SecureRandom 10-char unambiguous passwords, CourseRepository.findByCodeIgnoreCase added). Academic-structure importer: TODO follow-up.
   - **Students:** columns `name,email,studentId,programmeCode,year`. Per-row validation (email format, unique email/studentId, programme exists by code). Generates a random 10-char password per row (`SecureRandom`, alphanumeric, no ambiguous chars).
   - **Academic structure:** columns `facultyCode,facultyName,departmentCode,departmentName,programmeCode,programmeName,unitCode,unitName`. Auto-create missing parents by code (idempotent: existing codes = skip, never mutate names of existing rows).
-- [ ] **O1.3** `AdminImportController` (`controller/admin/`): `GET /admin/import` (page), `POST /admin/import/preview` (multipart → parse → session-stash parsed rows → render preview: green valid / red invalid with reason per row), `POST /admin/import/apply` (transactional apply of the STASHED rows — never re-parse the file on apply), `GET /admin/import/template/{students|structure}` (CSV template download), `GET /admin/import/results` (post-apply credentials CSV: `name,studentId,email,password` — generated once, downloadable once, never persisted in plaintext).
+- [x] **O1.3** `AdminImportController` — page/preview/apply/results + results.csv + template.csv, session-stashed rows (records are Serializable, ready for O2 JDBC sessions). Route note: results CSV is `/admin/import/students/results.csv`.
+- [x] **O1.3b** (was O1.3) (`controller/admin/`): `GET /admin/import` (page), `POST /admin/import/preview` (multipart → parse → session-stash parsed rows → render preview: green valid / red invalid with reason per row), `POST /admin/import/apply` (transactional apply of the STASHED rows — never re-parse the file on apply), `GET /admin/import/template/{students|structure}` (CSV template download), `GET /admin/import/results` (post-apply credentials CSV: `name,studentId,email,password` — generated once, downloadable once, never persisted in plaintext).
 - [ ] **O1.4** `templates/admin/import.html` — upload card, preview table (reuse `.table` + badges), confirm button with `data-loading-submit`. Add "Import" link to the admin sidebar fragment. Follow the de-cluttered voice: one line of guidance max.
 - [ ] **O1.5** Row cap 2000, reject non-CSV content types, wrap apply in one transaction, audit-log the import (existing `AuditLogRepository` pattern). Build green + a happy-path and a bad-file manual test note for the owner.
 
@@ -84,4 +91,6 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
 - 2026-07-13 Fable: F1 complete (bottom nav, view transitions, prefetch, density/table-stack landed across sessions, SW v4).
 - 2026-07-13 Fable: F2 complete (self-hosted variable fonts 115KB total, /fonts/** permitAll, SW v5, global :focus-visible). Found Chart.js CDN in admin layout → logged as Q1.3.
 - 2026-07-13 Fable: F3 complete (signal bars now hide zero rows; same-unit demoted to context note). ALL FABLE PHASES DONE — remaining work (O1 CSV, O2 architecture, Q1) is Opus-friendly.
+- 2026-07-13 Fable go-wild: Q1.1/1.2/1.3 done (assetlinks in .well-known, gitignore, Chart.js self-hosted → ZERO external deps), manifest shortcuts, /about page, SW v6.
+- 2026-07-13 Opus: O1 students CSV import shipped, build green (service+controller+template+nav, commons-csv). Academic-structure importer left as follow-up. Next: O2.
 - 2026-07-13 ~03:30 Fable: F1 COMPLETE (bottom nav + view transitions + prefetch + SW v4; density/table-stack found already landed). Next: F2 fonts, or O1 CSV (Opus). NOTE for Q-list: admin/layout.html loads Chart.js from jsdelivr CDN — self-host alongside fonts.

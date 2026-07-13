@@ -66,6 +66,10 @@
                 <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="15" height="15"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <span>Accounts</span>
             </a>
+            <a th:href="@{/admin/import}" th:classappend="${activeMenu == 'import' ? 'active' : ''}">
+                <svg viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                <span>Bulk import</span>
+            </a>
 
             <div class="sidebar-heading">Intelligence</div>
             <a th:href="@{/admin/tags}" th:classappend="${activeMenu == 'tags' ? 'active' : ''}">
