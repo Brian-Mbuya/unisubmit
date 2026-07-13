@@ -24,7 +24,7 @@ public class SecurityConfig {
                         // PWA assets — must be anonymous: the service worker registers on the
                         // login page and precaches these; a 302→login here breaks installability.
                         "/sw.js", "/manifest.webmanifest", "/icons/**", "/fonts/**", "/offline.html", "/.well-known/assetlinks.json",
-                        "/login", "/register", "/forgot-password", "/error", "/health").permitAll()
+                        "/login", "/register", "/forgot-password", "/about", "/error", "/health").permitAll()
                 // H2 console: only allowed in the local dev profile (blocked in production)
                 .requestMatchers("/h2-console", "/h2-console/**")
                     .access(new org.springframework.security.web.access.expression.WebExpressionAuthorizationManager(

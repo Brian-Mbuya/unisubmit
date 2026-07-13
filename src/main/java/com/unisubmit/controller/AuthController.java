@@ -115,6 +115,12 @@ public class AuthController {
         }
     }
 
+    /** Public pitch page — linked from the login screen, safe for logged-out visitors. */
+    @GetMapping("/about")
+    public String about() {
+        return "about";
+    }
+
     @GetMapping("/")
     public String index() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

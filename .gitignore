@@ -43,3 +43,13 @@ uploads/*
 uploads-local/
 unisubmit-db*
 *.db
+
+# Android packaging artifacts + signing secrets (never commit)
+*.apk
+*.aab
+signing.keystore
+signing-key-info.txt
+assetlinks.json
+!src/main/resources/static/.well-known/assetlinks.json
+boot-*.log
+Readme.html

@@ -18,8 +18,9 @@
     <script type="speculationrules">
         {"prefetch":[{"source":"document","where":{"href_matches":["/student/*","/lecturer/*","/explore*","/groups*","/discover*"]},"eagerness":"moderate"}]}
     </script>
-    <!-- Chart.js powers the admin dashboard visualisations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js powers the admin dashboard visualisations (self-hosted, pinned 4.4.3 —
+         the app has zero external dependencies) -->
+    <script th:src="@{/js/vendor/chart.umd.min.js}"></script>
 </head>
 <body>
     <a class="skip-link" href="#adminContent">Skip to content</a>

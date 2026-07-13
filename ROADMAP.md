@@ -74,7 +74,10 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
 
 ---
 
-- [ ] **Q1.3** (found during F2) `admin/layout.html` still loads Chart.js from jsdelivr CDN — now the LAST external dependency. Self-host `chart.umd.js` into `static/js/vendor/` and swap the src; admin-only, low urgency.
+- [x] **Q1.1** DONE — `assetlinks.json` copied to `static/.well-known/` (APK verifies → URL bar disappears on next app open after deploy).
+- [x] **Q1.2** DONE — `.gitignore` now blocks `*.apk`, `*.aab`, `signing*`, logs; the `.well-known` copy is explicitly allowed.
+- [x] **Q1.3** DONE — Chart.js self-hosted (`static/js/vendor/chart.umd.min.js`, pinned 4.4.3). **The app now has ZERO external dependencies.**
+- [x] **BONUS (go-wild batch):** manifest app **shortcuts** (long-press icon → New submission / Notifications / Explore) + `categories`/`lang`; student-facing no-key message de-jargoned ("give your project a name and continue"); public **`/about` pitch page** (AuthController `@GetMapping("/about")` → `templates/about.html`, added to permitAll, linked from login footer) for the university pitch. SW → **v6**.
 
 ## Log (append a line per session)
 - 2026-07-13 ~03:00 Fable: roadmap created; starting F1.

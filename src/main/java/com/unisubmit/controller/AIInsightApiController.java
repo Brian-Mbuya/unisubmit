@@ -145,7 +145,7 @@ public class AIInsightApiController {
         if (suggestions.isEmpty()) {
             return ResponseEntity.ok(Map.of(
                     "suggestions", List.of(),
-                    "message", "No suggestions could be generated. Make sure your OpenAI/OpenRouter key is configured."
+                    "message", "No suggestions this time — give your project a name and continue."
             ));
         }
         return ResponseEntity.ok(Map.of("suggestions", suggestions));

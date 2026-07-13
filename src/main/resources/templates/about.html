@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div class="about-page readable" style="margin: 0 auto;">
+
+        <svg th:replace="~{fragments/components :: brandMark('auth-mark')}"></svg>
+
+        <h1 style="margin-top: 1rem;">Your university's project memory.</h1>
+        <p class="text-muted" style="margin-top: 0.5rem; font-size: 0.95rem;">
+            Every year, students repeat projects nobody remembers, feedback dies in email
+            threads, and the student two departments over — working on the other half of
+            the same problem — stays a stranger. UniSubmit fixes that.
+        </p>
+
+        <div class="card card-stack" style="margin-top: 1.5rem;">
+            <section class="card-section">
+                <h2>Submit once, keep everything</h2>
+                <p class="text-sm text-muted no-margin">
+                    Versioned uploads with a feedback trail — nothing overwritten, nothing lost.
+                </p>
+            </section>
+            <section class="card-section">
+                <h2>Reviews without the paperwork</h2>
+                <p class="text-sm text-muted no-margin">
+                    Lecturers grade in one workspace: document, history and feedback side by side.
+                    Blind review built in.
+                </p>
+            </section>
+            <section class="card-section">
+                <h2>An archive that thinks</h2>
+                <p class="text-sm text-muted no-margin">
+                    AI summaries and tags make every past project searchable — and surface
+                    overlapping work before it's duplicated.
+                </p>
+            </section>
+            <section class="card-section">
+                <h2>Collaborators, found for you</h2>
+                <p class="text-sm text-muted no-margin">
+                    Cross-department matching pairs complementary projects — the model that has
+                    the data with the model that needs it.
+                </p>
+            </section>
+        </div>
+
+        <div class="flex gap-2" style="margin-top: 1.5rem;">
+            <a th:href="@{/login}" class="btn">Sign in</a>
+            <a th:href="@{/register}" class="btn btn-secondary">Create an account</a>
+        </div>
+
+        <p class="text-xs text-subtle" style="margin-top: 2rem;">
+            Works on any device — installable on your phone. Built for universities.
+        </p>
+    </div>
+</body>
+</html>
