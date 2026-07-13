@@ -21,6 +21,25 @@
    .member-search-*, .search-item*, modal ids. Restyle here, never rename there.
    ============================================================================ */
 
+/* ── 00 · Self-hosted fonts (variable woff2, latin subset) ───────────────────
+   No CDN: Inter + Fraunces ship from /fonts — no external requests, no font
+   flash on mobile data. Variable files cover every weight the UI uses.
+   (Served anonymously via SecurityConfig permitAll + cached by the SW.) */
+@font-face {
+    font-family: 'Inter';
+    src: url('../fonts/inter-latin.woff2') format('woff2');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Fraunces';
+    src: url('../fonts/fraunces-latin.woff2') format('woff2');
+    font-weight: 500 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* ── 01 · Design tokens ──────────────────────────────────────────────────── */
 :root {
     color-scheme: dark;
@@ -2292,3 +2311,8 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
     body:has(.bottom-nav) { padding-bottom: calc(58px + env(safe-area-inset-bottom)); }
     body:has(.bottom-nav) .app-footer { display: none; }
 }
+
+/* ── 27 · Keyboard focus (F2.2) ──────────────────────────────────────────────
+   Baseline ring for anything interactive that lacks its own treatment.
+   More specific rules (.btn:focus-visible, .form-control:focus) still win. */
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }

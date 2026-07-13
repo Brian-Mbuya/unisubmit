@@ -8,7 +8,7 @@
        CSRF-protected POSTs, and uploads behave exactly as before.
    Bump VERSION whenever the shell assets change shape.
    ============================================================================ */
-const VERSION = "unisubmit-shell-v4";
+const VERSION = "unisubmit-shell-v5";
 const OFFLINE_URL = "/offline.html";
 
 const SHELL = [
@@ -40,7 +40,7 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-const STATIC_PREFIXES = ["/css/", "/js/", "/icons/", "/images/"];
+const STATIC_PREFIXES = ["/css/", "/js/", "/icons/", "/images/", "/fonts/"];
 const STATIC_FILES = ["/favicon.svg", "/favicon.ico", "/manifest.webmanifest", OFFLINE_URL];
 
 function isStaticAsset(pathname) {

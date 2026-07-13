@@ -44,8 +44,8 @@
 **Done-when:** at 390px — bottom bar present with active state, page fades between navigations, lecturer queue reads as stacked rows not a squeezed table, filters are one thumb-scrollable line, nothing overflows horizontally. Desktop (≥861px) pixel-identical to before.
 
 ## Phase F2 — Desktop polish to A (FABLE · if time tonight)
-- [ ] **F2.1 Self-host fonts.** Download woff2: Inter 400/500/600/700 + Fraunces variable (opsz 9..144, wght 500–700) → `static/fonts/`. `@font-face` block at top of `base.css` (`font-display: swap`), remove the two Google `<link>`s from `layout.html` (and `admin/layout.html` if it has its own head). Removes the last CDN dependency + the mobile font-flash. Bump SW version again if F1 already shipped.
-- [ ] **F2.2 Consistency sweep.** Visible `:focus-visible` ring on all interactive elements (buttons, chips, nav links, table rows); empty states all follow one pattern (icon optional, ONE line, muted); check every page's `page-head` for stray subtitles that survived the de-clutter.
+- [x] **F2.1 Self-host fonts.** DONE: `static/fonts/inter-latin.woff2` (48KB) + `fraunces-latin.woff2` (67KB), variable weights; `@font-face` at top of base.css; Google `<link>`s removed from both layouts; `/fonts/**` added to SecurityConfig permitAll; SW prefixes + VERSION → v5. Original spec: Download woff2: Inter 400/500/600/700 + Fraunces variable (opsz 9..144, wght 500–700) → `static/fonts/`. `@font-face` block at top of `base.css` (`font-display: swap`), remove the two Google `<link>`s from `layout.html` (and `admin/layout.html` if it has its own head). Removes the last CDN dependency + the mobile font-flash. Bump SW version again if F1 already shipped.
+- [x] **F2.2 Consistency sweep.** DONE (baseline `:focus-visible` ring added §27; `.btn`/`.form-control` keep their own richer treatments; empty states were already normalized by the de-clutter pass). Original spec: Visible `:focus-visible` ring on all interactive elements (buttons, chips, nav links, table rows); empty states all follow one pattern (icon optional, ONE line, muted); check every page's `page-head` for stray subtitles that survived the de-clutter.
 
 ## Phase F3 — OPTIONAL flourish (FABLE · only if tokens remain)
 - [ ] "Why this match" visual: tiny horizontal signal bars (existing `.signal-row` data) in match cards — makes the matching engine legible. No new data needed, presentation only.
@@ -73,6 +73,8 @@
 Forced password change on first login + delete demo accounts · Flyway baseline re-adopt · SSO · backups/paid tier · RLS enable on Supabase (needs one MCP call once tables stable).
 
 ---
+
+- [ ] **Q1.3** (found during F2) `admin/layout.html` still loads Chart.js from jsdelivr CDN — now the LAST external dependency. Self-host `chart.umd.js` into `static/js/vendor/` and swap the src; admin-only, low urgency.
 
 ## Log (append a line per session)
 - 2026-07-13 ~03:00 Fable: roadmap created; starting F1.

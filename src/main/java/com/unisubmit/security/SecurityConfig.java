@@ -23,7 +23,7 @@ public class SecurityConfig {
                 .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/favicon.svg",
                         // PWA assets — must be anonymous: the service worker registers on the
                         // login page and precaches these; a 302→login here breaks installability.
-                        "/sw.js", "/manifest.webmanifest", "/icons/**", "/offline.html", "/.well-known/assetlinks.json",
+                        "/sw.js", "/manifest.webmanifest", "/icons/**", "/fonts/**", "/offline.html", "/.well-known/assetlinks.json",
                         "/login", "/register", "/forgot-password", "/error", "/health").permitAll()
                 // H2 console: only allowed in the local dev profile (blocked in production)
                 .requestMatchers("/h2-console", "/h2-console/**")
