@@ -42,6 +42,12 @@ public class AdminImportController {
         return "admin/import";
     }
 
+    /** Handles direct browser navigation to /admin/import/students/preview (GET), which has no content — redirect gracefully. */
+    @GetMapping("/students/preview")
+    public String previewGet() {
+        return "redirect:/admin/import";
+    }
+
     @PostMapping("/students/preview")
     public String previewStudents(@RequestParam("file") MultipartFile file,
                                   HttpSession session, Model model, RedirectAttributes ra) {
