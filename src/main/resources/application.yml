@@ -32,6 +32,22 @@ spring:
     # instead of replaying migrations onto it).
     enabled: false
     locations: classpath:db/migration
+  # Persist sessions in Postgres so a redeploy doesn't sign everyone out.
+  # Idempotent schema (IF NOT EXISTS) → safe to init on every boot, no crash.
+  session:
+    timeout: 4h
+    jdbc:
+      initialize-schema: always
+      schema: classpath:session-schema-postgresql.sql
+  # Long cache for fingerprint-stable static assets. Safe with the service
+  # worker: the SW precaches with {cache:'reload'} and revalidates with
+  # {cache:'no-cache'}, so it never gets stuck on a stale file (see sw.js).
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: 7d
+          cache-public: true
   servlet:
     multipart:
       # Slightly above the 25MB service-level limit so oversize uploads fail fast

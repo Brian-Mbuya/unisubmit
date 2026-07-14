@@ -8,7 +8,7 @@
        CSRF-protected POSTs, and uploads behave exactly as before.
    Bump VERSION whenever the shell assets change shape.
    ============================================================================ */
-const VERSION = "unisubmit-shell-v6";
+const VERSION = "unisubmit-shell-v7";
 const OFFLINE_URL = "/offline.html";
 
 const SHELL = [
@@ -26,7 +26,18 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(VERSION)
-      .then((cache) => cache.addAll(SHELL))
+      // Precache with {cache:'reload'} so a long HTTP max-age can never seed the
+      // shell with a stale file right after a deploy. Per-item catch: one missing
+      // asset must not fail the whole install.
+      .then((cache) =>
+        Promise.all(
+          SHELL.map((url) =>
+            fetch(url, { cache: "reload" })
+              .then((res) => (res && res.ok ? cache.put(url, res) : null))
+              .catch(() => null)
+          )
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });
@@ -79,7 +90,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.open(VERSION).then((cache) =>
         cache.match(request).then((cached) => {
-          const refresh = fetch(request)
+          const refresh = fetch(request, { cache: "no-cache" })
             .then((response) => {
               if (response && response.ok) cache.put(request, response.clone());
               return response;
