@@ -1335,15 +1335,37 @@ input[type="file"].form-control::file-selector-button {
 
 .doc-viewer { width: 100%; height: calc(100vh - var(--header-h) - 120px); min-height: 480px; background: #26292e; }
 
+/* Paper print-preview: the .txt document renders as an ivory sheet on the dark
+   desk — Word-before-printing feel. Deliberate light exception to the dark
+   theme: documents are paper. The scroll area is the desk; the sheet floats. */
 .doc-text-preview {
-    padding: 2rem 2.25rem;
     max-height: calc(100vh - var(--header-h) - 120px);
     overflow-y: auto;
-    font-size: 0.9rem;
-    line-height: 1.75;
+    padding: 1.5rem clamp(0.75rem, 3vw, 2rem) 2.25rem;
+    background:
+        radial-gradient(900px 300px at 50% -80px, rgba(255, 255, 255, 0.03), transparent 60%),
+        var(--canvas);
+}
+.doc-text-preview .doc-sheet {
+    background: #f6f3ea;                       /* ivory — paper, not glare-white */
+    color: #24271c;
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
+                 'Times New Roman', serif;     /* print voice, on purpose */
+    font-size: 0.95rem;
+    line-height: 1.8;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
+    max-width: 800px;                          /* ≈ A4 page width on screen */
+    margin: 0 auto;
+    padding: clamp(1.5rem, 5vw, 3.25rem) clamp(1.25rem, 6vw, 4rem);
+    border: 1px solid #dad3bd;
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 16px 40px -14px rgba(0, 0, 0, 0.6);
 }
+.doc-text-preview .doc-sheet::selection,
+.doc-text-preview .doc-sheet *::selection { background: rgba(46, 143, 127, 0.25); }
+/* transient loading / error line sits on the desk, not on paper */
+.doc-text-preview > .text-muted { display: block; padding: 1rem 0.5rem; }
 
 .doc-preview-fallback { padding: 3rem 2rem; text-align: center; color: var(--text-muted); }
 .document-empty { min-height: 320px; display: flex; flex-direction: column; justify-content: center; }

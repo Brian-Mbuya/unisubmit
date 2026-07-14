@@ -86,7 +86,13 @@
                         document.querySelectorAll('[data-doc-text-src]').forEach(function (box) {
                             fetch(box.getAttribute('data-doc-text-src'))
                                 .then(function (res) { return res.ok ? res.text() : Promise.reject(res.status); })
-                                .then(function (text) { box.textContent = text; })
+                                .then(function (text) {
+                                    // Typeset onto a paper sheet (see base.css .doc-sheet)
+                                    var sheet = document.createElement('div');
+                                    sheet.className = 'doc-sheet';
+                                    sheet.textContent = text;
+                                    box.replaceChildren(sheet);
+                                })
                                 .catch(function () {
                                     box.innerHTML = '<span class="text-muted text-sm">Could not load the document preview — use "Open in tab" instead.</span>';
                                 });

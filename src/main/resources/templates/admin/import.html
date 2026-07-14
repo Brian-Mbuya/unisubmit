@@ -47,6 +47,9 @@
             <div class="card-head">
                 <h2>Preview</h2>
                 <span class="text-sm">
+                    <!-- Row count is deliberate: if you typed 3 rows but this says 2,
+                         the file on disk wasn't saved before uploading. -->
+                    <span class="text-subtle" th:text="${#lists.size(preview.rows)} + ' rows in file · '">0 rows · </span>
                     <span class="text-success fw-600" th:text="${preview.validCount} + ' ready'">0 ready</span>
                     <span th:if="${preview.invalidCount > 0}" class="text-danger fw-600" th:text="' · ' + ${preview.invalidCount} + ' with problems'"></span>
                 </span>
