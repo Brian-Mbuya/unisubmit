@@ -76,10 +76,24 @@ needs `findByCodeIgnoreCase` on Faculty/Department repos + `findByUnitCodeIgnore
 > STATUS (2026-07-13): O2.2 done as an env toggle. O2.1 + O2.3 DEFERRED on purpose — both
 > carry live-app risk during active testing (see notes). Do them in a maintenance window, not mid-test.
 - [x] **O2.2 Demo seeder OFF in prod (toggle).** `application.yml` → `seed-collaboration: ${DEMO_SEED_COLLABORATION:false}` (default off; set Railway env `DEMO_SEED_COLLABORATION=true` to re-enable for a pitch). Local stays on. Existing demo rows remain until cleaned.
-- [ ] **O2.1 Spring Session JDBC — DEFERRED (risk).** `initialize-schema=always` runs `CREATE TABLE SPRING_SESSION` (no IF NOT EXISTS) → fatal on 2nd boot = crash-loop, same failure mode as the Flyway incident. SAFE recipe: pre-create the `SPRING_SESSION`/`SPRING_SESSION_ATTRIBUTES` tables once via Supabase SQL (script: `org/springframework/session/jdbc/schema-postgresql.sql`), THEN add `spring-session-jdbc` with `spring.session.jdbc.initialize-schema=never` + `spring.session.timeout=4h`. Do in a maintenance window; verify boot before relying on it.
+- [⛔] **O2.1 Spring Session JDBC — ATTEMPTED, BACKED OUT (hard blocker).** The self-healing
+  schema part was solved (idempotent `session-schema-postgresql.sql`), BUT the real blocker is
+  serialization: `CustomUserDetails` (not Serializable) wraps the `User` **JPA entity** (not
+  Serializable, lazy relationships). JDBC sessions serialize the security context → it would throw
+  `NotSerializableException` and **break login for everyone**. Making the entity graph Serializable
+  is a JPA anti-pattern. PROPER FIX (a real task, not a config toggle): introduce a lightweight
+  `record`-based serializable principal (id, username, name, role, profileIds) and refactor the
+  ~dozen `userDetails.getUser()` call-sites to fetch the entity fresh when they need relationships.
+  Until then, in-memory sessions stay (cost: a redeploy signs users out — an annoyance, not a bug).
+  Original spec below.
+- [ ] ~~O2.1 Spring Session JDBC — DEFERRED (risk).~~ `initialize-schema=always` runs `CREATE TABLE SPRING_SESSION` (no IF NOT EXISTS) → fatal on 2nd boot = crash-loop, same failure mode as the Flyway incident. SAFE recipe: pre-create the `SPRING_SESSION`/`SPRING_SESSION_ATTRIBUTES` tables once via Supabase SQL (script: `org/springframework/session/jdbc/schema-postgresql.sql`), THEN add `spring-session-jdbc` with `spring.session.jdbc.initialize-schema=never` + `spring.session.timeout=4h`. Do in a maintenance window; verify boot before relying on it.
 - [ ] **O2.1 Spring Session JDBC:** add `spring-session-jdbc` dependency; `spring.session.jdbc.initialize-schema=always` (+ `spring.session.timeout=4h`). Sessions survive redeploys. Verify login → redeploy → still signed in.
 - [ ] **O2.2 Demo seeder OFF in prod:** `application.yml` → remove/false `unisubmit.demo.seed-collaboration` (absence = off via `@ConditionalOnProperty`); keep `true` only in `application-local.yml`. Existing demo rows in prod: leave; owner decides cleanup later.
-- [ ] **O2.3 Static asset caching — DEFERRED (SW conflict).** A long `max-age` makes the SW's background `fetch()` read stale assets from the HTTP cache, so version bumps stop propagating → deploys serve stale CSS/JS. Safe path: content-hashed filenames (`chain.strategy.content`) + `immutable` cache, BUT the SW SHELL list hardcodes `/css/base.css` etc., so that list must switch to hashed names too (or the SW must stop precaching hashed assets). Non-trivial; do it as a dedicated task, not a one-liner. Original spec:
+- [x] **O2.3 Static asset caching — DONE (SW-safe).** `spring.web.resources.cache.cachecontrol.max-age=7d`
+  + `cache-public`. Made safe with the SW instead of content-hashing: the SW now precaches with
+  `{cache:'reload'}` (install can't seed a stale shell from the HTTP cache) and revalidates with
+  `{cache:'no-cache'}` (background refresh always checks the server), so a long HTTP cache can never
+  pin stale assets — freshness still flows through the SW version bump (now v7). Original spec:
       **O2.3 Static asset caching:** `spring.web.resources.cache.cachecontrol.max-age=30d` + content-hash chain strategy (`spring.web.resources.chain.strategy.content.enabled=true`, paths `/css/**,/js/**,/icons/**,/fonts/**`). Thymeleaf `@{}` URLs pick up hashed names automatically. `sw.js` stays fresh (browsers cap SW script cache at 24h by spec — no action).
 - [ ] **O2.4** Leave `ddl-auto=update` + Flyway disabled for now (deliberate; see application.yml comment). Post-testing: Flyway re-adopt with `baseline-version=19`.
 
@@ -103,6 +117,7 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
 - 2026-07-13 Fable: F2 complete (self-hosted variable fonts 115KB total, /fonts/** permitAll, SW v5, global :focus-visible). Found Chart.js CDN in admin layout → logged as Q1.3.
 - 2026-07-13 Fable: F3 complete (signal bars now hide zero rows; same-unit demoted to context note). ALL FABLE PHASES DONE — remaining work (O1 CSV, O2 architecture, Q1) is Opus-friendly.
 - 2026-07-13 Opus: verified O1 (CSV import) already built + green. O2.2 done (demo seeder → env toggle, default off in prod). O2.1 + O2.3 deliberately DEFERRED (live-app risk during testing — recipes noted above). Build green.
+- 2026-07-13 Opus: "complete the roadmap" — O2.3 DONE (SW-safe long asset cache, SW v7). O2.1 ATTEMPTED then BACKED OUT: JDBC session storage would serialize the security context, but CustomUserDetails/User aren't Serializable → would break login. Reverted cleanly (pom/yml/schema). Needs a serializable-principal refactor first (logged above). Build green. Roadmap now: F1-F3 ✅, Q1 ✅, O1 ✅, O2.2 ✅, O2.3 ✅, O2.4 ✅ (no-op decision), O2.1 ⛔ blocked.
 - 2026-07-13 Fable go-wild: Q1.1/1.2/1.3 done (assetlinks in .well-known, gitignore, Chart.js self-hosted → ZERO external deps), manifest shortcuts, /about page, SW v6.
 - 2026-07-13 Opus: O1 students CSV import shipped, build green (service+controller+template+nav, commons-csv). Academic-structure importer left as follow-up. Next: O2.
 - 2026-07-13 ~03:30 Fable: F1 COMPLETE (bottom nav + view transitions + prefetch + SW v4; density/table-stack found already landed). Next: F2 fonts, or O1 CSV (Opus). NOTE for Q-list: admin/layout.html loads Chart.js from jsdelivr CDN — self-host alongside fonts.
