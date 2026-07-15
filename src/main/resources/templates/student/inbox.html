@@ -5,9 +5,8 @@
         <div class="page-head">
             <div>
                 <h1>Collaboration inbox</h1>
-                <p class="subtitle">Manage incoming requests and track the ones you have sent.</p>
             </div>
-            <a th:href="@{/explore(tab='discover')}" class="btn btn-accent">Find new collaborators</a>
+            <a th:href="@{/explore(tab='discover')}" class="btn">Find new collaborators</a>
         </div>
 
         <div th:replace="~{fragments/alerts :: alerts}"></div>
@@ -23,8 +22,7 @@
                     </div>
 
                     <div th:if="${#lists.isEmpty(inbox.incomingRequests)}" class="empty-state empty-state-compact text-sm">
-                        No requests yet. When someone finds your project through search or
-                        recommendations, their request lands here.
+                        No requests yet.
                     </div>
 
                     <div class="flex flex-col gap-4" th:if="${not #lists.isEmpty(inbox.incomingRequests)}">

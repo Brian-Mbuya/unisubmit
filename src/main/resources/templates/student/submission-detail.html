@@ -72,7 +72,7 @@
                         <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
 
                         <div th:if="${submission.aiInsight != null and submission.aiInsight.status.name() == 'COMPLETED'}"
-                             class="flex justify-end mt-4">
+                             class="flex justify-end mt-4 ai-rerun-row">
                             <form th:action="@{'/student/submission/' + ${submission.id} + '/retry-analysis'}" method="post">
                                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
                                 <button type="submit" class="btn btn-secondary btn-sm">Re-run AI analysis</button>
