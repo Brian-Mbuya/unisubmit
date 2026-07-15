@@ -209,10 +209,10 @@
                            th:text="${sim.submission.title}">Title</a>
                         <div class="text-xs text-muted mt-1" th:text="${sim.submission.unit.unitName}">Unit</div>
                     </div>
-                    <span class="match-pill"
-                          th:classappend="${sim.matchLabel == 'Strong match'} ? 'match-pill-strong' : (${sim.matchLabel == 'Related work'} ? 'match-pill-related' : 'match-pill-weak')">
-                        <span th:text="${sim.matchLabel}">Label</span>
-                        <span th:text="${#numbers.formatDecimal(sim.scoreNormalized * 100, 1, 0)} + '%'">0%</span>
+                    <span class="score-ring" th:classappend="${sim.scoreNormalized >= 0.7} ? 'is-strong' : ''"
+                          th:style="'--score:' + ${#numbers.formatDecimal(sim.scoreNormalized * 100, 0, 0)}"
+                          th:attr="aria-label=${#numbers.formatDecimal(sim.scoreNormalized * 100, 0, 0)} + '% match — ' + ${sim.matchLabel}">
+                        <span class="score-ring-num" th:text="${#numbers.formatDecimal(sim.scoreNormalized * 100, 0, 0)}">0</span>
                     </span>
                 </div>
 

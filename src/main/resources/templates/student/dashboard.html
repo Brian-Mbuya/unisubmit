@@ -124,26 +124,23 @@
                     </p>
                 </div>
 
-                <div class="card card-stack">
-                    <section class="card-section">
-                        <div class="card-head"><h2>At a glance</h2></div>
-                        <div class="figure-row">
-                            <span class="figure-label">Total projects</span>
-                            <span class="figure-value" th:text="${#lists.size(submissions)}">0</span>
-                        </div>
-                        <div class="figure-row">
-                            <span class="figure-label">In review</span>
-                            <span class="figure-value is-amber" th:text="${active.size()}">0</span>
-                        </div>
-                        <div class="figure-row">
-                            <span class="figure-label">Approved</span>
-                            <span class="figure-value is-green" th:text="${approved.size()}">0</span>
-                        </div>
-                        <div class="figure-row">
-                            <span class="figure-label">Changes requested</span>
-                            <span class="figure-value is-red" th:text="${changes.size()}">0</span>
-                        </div>
-                    </section>
+                <div class="bento" aria-label="At a glance">
+                    <div class="bento-tile">
+                        <span class="bento-num" th:text="${#lists.size(submissions)}">0</span>
+                        <span class="bento-label">Total projects</span>
+                    </div>
+                    <div class="bento-tile">
+                        <span class="bento-num is-amber" th:text="${active.size()}">0</span>
+                        <span class="bento-label">In review</span>
+                    </div>
+                    <div class="bento-tile">
+                        <span class="bento-num is-green" th:text="${approved.size()}">0</span>
+                        <span class="bento-label">Approved</span>
+                    </div>
+                    <div class="bento-tile">
+                        <span class="bento-num is-red" th:text="${changes.size()}">0</span>
+                        <span class="bento-label">Changes</span>
+                    </div>
                 </div>
             </aside>
         </div>

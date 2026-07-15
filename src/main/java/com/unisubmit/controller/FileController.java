@@ -46,7 +46,8 @@ public class FileController {
         try {
             file = fileStorageService.loadFileAsResource(filename);
         } catch (RuntimeException ex) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Uploaded file is no longer available");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "This file is no longer stored — upload a new version to restore it.");
         }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + version.getOriginalFileName() + "\"")
