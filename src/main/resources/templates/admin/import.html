@@ -92,10 +92,13 @@
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <div class="form-group">
                 <label class="form-label" for="file">Students CSV</label>
-                <input type="file" id="file" name="file" class="form-control" accept=".csv,text/csv" required>
+                <input type="file" id="file" name="file" class="form-control"
+                       accept=".csv,text/csv,application/vnd.ms-excel" required>
                 <div class="field-hint">
                     Columns: <span class="mono">name, email, studentId, programmeCode, year</span>.
                     <a th:href="@{/admin/import/template/students.csv}">Download template</a>.
+                    In Excel/LibreOffice use <strong>File → Save As → CSV</strong> (.ods/.xlsx won't appear
+                    in the picker) — and save before uploading.
                 </div>
             </div>
             <button type="submit" class="btn">Preview</button>

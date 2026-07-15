@@ -111,12 +111,105 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
 - [x] **Q1.3** DONE — Chart.js self-hosted (`static/js/vendor/chart.umd.min.js`, pinned 4.4.3). **The app now has ZERO external dependencies.**
 - [x] **BONUS (go-wild batch):** manifest app **shortcuts** (long-press icon → New submission / Notifications / Explore) + `categories`/`lang`; student-facing no-key message de-jargoned ("give your project a name and continue"); public **`/about` pitch page** (AuthController `@GetMapping("/about")` → `templates/about.html`, added to permitAll, linked from login footer) for the university pitch. SW → **v6**.
 
+---
+
+## Phase M — Mobile platform, GitHub-app grade (OPUS · designed by Fable, execute top-down)
+
+> **How to work this phase (Opus):** every design decision below is already made — do not
+> re-decide, re-style, or "improve" beyond spec. Read handoff §3/§6 first. All CSS goes in
+> `base.css` (new §29+, mobile rules inside `@media (max-width: 860px)` unless stated).
+> All JS additions are NEW additive functions in `app.js` registered at the end of the
+> DOMContentLoaded list — never modify existing functions beyond what a spec says.
+> **Bump `sw.js` VERSION once per shipped batch** (next: v9). Build green after every item.
+> Ship order = listed order (impact ÷ effort, dependencies respected).
+
+- [ ] **M1 · Slim the mobile top bar.** *(GitHub app: top bar = context + avatar, nothing else.)*
+  With the bottom tab bar live, the topbar's Collaboration-inbox icon is a duplicate of the Inbox
+  tab. At ≤860px: hide `.header-link[aria-label="Collaboration inbox"]` (CSS only). Keep bell +
+  avatar + hamburger. Done-when: one less icon at 390px; desktop unchanged.
+
+- [ ] **M2 · Search from the top bar on phones.** *(GitHub app: search is one tap, always.)*
+  The global search input is `display:none` ≤860 with no replacement. Add ONE anchor in
+  `fragments/navbar.html` inside `.topbar-right`, before the bell: class `header-link header-search-link`,
+  `aria-label="Search"`, `th:href="@{/explore(tab='search')}"`, reusing the existing 16px magnifier
+  SVG path (it's already in the file). CSS: hidden by default, `display:inline-flex` ≤860px.
+  Done-when: tap magnifier → Explore search page; not present on desktop.
+
+- [ ] **M3 · Stacked rows for ALL admin tables.** *(GitHub app: everything is a list row.)*
+  `accounts.html` + lecturer dashboard already use `.table-stack`. Mechanically apply the same
+  pattern to the tables in `admin/{departments,faculties,programmes,units,curricula,assignments,
+  tags,evaluation}.html`: add `table-stack` to each `.table-wrap`, put class `stack-full` on the
+  title-ish first cell if the table's first column isn't already the identity. Verify each at 390px:
+  no horizontal scroll, action buttons reachable. Done-when: zero x-scroll on every admin page.
+
+- [ ] **M4 · Sticky decision bar on the review page.** *(GitHub app: PR verdict is always in reach.)*
+  On `lecturer/review-split.html`, at ≤860px the decision buttons end up far down a long scroll.
+  CSS-only: make the review form's action row (`.review-actions`) `position:sticky; bottom:calc(58px +
+  env(safe-area-inset-bottom)); z-index:30; background:var(--surface-solid); padding:.6rem 0;
+  border-top:1px solid var(--border-muted)` inside its card, ≤860 only. Do NOT move DOM (hooks:
+  `[data-review-form]`, `[data-review-action]`, `[data-review-status]` untouched). Done-when: at
+  390px the Approve/Changes buttons stay visible above the bottom nav while scrolling the document.
+
+- [ ] **M5 · Flash messages become toasts on phones.** *(Native apps confirm at the thumb, not the masthead.)*
+  Flash alerts (`fragments/alerts.html` renders `.alert` at content top) are missed on long pages.
+  New additive `initMobileToasts()` in app.js: if `window.matchMedia('(max-width:860px)').matches`,
+  find `.alert` elements inside `#mainContent` that came from flash (they're the first children),
+  add class `toast-mode`, and auto-dismiss success/info variants after 4s (danger stays until tapped;
+  tap dismisses any). CSS: `.alert.toast-mode { position:fixed; left:12px; right:12px;
+  bottom:calc(70px + env(safe-area-inset-bottom)); z-index:60; box-shadow:var(--shadow-pop); }`
+  + reduced-motion-safe fade. Done-when: submit a form on a phone → confirmation appears just above
+  the bottom nav and fades; errors persist until tapped; desktop rendering unchanged.
+
+- [ ] **M6 · Touch feedback.** *(Apps acknowledge every touch.)* CSS only, global (not media-gated):
+  `@media (hover:none){ .btn:active, .filter-btn:active, .list-row:active, .bottom-nav__link:active,
+  .recommendation-card:active { transform:scale(.985); transition:transform .05s } }` — plus disable
+  iOS tap highlight (`-webkit-tap-highlight-color: transparent` on those selectors). Respect
+  reduced-motion (wrap transform in the no-preference guard). Done-when: taps visibly respond in the APK.
+
+- [ ] **M7 · Real page titles.** *(Task-switcher currently shows five tabs all named "UniSubmit".)*
+  Additive one-liner in app.js DOMContentLoaded: if `#mainContent h1` exists, set
+  `document.title = h1.textContent.trim() + " · UniSubmit"`. Done-when: Android task switcher and
+  browser history show "Review queue · UniSubmit" etc.
+
+- [ ] **M8 · Native share on project pages.** *(GitHub app: share sheet from any PR/issue.)*
+  On `student/submission-detail.html` and `student/project-detail.html` page-head actions: a small
+  `btn btn-secondary` with `data-share-title` = the submission title. Additive `initNativeShare()`:
+  on click, if `navigator.share` exists → share {title, url:location.href}; else copy URL to
+  clipboard and swap the button label to "Link copied ✓" for 1.5s. Hide the button entirely when
+  neither API exists. Done-when: phone opens the OS share sheet; desktop copies the link.
+
+- [ ] **M9 · Import spreadsheets, not just CSV (backend).** *(Root cause of the LibreOffice "can't
+  find my file" report — pickers hide .ods/.xlsx when accept=.csv.)* Add `org.apache.poi:poi-ooxml:5.2.5`
+  to pom. In `CsvImportService`, new `parseStudentsWorkbook(MultipartFile)` reading the FIRST sheet of
+  .xlsx: row 0 = headers (case-insensitive match on the same five names), map each data row into the
+  EXISTING validation pipeline (extract a private `validateAndAdd(...)` from parseStudents so both
+  paths share ALL rules — no duplicated validation). Controller preview endpoint: branch on filename
+  ending `.xlsx` (and content-type sniff). Widen the file input accept to `.csv,.xlsx`. Explicitly NOT
+  .ods (LibreOffice users: Save As xlsx/csv — hint text already says so). Done-when: the owner's
+  LibreOffice sheet saved as .xlsx previews correctly, including its row count; bad .xlsx gives the
+  friendly "doesn't look like a valid file" error, never a stack trace.
+
+- [ ] **M10 · Upload as a dropzone.** *(The file input is the app's most important control and it's a
+  system default.)* On `student/new-submission.html`: wrap the existing `#file` input in a
+  `label.dropzone` (input visually hidden but NOT display:none — keep it focusable/required).
+  Dropzone: dashed `--border-strong` border, upload glyph, "Tap to choose your document" + the
+  existing format hint inside it, min-height 96px, full-width; on change, show the chosen filename
+  inside the zone. Desktop: also accept drag-and-drop (dragover class + drop assigns
+  `input.files = e.dataTransfer.files`). CRITICAL: ids `#file`, `#title` and the suggestion-container
+  ids are load-bearing (§6) — the input keeps its id and change handler behavior. Done-when: mobile
+  shows a big friendly tap target; drag-drop works on desktop; AI title suggestions still fire.
+
+**Phase-M guardrails recap:** never rename §6 hooks; CSRF hidden inputs stay; all assets self-hosted;
+dark low-glare; desktop ≥861px must remain pixel-stable except where a spec says otherwise; owner
+pushes to git (never push); bump SW VERSION per batch; build green before reporting.
+
 ## Log (append a line per session)
 - 2026-07-13 ~03:00 Fable: roadmap created; starting F1.
 - 2026-07-13 Fable: F1 complete (bottom nav, view transitions, prefetch, density/table-stack landed across sessions, SW v4).
 - 2026-07-13 Fable: F2 complete (self-hosted variable fonts 115KB total, /fonts/** permitAll, SW v5, global :focus-visible). Found Chart.js CDN in admin layout → logged as Q1.3.
 - 2026-07-13 Fable: F3 complete (signal bars now hide zero rows; same-unit demoted to context note). ALL FABLE PHASES DONE — remaining work (O1 CSV, O2 architecture, Q1) is Opus-friendly.
 - 2026-07-13 Opus: verified O1 (CSV import) already built + green. O2.2 done (demo seeder → env toggle, default off in prod). O2.1 + O2.3 deliberately DEFERRED (live-app risk during testing — recipes noted above). Build green.
+- 2026-07-14 Fable: CSV row-vanish diagnosed (file not saved before upload — parser + template verified airtight); preview now shows "N rows in file". Import hint explains Save-As-CSV (.ods/.xlsx hidden by picker — root of the LibreOffice report; real .xlsx support = M9). Paper doc preview shipped (.doc-sheet, ivory on dark desk) — owner approved. Phase M (mobile, 10 items, fully-specified) authored for Opus. SW to bump to v8 with this batch.
 - 2026-07-13 Opus: "complete the roadmap" — O2.3 DONE (SW-safe long asset cache, SW v7). O2.1 ATTEMPTED then BACKED OUT: JDBC session storage would serialize the security context, but CustomUserDetails/User aren't Serializable → would break login. Reverted cleanly (pom/yml/schema). Needs a serializable-principal refactor first (logged above). Build green. Roadmap now: F1-F3 ✅, Q1 ✅, O1 ✅, O2.2 ✅, O2.3 ✅, O2.4 ✅ (no-op decision), O2.1 ⛔ blocked.
 - 2026-07-13 Fable go-wild: Q1.1/1.2/1.3 done (assetlinks in .well-known, gitignore, Chart.js self-hosted → ZERO external deps), manifest shortcuts, /about page, SW v6.
 - 2026-07-13 Opus: O1 students CSV import shipped, build green (service+controller+template+nav, commons-csv). Academic-structure importer left as follow-up. Next: O2.
