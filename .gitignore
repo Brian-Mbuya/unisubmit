@@ -57,3 +57,14 @@ Readme.html
 # Test / scratch data files (never commit)
 sample-students.csv
 sample-*.csv
+
+# Runtime artifacts
+uploads/
+*.log
+target/
+.env
+.env.local
+
+# Local tooling
+run-local.ps1.user
+*.h2.db
