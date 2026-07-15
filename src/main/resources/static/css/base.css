@@ -2464,3 +2464,31 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
     .page-head { margin-bottom: 0.75rem; }
     .page-grid { gap: 0.75rem; }
 }
+
+/* ── 31 · Phase R — refinements (tappable rows, stacked details, search) ────── */
+
+/* R2 — the whole row is the tap target; one quiet chevron, no per-row button. */
+tr.row-link { cursor: pointer; }
+tr.row-link:hover { background: rgba(255, 255, 255, 0.02); }
+tr.row-link > td:last-child::after {
+    content: "\203A"; color: var(--text-subtle); font-size: 1.15rem; line-height: 1;
+    margin-left: 0.6rem;
+}
+
+@media (max-width: 640px) {
+    /* R4 — details stack: label over value, no ragged right edge. */
+    .info-row { flex-direction: column; align-items: flex-start; gap: 2px; }
+    .info-row > :last-child { text-align: left; }
+
+    /* R5 — the lone "Re-run AI analysis" fills the row instead of floating. */
+    .ai-rerun-row { justify-content: stretch; }
+    .ai-rerun-row form, .ai-rerun-row .btn { width: 100%; }
+
+    /* R6 — search composes: input then button, each full width. */
+    .search-page-form { flex-wrap: wrap; gap: 0.5rem; }
+    .search-page-form .search-page-input,
+    .search-page-form .btn { flex: 1 1 100%; }
+
+    /* R7 — Post notice fills the width on phones. */
+    .btn-post-notice { width: 100%; }
+}

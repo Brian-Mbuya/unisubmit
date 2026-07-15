@@ -70,7 +70,7 @@
                     </div>
 
                     <div th:if="${#lists.isEmpty(inbox.activeCollaborations)}" class="empty-state empty-state-compact text-sm">
-                        No active collaborations yet — accept a request to start one.
+                        No active collaborations.
                     </div>
 
                     <div class="row-list" th:if="${not #lists.isEmpty(inbox.activeCollaborations)}">
@@ -104,8 +104,8 @@
                     </div>
 
                     <div th:if="${#lists.isEmpty(inbox.outgoingRequests)}" class="empty-state empty-state-compact text-sm">
-                        You have not sent any requests yet. Find matches on the
-                        <a th:href="@{/explore(tab='discover')}">Discover</a> tab.
+                        Nothing sent yet — find matches in
+                        <a th:href="@{/explore(tab='discover')}">Discover</a>.
                     </div>
 
                     <div class="flex flex-col gap-4" th:if="${not #lists.isEmpty(inbox.outgoingRequests)}">
