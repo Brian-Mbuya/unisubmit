@@ -62,7 +62,7 @@
                               th:text="${#lists.size(open)} + ' open'">0 open</span>
                     </div>
 
-                    <div class="table-wrap">
+                    <div class="table-wrap table-stack">
                         <table>
                             <thead>
                                 <tr>
@@ -79,7 +79,7 @@
                                         <strong class="text-accent text-sm" th:text="${ann.unit.unitCode}">CS101</strong>
                                         <span class="text-muted text-xs block" th:text="${ann.unit.unitName}">Unit Name</span>
                                     </td>
-                                    <td>
+                                    <td class="stack-full">
                                         <div class="fw-600 text-sm" th:text="${ann.title}">Assignment Title</div>
                                         <div class="text-muted text-xs mt-1 message-box" style="max-width: 420px;"
                                              th:text="${ann.message}">Description</div>

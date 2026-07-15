@@ -226,6 +226,134 @@ repeats in subtitle/details), page-head `h1` clamped to 2 lines, **modals → bo
 dark low-glare; desktop ≥861px must remain pixel-stable except where a spec says otherwise; owner
 pushes to git (never push); bump SW VERSION per batch; build green before reporting.
 
+---
+
+## Phase D — Depth & Delight (OPUS · art direction by Fable — execute, don't re-decide)
+
+> **Design thesis: depth through layering and light — never through blur.** The owner asked for
+> "morphisms / bento / modern grid" richness. Verdicts, binding: **Bento grid: YES** (fits
+> dashboards, pure CSS grid, zero GPU). **Aurora washes: YES, static + subtle** (one radial
+> gradient, no animation). **Glassmorphism: FAUX ONLY — `backdrop-filter` is BANNED** in this
+> codebase (it crashed low-RAM phones; we removed it in the anti-crash pass — do not reintroduce).
+> **Neumorphism: NO as a system** (contrast/a11y trap on dark, dated) — a whisper is allowed inside
+> stat tiles only. Palette/typography/tokens stay EXACTLY as-is (Nocturne Laurel). Reduced-motion
+> guard applies to anything that moves. Desktop and mobile both get these; keep §6 hooks + CSRF.
+> Reference (vocabulary only, NOT drop-in code — that repo/21st.dev serve React, we are Thymeleaf):
+> github.com/nextlevelbuilder/ui-ux-pro-max-skill.
+
+- [ ] **D1 · Elevation & light system (foundation — do first).** In `base.css` tokens: add
+  `--edge-light: rgba(255,255,255,0.045)`. New rule: `.card, .card-stack, .stat-tile, .modal-card
+  { box-shadow: inset 0 1px 0 var(--edge-light); }` combined with existing borders (append, don't
+  replace existing shadows) — every surface reads "lit from above". Add `.surface-glass` utility:
+  `background: color-mix(in srgb, var(--surface) 72%, transparent); border: 1px solid
+  rgba(255,255,255,0.06);` — faux glass, NO backdrop-filter. Use it ONLY on: the sticky
+  `.review-actions` bar (M4) and `.alert.toast-mode`. Done-when: cards feel subtly dimensional at
+  a glance; grep confirms zero `backdrop-filter` in the file.
+- [ ] **D2 · Bento dashboards.** Restructure the TOP of `student/dashboard.html` and
+  `lecturer/dashboard.html` into a bento band above the existing list: CSS grid `.bento`
+  (`display:grid; gap:12px; grid-template-columns:repeat(4,1fr)`; ≤640px: `repeat(2,1fr)`).
+  Tiles (`.bento-tile` = card styling + D1 edge light): student → [Projects count · 2×1 wide],
+  [Approved count], [Pending count], [New submission — primary action tile, `.bento-tile--action`
+  with jade gradient wash `linear-gradient(135deg, rgba(46,143,127,.28), transparent 70%)` and the
+  "+" glyph]; lecturer → [Waiting for review · 2×1, count in Fraunces 2rem], [Approved this term],
+  [Announcements], [Export CSV action tile]. Numbers use `font-variant-numeric: tabular-nums`,
+  Fraunces for the big figures, 11px uppercase labels. Wire counts from attributes ALREADY in the
+  model where available (submissions list sizes computable via Thymeleaf `#lists`/streams — no new
+  Java unless a count is genuinely absent; if absent, add it to the existing controller method, one
+  line). Done-when: both dashboards open on a scannable 4-tile band (2-col on phone), stat filters
+  and list hooks untouched.
+- [ ] **D3 · Aurora washes (static).** One shared pattern: `.aurora::before { content:""; position:
+  absolute; inset:0; pointer-events:none; background: radial-gradient(560px 300px at 85% -10%,
+  rgba(46,143,127,0.16), transparent 60%), radial-gradient(420px 260px at -10% 110%,
+  rgba(205,166,96,0.07), transparent 60%); }` (parent gets position:relative + overflow:hidden).
+  Apply to exactly three places: `.auth-side` (login brand panel), the explore hero, the `/about`
+  hero. Nowhere else — scarcity is the taste. No animation. Done-when: the three heroes have a
+  quiet two-tone atmosphere; nothing else changed.
+- [ ] **D4 · Match score ring.** In the match/recommendation card head (components.html), replace
+  the "Possible match NN%" text pill with `.score-ring`: a 34px conic ring —
+  `background: conic-gradient(var(--primary) calc(var(--score)*1%), var(--surface-2) 0);
+  border-radius:50%;` inner mask via `::after` (26px circle, background var(--surface));
+  centered percentage in 10px tabular-nums; keep the accessible text (`aria-label="NN% match"`).
+  Set `--score` inline via `th:style`. High scores (≥70) switch the arc to `--gold` (`.score-ring
+  .is-strong`). The identical-document 100% case keeps its existing label treatment. Done-when:
+  match cards read score-at-a-glance as a ring; screen readers still announce the percentage.
+- [ ] **D5 · Empty-state glyphs.** Add ONE reusable set of 5 inline SVG line glyphs (40px, stroke
+  `currentColor`, color `--text-subtle`, stroke-width 1.5): folder (projects), compass (explore/
+  discover), envelope (inbox), bell (notifications), page (documents). Place above the one-line
+  empty-state text via a small Thymeleaf fragment `components :: emptyGlyph(name)`. Done-when:
+  every empty state = glyph + one line; no new words added.
+- [ ] **D6 · Ship check.** Bump `sw.js` VERSION (next after current), build green, verify at 390px
+  AND desktop: no horizontal scroll, no `backdrop-filter`, reduced-motion clean, §6 hooks intact.
+
+**Also in this batch (functional, not design):**
+- [ ] **D7 · Uploads volume note (OWNER action, Railway UI):** service → Volumes → mount at
+  `/app/uploads`. Railway's filesystem is ephemeral: every deploy wipes un-mounted uploads — this is
+  the root of "Uploaded file is no longer available". Old files are unrecoverable (rows remain);
+  students re-upload a new version. After mounting, files survive deploys.
+- [ ] **D8 · Graceful missing-file state.** When `/files/{path}` 404s, the review doc panel already
+  falls back; ALSO catch it on the student side: in `fragments/components.html` version list, no code
+  change needed for the link itself, but change `FileController`'s 404 reason to include guidance:
+  "This file predates the storage fix — upload a new version to restore it." Done-when: the dead-file
+  experience explains itself.
+
+---
+
+## Phase R — Refine (OPUS · from Fable's review of the 2026-07-15 phone screenshots)
+
+> Verdict from the screenshots: the app-shell works — bottom nav, dashboard, dropzone, queue
+> grouping and rail disclosures all read like a real app. What remains is one genuine break (R1)
+> and a set of consistency sins. Execute top-down; same guardrails as Phase M (§6 hooks, CSRF,
+> no backdrop-filter, reduced-motion, owner pushes, bump SW once at the end, build green).
+
+- [ ] **R1 · BROKEN: announcements tables on phones.** Screenshot shows `student/announcements.html`
+  assignments table squeezed to one-word-per-line message text, clipped deadline chip, x-scroll —
+  M3 only covered admin/. Fix: add `table-stack` to its `.table-wrap`, add class `stack-full` to the
+  ASSIGNMENT/message `<td>` (long text must take the full row). Check `lecturer/announcements.html`
+  notice-history for the same pattern. Done-when: at 390px the assignment reads title-first,
+  full-width message, visible deadline; zero x-scroll.
+- [ ] **R2 · Queue rows: tap the row, not a button.** Lecturer queue repeats a bordered "Review"
+  button on EVERY row (heavy, and approved rows still say "Review"). Make the whole `<tr>` tappable:
+  keep the existing link URL, apply it to the row (data-href + tiny additive JS `initRowLinks()` on
+  `tr[data-row-href]`, `cursor:pointer`, click → location; keyboard: make the title cell contain the
+  real `<a>` for a11y), remove the per-row button, add a `›` chevron via CSS `::after` on the last
+  cell. ALSO: show the type chip ONLY for GROUP submissions (exception-labeling — "Individual" on
+  every row is noise): wrap the chip in `th:if="${...type == 'GROUP'}"` (adjust to actual model).
+  Done-when: rows open the review on tap, one chevron per row, no buttons, GROUP still labeled.
+- [ ] **R3 · Kill the dashed double-containers + inbox tone.** Global: `.empty-state { border: none;
+  background: none; }` (the dashed box inside a card reads as a broken frame — the words suffice).
+  In `student/inbox.html`: shorten the three empty lines to "No requests yet." / "No active
+  collaborations." / "Nothing sent yet — find matches in Discover." AND the page subtitle dies.
+  Normalize the "Find new collaborators" button from accent-green to standard `.btn` jade (accent
+  green is reserved for Approve actions). Done-when: inbox is one calm screen, no dashed frames
+  anywhere in the app.
+- [ ] **R4 · Details rows stack on phones.** The `.info-row` label/value pair wraps right-aligned
+  values into a ragged 3-line column ("Department of Computer Science — BSc…"). ≤640px:
+  `.info-row { flex-direction: column; align-items: flex-start; gap: 2px; }` (+ value text-align
+  left). Done-when: Details reads as label-over-value blocks, no ragged right edge.
+- [ ] **R5 · "Re-run AI analysis" placement.** It floats right with a void to its left (screenshot 1).
+  ≤640px make it full-width `btn-secondary btn-sm` (`.ai-rerun-row { justify-content: stretch }` or
+  equivalent); desktop unchanged. Done-when: no floating lone button on mobile.
+- [ ] **R6 · Explore search composition.** Placeholder truncates ("e.g. traffic p") beside an
+  oversized Search button. ≤640px: input takes full width (`flex: 1 1 100%`), button becomes
+  compact (auto width, same row if it fits or second line full-width); shorten placeholder to
+  "Search projects…". Also covered by R3: the dashed "Search the archive." box loses its border.
+  Done-when: search bar looks composed at 390px, placeholder legible.
+- [ ] **R7 · Word diet, round two.** (a) Lecturer "Workload" card: DELETE the "Visible in filter"
+  and "Units shown" rows (internal metrics — keep Pending reviews / Completed decisions).
+  (b) Announcements form: "Post notice" button full-width on ≤640; trim the two helper lines to
+  one each. (c) Student announcements page subtitle ("Deadlines and instructions from your unit
+  lecturers, newest first.") → delete; the h1 says it. Done-when: nothing on these screens
+  explains what's already visible.
+- [ ] **R8 · Mystery checkbox glyphs on dashboard rows.** Student project rows show an empty
+  square outline before "Applied Machine Learning" that reads as a broken checkbox. Find it in
+  `student/dashboard.html` (likely a decorative unit icon) — replace with the 16px folder glyph
+  from the bottom nav, or delete it. Done-when: no ambiguous empty squares.
+- [ ] **R9 · (Optional) date-only timestamps in the queue.** "11 Jul 2026, 23:50" → drop the time
+  on the lecturer queue rows (template `#temporals.format(..., 'dd MMM yyyy')`) — the minute a
+  student uploaded is never the deciding datum. Skip if any test depends on the format.
+- [ ] **R10 · Ship check.** Bump `sw.js` VERSION, build green, then verify at 390px: announcements,
+  queue, inbox, explore, submission detail. Desktop must be pixel-stable except where specced.
+
 ## Log (append a line per session)
 - 2026-07-13 ~03:00 Fable: roadmap created; starting F1.
 - 2026-07-13 Fable: F1 complete (bottom nav, view transitions, prefetch, density/table-stack landed across sessions, SW v4).
