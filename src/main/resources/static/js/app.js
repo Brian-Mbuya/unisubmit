@@ -476,6 +476,16 @@
     }
   }
 
+  /* R2 — whole table rows are tappable (real links/buttons inside still win). */
+  function initRowLinks() {
+    document.querySelectorAll("tr.row-link[data-row-href]").forEach(function (row) {
+      row.addEventListener("click", function (e) {
+        if (e.target.closest("a, button")) return;
+        window.location.href = row.getAttribute("data-row-href");
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     markActiveNav();
     initMobileNav();
@@ -495,5 +505,6 @@
     initNativeShare();
     initDropzone();
     initRailCollapse();
+    initRowLinks();
   });
 })();

@@ -73,29 +73,26 @@
                                     <th>Type</th>
                                     <th>Updated</th>
                                     <th>Status</th>
-                                    <th class="text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr th:each="sub : ${entry.value}">
-                                    <td>
+                                <tr th:each="sub : ${entry.value}" class="row-link"
+                                    th:attr="data-row-href=@{'/lecturer/submission/' + ${sub.id}}">
+                                    <td class="stack-full">
                                         <a th:href="@{'/lecturer/submission/' + ${sub.id}}"
                                            class="list-row-title text-sm"
                                            th:text="${sub.title}">Submission title</a>
                                     </td>
                                     <td class="text-sm" th:text="${sub.student.name}">Student</td>
                                     <td>
+                                        <!-- Exception-labeling: only GROUP work is flagged; individual is the norm. -->
                                         <span class="badge badge-draft" th:if="${sub.projectGroup != null}"
                                               th:text="'Group: ' + ${sub.projectGroup.name}">Group</span>
-                                        <span class="badge badge-draft" th:if="${sub.projectGroup == null}">Individual</span>
                                     </td>
                                     <td class="text-xs text-muted"
-                                        th:text="${#temporals.format(sub.updatedAt, 'dd MMM yyyy, HH:mm')}">Updated</td>
+                                        th:text="${#temporals.format(sub.updatedAt, 'dd MMM yyyy')}">Updated</td>
                                     <td>
                                         <div th:replace="~{fragments/components :: statusBadge(${sub.status.name()})}"></div>
-                                    </td>
-                                    <td class="text-right">
-                                        <a th:href="@{'/lecturer/submission/' + ${sub.id}}" class="btn btn-sm btn-secondary">Review</a>
                                     </td>
                                 </tr>
                             </tbody>
@@ -116,14 +113,6 @@
                         <div class="figure-row">
                             <span class="figure-label">Completed decisions</span>
                             <span class="figure-value is-green" th:text="${completedReviews}">0</span>
-                        </div>
-                        <div class="figure-row">
-                            <span class="figure-label">Visible in filter</span>
-                            <span class="figure-value is-blue" th:text="${#lists.size(submissions)}">0</span>
-                        </div>
-                        <div class="figure-row">
-                            <span class="figure-label">Units shown</span>
-                            <span class="figure-value" th:text="${#maps.size(submissionsByUnit)}">0</span>
                         </div>
                     </section>
                 </div>
