@@ -8,6 +8,11 @@ import com.unisubmit.repository.UserRepository;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,7 +26,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -70,7 +77,16 @@ public class CsvImportService {
                                     String password, String status) implements Serializable {}
 
     // ── Step 1: parse + validate, no writes ─────────────────────────────────────
+    /** Single entry point — dispatches by extension so the controller stays simple. */
     public StudentPreview parseStudents(MultipartFile file) {
+        String fn = file.getOriginalFilename();
+        if (fn != null && fn.toLowerCase().endsWith(".xlsx")) {
+            return parseStudentsWorkbook(file);
+        }
+        return parseStudentsCsv(file);
+    }
+
+    private StudentPreview parseStudentsCsv(MultipartFile file) {
         List<StudentRow> rows = new ArrayList<>();
         Set<String> seenEmails = new HashSet<>();
         Set<String> seenIds = new HashSet<>();
@@ -98,37 +114,9 @@ public class CsvImportService {
                             "File has more than " + MAX_ROWS + " rows — split it and import in batches.");
                 }
                 int line = (int) rec.getRecordNumber() + 1; // +1 for the header row
-                String name = get(rec, "name");
-                String email = get(rec, "email").toLowerCase();
-                String studentId = get(rec, "studentId");
-                String programmeCode = get(rec, "programmeCode");
-                String yearRaw = get(rec, "year");
-
-                String error = null;
-                Integer year = null;
-                Long programmeId = null;
-
-                if (name.isBlank()) error = "Name is required";
-                else if (email.isBlank() || !EMAIL.matcher(email).matches()) error = "Invalid or missing email";
-                else if (studentId.isBlank()) error = "Student ID is required";
-                else if (!seenEmails.add(email)) error = "Duplicate email in this file";
-                else if (!seenIds.add(studentId.toLowerCase())) error = "Duplicate Student ID in this file";
-                else if (userRepository.findByUsername(email).isPresent()) error = "Email already registered";
-                else if (studentProfileRepository.findByAdmissionNumberIgnoreCase(studentId).isPresent())
-                    error = "Student ID already registered";
-
-                if (error == null && !programmeCode.isBlank()) {
-                    Course c = courseRepository.findByCodeIgnoreCase(programmeCode).orElse(null);
-                    if (c == null) error = "Unknown programme code '" + programmeCode + "'";
-                    else programmeId = c.getId();
-                }
-                if (error == null && !yearRaw.isBlank()) {
-                    try { year = Integer.parseInt(yearRaw); }
-                    catch (NumberFormatException ex) { error = "Year must be a number"; }
-                }
-
-                rows.add(new StudentRow(line, name, email, studentId, programmeCode, year,
-                        programmeId, error == null, error));
+                validateAndAdd(rows, seenEmails, seenIds, line,
+                        get(rec, "name"), get(rec, "email"), get(rec, "studentId"),
+                        get(rec, "programmeCode"), get(rec, "year"));
             }
         } catch (IOException ex) {
             return new StudentPreview(List.of(), 0, 0, "Could not read the file: " + ex.getMessage());
@@ -137,6 +125,115 @@ public class CsvImportService {
         }
 
         return new StudentPreview(rows, count(rows, true), count(rows, false), null);
+    }
+
+    // ── Shared per-row validation (CSV + XLSX feed the exact same rules) ────────
+    private void validateAndAdd(List<StudentRow> rows, Set<String> seenEmails, Set<String> seenIds,
+                                int line, String name, String email, String studentId,
+                                String programmeCode, String yearRaw) {
+        name = name == null ? "" : name.trim();
+        email = email == null ? "" : email.trim().toLowerCase();
+        studentId = studentId == null ? "" : studentId.trim();
+        programmeCode = programmeCode == null ? "" : programmeCode.trim();
+        yearRaw = yearRaw == null ? "" : yearRaw.trim();
+
+        String error = null;
+        Integer year = null;
+        Long programmeId = null;
+
+        if (name.isBlank()) error = "Name is required";
+        else if (email.isBlank() || !EMAIL.matcher(email).matches()) error = "Invalid or missing email";
+        else if (studentId.isBlank()) error = "Student ID is required";
+        else if (!seenEmails.add(email)) error = "Duplicate email in this file";
+        else if (!seenIds.add(studentId.toLowerCase())) error = "Duplicate Student ID in this file";
+        else if (userRepository.findByUsername(email).isPresent()) error = "Email already registered";
+        else if (studentProfileRepository.findByAdmissionNumberIgnoreCase(studentId).isPresent())
+            error = "Student ID already registered";
+
+        if (error == null && !programmeCode.isBlank()) {
+            Course c = courseRepository.findByCodeIgnoreCase(programmeCode).orElse(null);
+            if (c == null) error = "Unknown programme code '" + programmeCode + "'";
+            else programmeId = c.getId();
+        }
+        if (error == null && !yearRaw.isBlank()) {
+            try { year = Integer.parseInt(yearRaw); }
+            catch (NumberFormatException ex) { error = "Year must be a number"; }
+        }
+
+        rows.add(new StudentRow(line, name, email, studentId, programmeCode, year,
+                programmeId, error == null, error));
+    }
+
+    // ── Step 1b: parse + validate an .xlsx workbook (first sheet) ───────────────
+    public StudentPreview parseStudentsWorkbook(MultipartFile file) {
+        List<StudentRow> rows = new ArrayList<>();
+        Set<String> seenEmails = new HashSet<>();
+        Set<String> seenIds = new HashSet<>();
+
+        try (Workbook wb = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = wb.getSheetAt(0);
+            if (sheet == null) return new StudentPreview(List.of(), 0, 0, "The spreadsheet has no sheets.");
+
+            Row header = sheet.getRow(sheet.getFirstRowNum());
+            if (header == null) return new StudentPreview(List.of(), 0, 0,
+                    "The first row must be a header: name, email, studentId, programmeCode, year");
+
+            Map<String, Integer> col = new HashMap<>();
+            for (Cell cell : header) col.put(cellString(cell).toLowerCase(), cell.getColumnIndex());
+
+            for (String required : List.of("name", "email", "studentid")) {
+                if (!col.containsKey(required)) {
+                    return new StudentPreview(List.of(), 0, 0,
+                            "Missing required column '" + required + "'. Expected header: "
+                                    + "name, email, studentId, programmeCode, year");
+                }
+            }
+
+            int last = sheet.getLastRowNum();
+            for (int r = header.getRowNum() + 1; r <= last; r++) {
+                if (rows.size() >= MAX_ROWS) {
+                    return new StudentPreview(rows, count(rows, true), count(rows, false),
+                            "File has more than " + MAX_ROWS + " rows — split it and import in batches.");
+                }
+                Row row = sheet.getRow(r);
+                if (row == null) continue;
+                String name = colVal(row, col, "name");
+                String email = colVal(row, col, "email");
+                String studentId = colVal(row, col, "studentid");
+                if (name.isBlank() && email.isBlank() && studentId.isBlank()) continue; // skip blank rows
+                validateAndAdd(rows, seenEmails, seenIds, r + 1, name, email, studentId,
+                        colVal(row, col, "programmecode"), colVal(row, col, "year"));
+            }
+        } catch (Exception ex) {
+            log.warn("XLSX import parse failed: {}", ex.getMessage());
+            return new StudentPreview(List.of(), 0, 0, "That doesn't look like a valid .xlsx file.");
+        }
+
+        return new StudentPreview(rows, count(rows, true), count(rows, false), null);
+    }
+
+    private static String colVal(Row row, Map<String, Integer> col, String key) {
+        Integer idx = col.get(key);
+        if (idx == null) return "";
+        Cell cell = row.getCell(idx);
+        return cell == null ? "" : cellString(cell);
+    }
+
+    /** Best-effort cell → string; numeric IDs/years render without a trailing ".0". */
+    private static String cellString(Cell cell) {
+        if (cell == null) return "";
+        switch (cell.getCellType()) {
+            case STRING: return cell.getStringCellValue().trim();
+            case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
+            case NUMERIC:
+                double d = cell.getNumericCellValue();
+                return (d == Math.floor(d) && !Double.isInfinite(d))
+                        ? String.valueOf((long) d) : String.valueOf(d);
+            case FORMULA:
+                try { return cell.getStringCellValue().trim(); }
+                catch (Exception e) { return ""; }
+            default: return "";
+        }
     }
 
     // ── Step 2: create accounts from validated rows (per-row, partial-safe) ─────

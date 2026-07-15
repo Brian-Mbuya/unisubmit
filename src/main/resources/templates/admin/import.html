@@ -93,7 +93,7 @@
             <div class="form-group">
                 <label class="form-label" for="file">Students CSV</label>
                 <input type="file" id="file" name="file" class="form-control"
-                       accept=".csv,text/csv,application/vnd.ms-excel" required>
+                       accept=".csv,.xlsx" required>
                 <div class="field-hint">
                     Columns: <span class="mono">name, email, studentId, programmeCode, year</span>.
                     <a th:href="@{/admin/import/template/students.csv}">Download template</a>.
