@@ -169,4 +169,4 @@ submissions; each would need work at thousands:
 1. Academic foundation · 2. Knowledge model · 3. AI analysis engine · 4. Academic memory
 (relations + audit) · 5. Recommendation engine · 6. Explainable assistant · 7. Measured
 intelligence (evaluation, hybrid search, landscape, integrity check, OCR, blind review)
-· 8. AI collaboration discovery · 9. Hardening & completion.
+· 8. AI collaboration discovery · 9. Hardening & completion (transferred to GitHub Issues).
