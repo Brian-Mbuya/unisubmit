@@ -305,13 +305,13 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
 > and a set of consistency sins. Execute top-down; same guardrails as Phase M (§6 hooks, CSRF,
 > no backdrop-filter, reduced-motion, owner pushes, bump SW once at the end, build green).
 
-- [ ] **R1 · BROKEN: announcements tables on phones.** Screenshot shows `student/announcements.html`
+- [x] **R1 · BROKEN: announcements tables on phones.** Screenshot shows `student/announcements.html`
   assignments table squeezed to one-word-per-line message text, clipped deadline chip, x-scroll —
   M3 only covered admin/. Fix: add `table-stack` to its `.table-wrap`, add class `stack-full` to the
   ASSIGNMENT/message `<td>` (long text must take the full row). Check `lecturer/announcements.html`
   notice-history for the same pattern. Done-when: at 390px the assignment reads title-first,
   full-width message, visible deadline; zero x-scroll.
-- [ ] **R2 · Queue rows: tap the row, not a button.** Lecturer queue repeats a bordered "Review"
+- [x] **R2 · Queue rows: tap the row, not a button.** Lecturer queue repeats a bordered "Review"
   button on EVERY row (heavy, and approved rows still say "Review"). Make the whole `<tr>` tappable:
   keep the existing link URL, apply it to the row (data-href + tiny additive JS `initRowLinks()` on
   `tr[data-row-href]`, `cursor:pointer`, click → location; keyboard: make the title cell contain the
@@ -319,39 +319,39 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
   cell. ALSO: show the type chip ONLY for GROUP submissions (exception-labeling — "Individual" on
   every row is noise): wrap the chip in `th:if="${...type == 'GROUP'}"` (adjust to actual model).
   Done-when: rows open the review on tap, one chevron per row, no buttons, GROUP still labeled.
-- [ ] **R3 · Kill the dashed double-containers + inbox tone.** Global: `.empty-state { border: none;
+- [x] **R3 · Kill the dashed double-containers + inbox tone.** Global: `.empty-state { border: none;
   background: none; }` (the dashed box inside a card reads as a broken frame — the words suffice).
   In `student/inbox.html`: shorten the three empty lines to "No requests yet." / "No active
   collaborations." / "Nothing sent yet — find matches in Discover." AND the page subtitle dies.
   Normalize the "Find new collaborators" button from accent-green to standard `.btn` jade (accent
   green is reserved for Approve actions). Done-when: inbox is one calm screen, no dashed frames
   anywhere in the app.
-- [ ] **R4 · Details rows stack on phones.** The `.info-row` label/value pair wraps right-aligned
+- [x] **R4 · Details rows stack on phones.** The `.info-row` label/value pair wraps right-aligned
   values into a ragged 3-line column ("Department of Computer Science — BSc…"). ≤640px:
   `.info-row { flex-direction: column; align-items: flex-start; gap: 2px; }` (+ value text-align
   left). Done-when: Details reads as label-over-value blocks, no ragged right edge.
-- [ ] **R5 · "Re-run AI analysis" placement.** It floats right with a void to its left (screenshot 1).
+- [x] **R5 · "Re-run AI analysis" placement.** It floats right with a void to its left (screenshot 1).
   ≤640px make it full-width `btn-secondary btn-sm` (`.ai-rerun-row { justify-content: stretch }` or
   equivalent); desktop unchanged. Done-when: no floating lone button on mobile.
-- [ ] **R6 · Explore search composition.** Placeholder truncates ("e.g. traffic p") beside an
+- [x] **R6 · Explore search composition.** Placeholder truncates ("e.g. traffic p") beside an
   oversized Search button. ≤640px: input takes full width (`flex: 1 1 100%`), button becomes
   compact (auto width, same row if it fits or second line full-width); shorten placeholder to
   "Search projects…". Also covered by R3: the dashed "Search the archive." box loses its border.
   Done-when: search bar looks composed at 390px, placeholder legible.
-- [ ] **R7 · Word diet, round two.** (a) Lecturer "Workload" card: DELETE the "Visible in filter"
+- [x] **R7 · Word diet, round two.** (a) Lecturer "Workload" card: DELETE the "Visible in filter"
   and "Units shown" rows (internal metrics — keep Pending reviews / Completed decisions).
   (b) Announcements form: "Post notice" button full-width on ≤640; trim the two helper lines to
   one each. (c) Student announcements page subtitle ("Deadlines and instructions from your unit
   lecturers, newest first.") → delete; the h1 says it. Done-when: nothing on these screens
   explains what's already visible.
-- [ ] **R8 · Mystery checkbox glyphs on dashboard rows.** Student project rows show an empty
+- [x] **R8 · Mystery checkbox glyphs on dashboard rows.** Student project rows show an empty
   square outline before "Applied Machine Learning" that reads as a broken checkbox. Find it in
   `student/dashboard.html` (likely a decorative unit icon) — replace with the 16px folder glyph
   from the bottom nav, or delete it. Done-when: no ambiguous empty squares.
-- [ ] **R9 · (Optional) date-only timestamps in the queue.** "11 Jul 2026, 23:50" → drop the time
+- [x] **R9 · (Optional) date-only timestamps in the queue.** "11 Jul 2026, 23:50" → drop the time
   on the lecturer queue rows (template `#temporals.format(..., 'dd MMM yyyy')`) — the minute a
   student uploaded is never the deciding datum. Skip if any test depends on the format.
-- [ ] **R10 · Ship check.** Bump `sw.js` VERSION, build green, then verify at 390px: announcements,
+- [x] **R10 · Ship check.** Bump `sw.js` VERSION, build green, then verify at 390px: announcements,
   queue, inbox, explore, submission detail. Desktop must be pixel-stable except where specced.
 
 ## Log (append a line per session)
@@ -366,3 +366,4 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
 - 2026-07-13 Opus: O1 students CSV import shipped, build green (service+controller+template+nav, commons-csv). Academic-structure importer left as follow-up. Next: O2.
 - 2026-07-13 ~03:30 Fable: F1 COMPLETE (bottom nav + view transitions + prefetch + SW v4; density/table-stack found already landed). Next: F2 fonts, or O1 CSV (Opus). NOTE for Q-list: admin/layout.html loads Chart.js from jsdelivr CDN — self-host alongside fonts.
 - 2026-07-14 Opus: Phase M COMPLETE (M3 stacked admin tables · M4 sticky review bar · M5 mobile toasts · M7 real page titles · M8 native share · M9 .xlsx import via Apache POI, shared validation pipeline, dispatch-by-extension · M10 dropzone upload · M11 rail disclosures · M12 dashboard greeting compaction · M13 spacing rhythm). Build green, SW v10. M1/M2/M6 were already done by Fable. ALL PHASES DONE.
+- 2026-07-15 Opus: Phase R COMPLETE. R1 announcements table stacks (student) + stack-full on message. R2 lecturer queue rows fully tappable (initRowLinks, chevron, per-row Review button removed, GROUP-only chip). R3 .empty-state dashed frame removed globally + inbox copy trimmed + green button normalized. R4 info-row stacks on phones. R5 Re-run AI full-width on mobile. R6 explore search composes + placeholder shortened. R7 workload "Visible in filter"/"Units shown" removed, subtitles deleted, Post-notice full-width. R8 mystery square glyph -> folder. R9 queue timestamps date-only. Build green, SW v11. NOTE: 390px visual verify is owner-side (cannot self-login). Phase D (bento/rings/aurora) + D7 Railway volume remain.
