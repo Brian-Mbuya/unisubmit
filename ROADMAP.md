@@ -135,14 +135,14 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
   SVG path (it's already in the file). CSS: hidden by default, `display:inline-flex` ≤860px.
   Done-when: tap magnifier → Explore search page; not present on desktop.
 
-- [ ] **M3 · Stacked rows for ALL admin tables.** *(GitHub app: everything is a list row.)*
+- [x] **M3 · Stacked rows for ALL admin tables.** *(GitHub app: everything is a list row.)*
   `accounts.html` + lecturer dashboard already use `.table-stack`. Mechanically apply the same
   pattern to the tables in `admin/{departments,faculties,programmes,units,curricula,assignments,
   tags,evaluation}.html`: add `table-stack` to each `.table-wrap`, put class `stack-full` on the
   title-ish first cell if the table's first column isn't already the identity. Verify each at 390px:
   no horizontal scroll, action buttons reachable. Done-when: zero x-scroll on every admin page.
 
-- [ ] **M4 · Sticky decision bar on the review page.** *(GitHub app: PR verdict is always in reach.)*
+- [x] **M4 · Sticky decision bar on the review page.** *(GitHub app: PR verdict is always in reach.)*
   On `lecturer/review-split.html`, at ≤860px the decision buttons end up far down a long scroll.
   CSS-only: make the review form's action row (`.review-actions`) `position:sticky; bottom:calc(58px +
   env(safe-area-inset-bottom)); z-index:30; background:var(--surface-solid); padding:.6rem 0;
@@ -150,7 +150,7 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
   `[data-review-form]`, `[data-review-action]`, `[data-review-status]` untouched). Done-when: at
   390px the Approve/Changes buttons stay visible above the bottom nav while scrolling the document.
 
-- [ ] **M5 · Flash messages become toasts on phones.** *(Native apps confirm at the thumb, not the masthead.)*
+- [x] **M5 · Flash messages become toasts on phones.** *(Native apps confirm at the thumb, not the masthead.)*
   Flash alerts (`fragments/alerts.html` renders `.alert` at content top) are missed on long pages.
   New additive `initMobileToasts()` in app.js: if `window.matchMedia('(max-width:860px)').matches`,
   find `.alert` elements inside `#mainContent` that came from flash (they're the first children),
@@ -166,19 +166,19 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
   iOS tap highlight (`-webkit-tap-highlight-color: transparent` on those selectors). Respect
   reduced-motion (wrap transform in the no-preference guard). Done-when: taps visibly respond in the APK.
 
-- [ ] **M7 · Real page titles.** *(Task-switcher currently shows five tabs all named "UniSubmit".)*
+- [x] **M7 · Real page titles.** *(Task-switcher currently shows five tabs all named "UniSubmit".)*
   Additive one-liner in app.js DOMContentLoaded: if `#mainContent h1` exists, set
   `document.title = h1.textContent.trim() + " · UniSubmit"`. Done-when: Android task switcher and
   browser history show "Review queue · UniSubmit" etc.
 
-- [ ] **M8 · Native share on project pages.** *(GitHub app: share sheet from any PR/issue.)*
+- [x] **M8 · Native share on project pages.** *(GitHub app: share sheet from any PR/issue.)*
   On `student/submission-detail.html` and `student/project-detail.html` page-head actions: a small
   `btn btn-secondary` with `data-share-title` = the submission title. Additive `initNativeShare()`:
   on click, if `navigator.share` exists → share {title, url:location.href}; else copy URL to
   clipboard and swap the button label to "Link copied ✓" for 1.5s. Hide the button entirely when
   neither API exists. Done-when: phone opens the OS share sheet; desktop copies the link.
 
-- [ ] **M9 · Import spreadsheets, not just CSV (backend).** *(Root cause of the LibreOffice "can't
+- [x] **M9 · Import spreadsheets, not just CSV (backend).** *(Root cause of the LibreOffice "can't
   find my file" report — pickers hide .ods/.xlsx when accept=.csv.)* Add `org.apache.poi:poi-ooxml:5.2.5`
   to pom. In `CsvImportService`, new `parseStudentsWorkbook(MultipartFile)` reading the FIRST sheet of
   .xlsx: row 0 = headers (case-insensitive match on the same five names), map each data row into the
@@ -189,7 +189,7 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
   LibreOffice sheet saved as .xlsx previews correctly, including its row count; bad .xlsx gives the
   friendly "doesn't look like a valid file" error, never a stack trace.
 
-- [ ] **M10 · Upload as a dropzone.** *(The file input is the app's most important control and it's a
+- [x] **M10 · Upload as a dropzone.** *(The file input is the app's most important control and it's a
   system default.)* On `student/new-submission.html`: wrap the existing `#file` input in a
   `label.dropzone` (input visually hidden but NOT display:none — keep it focusable/required).
   Dropzone: dashed `--border-strong` border, upload glyph, "Tap to choose your document" + the
@@ -204,7 +204,7 @@ Also DONE by Fable inline (base.css §29): breadcrumbs hidden ≤860 (2–3 line
 repeats in subtitle/details), page-head `h1` clamped to 2 lines, **modals → bottom sheets** ≤860
 (`.modal-overlay` bottom-aligned, `.modal-card` full-width sheet w/ safe-area padding — DOM/JS untouched).
 
-- [ ] **M11 · Collapse the rail on submission-detail (phones).** *(GitHub app: secondary sections are
+- [x] **M11 · Collapse the rail on submission-detail (phones).** *(GitHub app: secondary sections are
   disclosures.)* In `student/submission-detail.html`, wrap the rail's "Version history" and "Suggested
   reviewers" `.card-section` CONTENT in native `<details class="rail-collapse"><summary>…</summary>…</details>`
   (the existing `.card-head h2` text becomes the summary label; keep heading semantics via CSS).
@@ -212,12 +212,12 @@ repeats in subtitle/details), page-head `h1` clamped to 2 lines, **modals → bo
   `min-width:861px` set `open = true` on every `.rail-collapse` (desktop unchanged). CSS: style
   `summary` like `.card-head h2` with a chevron, ≥44px tap height. Done-when: at 390px the rail
   reads as two tappable headings; desktop identical to today.
-- [ ] **M12 · Dashboard greeting compaction.** Add class `page-head--greeting` to the page-head of
+- [x] **M12 · Dashboard greeting compaction.** Add class `page-head--greeting` to the page-head of
   `student/dashboard.html` + `lecturer/dashboard.html`. CSS ≤640: its `h1` → 1.05rem, margin-bottom
   0.15rem; its `.subtitle` ("N waiting for review" / progress line) becomes the emphasis —
   `color:var(--text); font-weight:600`. Done-when: at 390×760 the first submission row is visible
   without scrolling on both dashboards.
-- [ ] **M13 · Mobile spacing constants.** One audit pass, ≤640: `.container` gutter exactly 16px;
+- [x] **M13 · Mobile spacing constants.** One audit pass, ≤640: `.container` gutter exactly 16px;
   `.card` and `.card-stack > .card-section` padding exactly 14px 16px; `.page-head` margin-bottom
   0.75rem; sibling section gap 0.75rem. Fix any page with double-padding (card inside padded card).
   Done-when: spacing feels uniform across dashboard/detail/explore at 390px; no nested-padding wells.
@@ -237,3 +237,4 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
 - 2026-07-13 Fable go-wild: Q1.1/1.2/1.3 done (assetlinks in .well-known, gitignore, Chart.js self-hosted → ZERO external deps), manifest shortcuts, /about page, SW v6.
 - 2026-07-13 Opus: O1 students CSV import shipped, build green (service+controller+template+nav, commons-csv). Academic-structure importer left as follow-up. Next: O2.
 - 2026-07-13 ~03:30 Fable: F1 COMPLETE (bottom nav + view transitions + prefetch + SW v4; density/table-stack found already landed). Next: F2 fonts, or O1 CSV (Opus). NOTE for Q-list: admin/layout.html loads Chart.js from jsdelivr CDN — self-host alongside fonts.
+- 2026-07-14 Opus: Phase M COMPLETE (M3 stacked admin tables · M4 sticky review bar · M5 mobile toasts · M7 real page titles · M8 native share · M9 .xlsx import via Apache POI, shared validation pipeline, dispatch-by-extension · M10 dropzone upload · M11 rail disclosures · M12 dashboard greeting compaction · M13 spacing rhythm). Build green, SW v10. M1/M2/M6 were already done by Fable. ALL PHASES DONE.
