@@ -103,18 +103,15 @@
 
             <!-- ── Rail: workload at a glance — one quiet surface ──────── -->
             <aside class="page-rail" aria-label="Workload overview">
-                <div class="card card-stack">
-                    <section class="card-section">
-                        <div class="card-head"><h2>Workload</h2></div>
-                        <div class="figure-row">
-                            <span class="figure-label">Pending reviews</span>
-                            <span class="figure-value is-amber" th:text="${pendingReviews}">0</span>
-                        </div>
-                        <div class="figure-row">
-                            <span class="figure-label">Completed decisions</span>
-                            <span class="figure-value is-green" th:text="${completedReviews}">0</span>
-                        </div>
-                    </section>
+                <div class="bento" aria-label="Workload">
+                    <div class="bento-tile">
+                        <span class="bento-num is-amber" th:text="${pendingReviews}">0</span>
+                        <span class="bento-label">Pending reviews</span>
+                    </div>
+                    <div class="bento-tile">
+                        <span class="bento-num is-green" th:text="${completedReviews}">0</span>
+                        <span class="bento-label">Completed</span>
+                    </div>
                 </div>
             </aside>
         </div>
