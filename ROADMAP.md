@@ -241,7 +241,7 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
 > Reference (vocabulary only, NOT drop-in code — that repo/21st.dev serve React, we are Thymeleaf):
 > github.com/nextlevelbuilder/ui-ux-pro-max-skill.
 
-- [ ] **D1 · Elevation & light system (foundation — do first).** In `base.css` tokens: add
+- [x] **D1 · Elevation & light system (foundation — do first).** In `base.css` tokens: add
   `--edge-light: rgba(255,255,255,0.045)`. New rule: `.card, .card-stack, .stat-tile, .modal-card
   { box-shadow: inset 0 1px 0 var(--edge-light); }` combined with existing borders (append, don't
   replace existing shadows) — every surface reads "lit from above". Add `.surface-glass` utility:
@@ -249,7 +249,7 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
   rgba(255,255,255,0.06);` — faux glass, NO backdrop-filter. Use it ONLY on: the sticky
   `.review-actions` bar (M4) and `.alert.toast-mode`. Done-when: cards feel subtly dimensional at
   a glance; grep confirms zero `backdrop-filter` in the file.
-- [ ] **D2 · Bento dashboards.** Restructure the TOP of `student/dashboard.html` and
+- [x] **D2 · Bento dashboards.** Restructure the TOP of `student/dashboard.html` and
   `lecturer/dashboard.html` into a bento band above the existing list: CSS grid `.bento`
   (`display:grid; gap:12px; grid-template-columns:repeat(4,1fr)`; ≤640px: `repeat(2,1fr)`).
   Tiles (`.bento-tile` = card styling + D1 edge light): student → [Projects count · 2×1 wide],
@@ -262,14 +262,14 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
   Java unless a count is genuinely absent; if absent, add it to the existing controller method, one
   line). Done-when: both dashboards open on a scannable 4-tile band (2-col on phone), stat filters
   and list hooks untouched.
-- [ ] **D3 · Aurora washes (static).** One shared pattern: `.aurora::before { content:""; position:
+- [x] **D3 · Aurora washes (static).** One shared pattern: `.aurora::before { content:""; position:
   absolute; inset:0; pointer-events:none; background: radial-gradient(560px 300px at 85% -10%,
   rgba(46,143,127,0.16), transparent 60%), radial-gradient(420px 260px at -10% 110%,
   rgba(205,166,96,0.07), transparent 60%); }` (parent gets position:relative + overflow:hidden).
   Apply to exactly three places: `.auth-side` (login brand panel), the explore hero, the `/about`
   hero. Nowhere else — scarcity is the taste. No animation. Done-when: the three heroes have a
   quiet two-tone atmosphere; nothing else changed.
-- [ ] **D4 · Match score ring.** In the match/recommendation card head (components.html), replace
+- [x] **D4 · Match score ring.** In the match/recommendation card head (components.html), replace
   the "Possible match NN%" text pill with `.score-ring`: a 34px conic ring —
   `background: conic-gradient(var(--primary) calc(var(--score)*1%), var(--surface-2) 0);
   border-radius:50%;` inner mask via `::after` (26px circle, background var(--surface));
@@ -282,7 +282,7 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
   discover), envelope (inbox), bell (notifications), page (documents). Place above the one-line
   empty-state text via a small Thymeleaf fragment `components :: emptyGlyph(name)`. Done-when:
   every empty state = glyph + one line; no new words added.
-- [ ] **D6 · Ship check.** Bump `sw.js` VERSION (next after current), build green, verify at 390px
+- [x] **D6 · Ship check.** Bump `sw.js` VERSION (next after current), build green, verify at 390px
   AND desktop: no horizontal scroll, no `backdrop-filter`, reduced-motion clean, §6 hooks intact.
 
 **Also in this batch (functional, not design):**
@@ -290,7 +290,7 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
   `/app/uploads`. Railway's filesystem is ephemeral: every deploy wipes un-mounted uploads — this is
   the root of "Uploaded file is no longer available". Old files are unrecoverable (rows remain);
   students re-upload a new version. After mounting, files survive deploys.
-- [ ] **D8 · Graceful missing-file state.** When `/files/{path}` 404s, the review doc panel already
+- [x] **D8 · Graceful missing-file state.** When `/files/{path}` 404s, the review doc panel already
   falls back; ALSO catch it on the student side: in `fragments/components.html` version list, no code
   change needed for the link itself, but change `FileController`'s 404 reason to include guidance:
   "This file predates the storage fix — upload a new version to restore it." Done-when: the dead-file
@@ -367,3 +367,4 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
 - 2026-07-13 ~03:30 Fable: F1 COMPLETE (bottom nav + view transitions + prefetch + SW v4; density/table-stack found already landed). Next: F2 fonts, or O1 CSV (Opus). NOTE for Q-list: admin/layout.html loads Chart.js from jsdelivr CDN — self-host alongside fonts.
 - 2026-07-14 Opus: Phase M COMPLETE (M3 stacked admin tables · M4 sticky review bar · M5 mobile toasts · M7 real page titles · M8 native share · M9 .xlsx import via Apache POI, shared validation pipeline, dispatch-by-extension · M10 dropzone upload · M11 rail disclosures · M12 dashboard greeting compaction · M13 spacing rhythm). Build green, SW v10. M1/M2/M6 were already done by Fable. ALL PHASES DONE.
 - 2026-07-15 Opus: Phase R COMPLETE. R1 announcements table stacks (student) + stack-full on message. R2 lecturer queue rows fully tappable (initRowLinks, chevron, per-row Review button removed, GROUP-only chip). R3 .empty-state dashed frame removed globally + inbox copy trimmed + green button normalized. R4 info-row stacks on phones. R5 Re-run AI full-width on mobile. R6 explore search composes + placeholder shortened. R7 workload "Visible in filter"/"Units shown" removed, subtitles deleted, Post-notice full-width. R8 mystery square glyph -> folder. R9 queue timestamps date-only. Build green, SW v11. NOTE: 390px visual verify is owner-side (cannot self-login). Phase D (bento/rings/aurora) + D7 Railway volume remain.
+- 2026-07-15 Opus: Phase D — D1 elevation (--edge-light inset top-light on cards + faux-glass review bar, NO backdrop-filter), D2 bento stat tiles (student At-a-glance + lecturer Workload, in-place in rail — deviation: kept in rail not moved to top-band, lower risk), D3 static aurora on login/explore/about heroes, D4 conic score RING replaces match pill (aria-label preserved, gold arc >=70
