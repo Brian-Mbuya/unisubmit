@@ -398,6 +398,84 @@
       .catch((err) => console.warn("Service worker registration failed:", err));
   }
 
+  /* M5 — flash alerts become toasts on phones (confirm at the thumb). */
+  function initMobileToasts() {
+    if (!window.matchMedia("(max-width: 860px)").matches) return;
+    var main = document.getElementById("mainContent");
+    if (!main) return;
+    main.querySelectorAll(".alert").forEach(function (alert) {
+      alert.classList.add("toast-mode");
+      var dismiss = function () {
+        alert.classList.add("toast-hide");
+        setTimeout(function () { alert.remove(); }, 250);
+      };
+      alert.addEventListener("click", dismiss);
+      if (!alert.classList.contains("alert-danger")) setTimeout(dismiss, 4000);
+    });
+  }
+
+  /* M7 — real page titles so the task switcher isn't five tabs named "UniSubmit". */
+  function setPageTitle() {
+    var h1 = document.querySelector("#mainContent h1");
+    if (h1 && h1.textContent.trim()) document.title = h1.textContent.trim() + " · UniSubmit";
+  }
+
+  /* M8 — native share sheet on phones, clipboard fallback on desktop. */
+  function initNativeShare() {
+    document.querySelectorAll(".btn-share[data-share-title]").forEach(function (btn) {
+      var canShare = typeof navigator.share === "function";
+      var canCopy = navigator.clipboard && typeof navigator.clipboard.writeText === "function";
+      if (!canShare && !canCopy) { btn.remove(); return; }
+      btn.hidden = false;
+      btn.addEventListener("click", function () {
+        var url = window.location.href;
+        if (canShare) {
+          navigator.share({ title: btn.getAttribute("data-share-title") || document.title, url: url }).catch(function () {});
+        } else {
+          navigator.clipboard.writeText(url).then(function () {
+            var label = btn.querySelector(".btn-share-label") || btn;
+            var original = label.textContent;
+            label.textContent = "Link copied ✓";
+            setTimeout(function () { label.textContent = original; }, 1500);
+          }).catch(function () {});
+        }
+      });
+    });
+  }
+
+  /* M10 — upload as a dropzone: filename feedback + desktop drag-and-drop. */
+  function initDropzone() {
+    var zone = document.querySelector(".dropzone");
+    var input = document.getElementById("file");
+    if (!zone || !input) return;
+    var label = zone.querySelector(".dropzone-primary");
+    var defaultText = label ? label.textContent : "";
+    input.addEventListener("change", function () {
+      var has = input.files && input.files.length > 0;
+      if (label) label.textContent = has ? input.files[0].name : defaultText;
+      zone.classList.toggle("has-file", has);
+    });
+    ["dragover", "dragenter"].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add("dragover"); });
+    });
+    ["dragleave", "drop"].forEach(function (ev) {
+      zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.remove("dragover"); });
+    });
+    zone.addEventListener("drop", function (e) {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+        input.files = e.dataTransfer.files;
+        input.dispatchEvent(new Event("change", { bubbles: true })); // re-fires AI title suggestions
+      }
+    });
+  }
+
+  /* M11 — rail sections collapse on phones (HTML ships open; close on mobile). */
+  function initRailCollapse() {
+    if (window.matchMedia("(max-width: 860px)").matches) {
+      document.querySelectorAll(".rail-collapse[open]").forEach(function (d) { d.open = false; });
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     markActiveNav();
     initMobileNav();
@@ -412,5 +490,10 @@
     initLoadingSubmit();
     initNavProgress();
     initServiceWorker();
+    initMobileToasts();
+    setPageTitle();
+    initNativeShare();
+    initDropzone();
+    initRailCollapse();
   });
 })();

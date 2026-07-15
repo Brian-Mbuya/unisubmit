@@ -16,8 +16,15 @@
 
                 <div class="form-group">
                     <label class="form-label" for="file">Document</label>
-                    <input type="file" id="file" name="file" class="form-control" required accept=".pdf,.doc,.docx,.txt,.odt">
-                    <div class="field-hint">PDF, DOC, DOCX, TXT or ODT · max 50 MB</div>
+                    <label class="dropzone" for="file">
+                        <input type="file" id="file" name="file" class="dropzone-input" required accept=".pdf,.doc,.docx,.txt,.odt">
+                        <svg class="dropzone-glyph" width="26" height="26" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>
+                        </svg>
+                        <span class="dropzone-primary">Tap to choose your document</span>
+                        <span class="dropzone-hint field-hint">PDF, DOC, DOCX, TXT or ODT · max 50 MB</span>
+                    </label>
 
                     <!-- AI title suggestions — populated by app.js after the file is attached -->
                     <div id="new-title-suggestions-container" class="muted-panel accent-blue mt-4" style="display: none;">

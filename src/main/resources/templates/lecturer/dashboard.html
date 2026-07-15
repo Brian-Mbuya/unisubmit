@@ -2,7 +2,7 @@
 <html th:replace="~{layout :: html(content=~{::div})}">
 <body>
     <div>
-        <div class="page-head">
+        <div class="page-head page-head--greeting">
             <div>
                 <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
                 <p class="subtitle"

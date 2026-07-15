@@ -5,7 +5,7 @@
                   changes=${submissions.?[status.name() == 'REJECTED']},
                   active=${submissions.?[status.name() == 'SUBMITTED' or status.name() == 'UNDER_REVIEW']}">
 
-        <div class="page-head">
+        <div class="page-head page-head--greeting">
             <div>
                 <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
             </div>

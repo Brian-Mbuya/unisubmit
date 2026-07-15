@@ -2392,3 +2392,77 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
         padding-bottom: calc(1rem + env(safe-area-inset-bottom));
     }
 }
+
+/* ── 30 · Phase M — mobile precision ─────────────────────────────────────────
+   Review sticky bar · toasts · share · dropzone · rail disclosures · greeting
+   · spacing rhythm. Width/capability-gated so desktop stays pixel-stable. */
+
+/* M8 — share button ships hidden; initNativeShare reveals it when supported. */
+.btn-share[hidden] { display: none; }
+
+/* M10 — upload dropzone (all widths; big friendly target, drag-drop on desktop) */
+.dropzone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.35rem; text-align: center; min-height: 104px; padding: 1.25rem 1rem;
+    border: 1.5px dashed var(--border-strong); border-radius: var(--radius-lg);
+    background: var(--surface-muted); cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.dropzone:hover, .dropzone.dragover { border-color: var(--primary); background: var(--bg-elevated); }
+.dropzone.has-file { border-style: solid; border-color: var(--brand); }
+/* input stays focusable (not display:none) but visually hidden inside the zone */
+.dropzone-input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.dropzone-glyph { color: var(--text-subtle); }
+.dropzone-primary { font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.dropzone .dropzone-hint { margin: 0; }
+
+/* M11 — rail disclosures ship open (desktop unchanged); JS closes them ≤860. */
+.rail-collapse > summary { list-style: none; }
+.rail-collapse > summary::-webkit-details-marker { display: none; }
+.rail-collapse > summary .card-head { margin-bottom: 0; }
+
+/* M5 — toast styling (phones only; JS adds .toast-mode to flash alerts). */
+.alert.toast-mode {
+    position: fixed; left: 12px; right: 12px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    z-index: 60; margin: 0; box-shadow: var(--shadow-pop); cursor: pointer;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .alert.toast-mode { animation: toast-in 0.25s ease both; }
+    .alert.toast-mode.toast-hide {
+        opacity: 0; transform: translateY(8px);
+        transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+}
+
+@media (max-width: 860px) {
+    /* M4 — the decision buttons follow you, sticky above the bottom nav. */
+    .review-actions {
+        position: sticky; bottom: calc(58px + env(safe-area-inset-bottom));
+        z-index: 30; background: var(--surface-solid);
+        padding: 0.6rem 0; border-top: 1px solid var(--border-muted);
+    }
+    /* M11 — tappable heading rows with a chevron */
+    .rail-collapse > summary { cursor: pointer; display: flex; align-items: center; min-height: 44px; }
+    .rail-collapse > summary .card-head { flex: 1; }
+    .rail-collapse > summary::after {
+        content: ""; width: 8px; height: 8px; flex: none; margin-left: 0.5rem;
+        border-right: 2px solid var(--text-subtle); border-bottom: 2px solid var(--text-subtle);
+        transform: rotate(45deg); transition: transform 0.15s ease;
+    }
+    .rail-collapse[open] > summary::after { transform: rotate(-135deg); }
+}
+
+@media (max-width: 640px) {
+    /* M12 — greeting compaction: the status line, not the hello, is the point. */
+    .page-head--greeting h1 { font-size: 1.05rem; margin-bottom: 0.15rem; }
+    .page-head--greeting .subtitle { color: var(--text); font-weight: 600; }
+
+    /* M13 — one spacing rhythm: 16px gutter, 14×16 cards, 0.75rem gaps. */
+    .container { padding-left: 16px; padding-right: 16px; }
+    .card { padding: 14px 16px; }
+    .card-stack > .card-section { padding: 14px 16px; }
+    .page-head { margin-bottom: 0.75rem; }
+    .page-grid { gap: 0.75rem; }
+}

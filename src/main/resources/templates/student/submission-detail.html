@@ -22,7 +22,13 @@
                 </div>
                 <p class="subtitle" th:text="${submission.unit.unitName + ' · ' + submission.unit.department.name}">Unit</p>
             </div>
-            <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
+            <div class="page-head-actions flex items-center gap-2">
+                <button type="button" class="btn btn-secondary btn-share" th:attr="data-share-title=${submission.title}" hidden>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/></svg>
+                    <span class="btn-share-label">Share</span>
+                </button>
+                <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
+            </div>
         </div>
 
         <div th:replace="~{fragments/alerts :: alerts}"></div>
@@ -113,17 +119,23 @@
                     </section>
 
                     <section class="card-section">
-                        <div class="card-head">
-                            <h2>Version history</h2>
-                            <span class="text-xs text-subtle"
-                                  th:text="${#lists.size(submission.versions)} + ' total'">0 total</span>
-                        </div>
-                        <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions}, false)}"></div>
+                        <details class="rail-collapse" open>
+                            <summary>
+                                <div class="card-head">
+                                    <h2>Version history</h2>
+                                    <span class="text-xs text-subtle"
+                                          th:text="${#lists.size(submission.versions)} + ' total'">0 total</span>
+                                </div>
+                            </summary>
+                            <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions}, false)}"></div>
+                        </details>
                     </section>
 
                     <section class="card-section">
-                        <div class="card-head"><h2>Suggested reviewers</h2></div>
-                        <div th:replace="~{fragments/components :: lecturerMatchesPanel(${lecturerMatches})}"></div>
+                        <details class="rail-collapse" open>
+                            <summary><div class="card-head"><h2>Suggested reviewers</h2></div></summary>
+                            <div th:replace="~{fragments/components :: lecturerMatchesPanel(${lecturerMatches})}"></div>
+                        </details>
                     </section>
                 </div>
             </aside>
