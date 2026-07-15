@@ -26,7 +26,7 @@ GitHub push→main ─► Actions (build jar) ─scp─► VM ─► sudo unisub
    ```
    It installs JRE 17 + Caddy, creates the service, opens the firewall, authorises the CI
    key, and prints your `https://unisubmit-<ip>.sslip.io` URL.
-4. **Set the DB password**: `sudo nano /etc/unisubmit.env` → paste `PGPASSWORD` (and confirm
+4. **Set the DB password**: `sudo nano /etc/unisubmit.env` → set `PGPASSWORD` (and confirm
    the JDBC host/user) from Supabase → **Connect** → **Session pooler**.
 5. **Add GitHub secrets** (repo → Settings → Secrets and variables → Actions):
    `OCI_HOST` = the IP, `OCI_USER` = `ubuntu`, `OCI_SSH_KEY` = the deploy **private** key.
