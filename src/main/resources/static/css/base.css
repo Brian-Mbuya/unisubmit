@@ -2338,3 +2338,57 @@ hr { border: none; border-top: 1px solid var(--border-muted); }
    Baseline ring for anything interactive that lacks its own treatment.
    More specific rules (.btn:focus-visible, .form-control:focus) still win. */
 :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* ── 29 · Mobile precision — screen anatomy + native feel ────────────────────
+   A phone screen pays rent in chrome before content; these rules cut the rent.
+   Everything here is width- or capability-gated: desktop stays pixel-stable. */
+
+/* Top-bar quick actions exist only on phones (desktop has the search bar). */
+.header-search-link, .header-new-link { display: none; }
+
+/* Touch acknowledgement — every tap visibly responds (capability-gated so
+   mouse users never see it; reduced-motion users skip the transform). */
+@media (hover: none) {
+    .btn, .filter-btn, .nav-link, .list-row,
+    .bottom-nav__link, .recommendation-card { -webkit-tap-highlight-color: transparent; }
+}
+@media (hover: none) and (prefers-reduced-motion: no-preference) {
+    .btn:active, .filter-btn:active, .bottom-nav__link:active {
+        transform: scale(0.97); transition: transform 0.05s ease;
+    }
+    .list-row:active, .recommendation-card:active {
+        transform: scale(0.99); transition: transform 0.05s ease;
+    }
+}
+
+@media (max-width: 860px) {
+    .header-search-link, .header-new-link { display: inline-flex; }
+    /* The inbox icon duplicates the bottom-nav Inbox tab — one entry point. */
+    .header-link[aria-label="Collaboration inbox"] { display: none; }
+
+    /* Breadcrumbs are desktop wayfinding: on a phone they cost 2–3 lines
+       before the title, and the info repeats in the page subtitle/details. */
+    .breadcrumb { display: none; }
+
+    /* Long scholarly titles cap at two lines — the full title lives one tap
+       away on the page itself; the head is for orientation, not reading. */
+    .page-head h1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* Modals rise as bottom sheets — native app grammar. Same DOM, same JS
+       (open/close handlers untouched); only the resting geometry changes. */
+    .modal-overlay { align-items: flex-end; }
+    .modal-overlay .modal-card {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        border-radius: 14px 14px 0 0;
+        max-height: 88vh;
+        overflow-y: auto;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+}

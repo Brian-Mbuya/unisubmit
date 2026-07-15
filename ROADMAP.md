@@ -123,12 +123,12 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
 > **Bump `sw.js` VERSION once per shipped batch** (next: v9). Build green after every item.
 > Ship order = listed order (impact ÷ effort, dependencies respected).
 
-- [ ] **M1 · Slim the mobile top bar.** *(GitHub app: top bar = context + avatar, nothing else.)*
+- [x] **M1 · Slim the mobile top bar.** DONE by Fable (base.css §29). Original spec: *(GitHub app: top bar = context + avatar, nothing else.)*
   With the bottom tab bar live, the topbar's Collaboration-inbox icon is a duplicate of the Inbox
   tab. At ≤860px: hide `.header-link[aria-label="Collaboration inbox"]` (CSS only). Keep bell +
   avatar + hamburger. Done-when: one less icon at 390px; desktop unchanged.
 
-- [ ] **M2 · Search from the top bar on phones.** *(GitHub app: search is one tap, always.)*
+- [x] **M2 · Search from the top bar on phones.** DONE by Fable (navbar.html `header-search-link` + a students-only `header-new-link` "+" for one-tap New submission — GitHub-app pattern, bonus beyond spec). Original spec: *(GitHub app: search is one tap, always.)*
   The global search input is `display:none` ≤860 with no replacement. Add ONE anchor in
   `fragments/navbar.html` inside `.topbar-right`, before the bell: class `header-link header-search-link`,
   `aria-label="Search"`, `th:href="@{/explore(tab='search')}"`, reusing the existing 16px magnifier
@@ -160,7 +160,7 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
   + reduced-motion-safe fade. Done-when: submit a form on a phone → confirmation appears just above
   the bottom nav and fades; errors persist until tapped; desktop rendering unchanged.
 
-- [ ] **M6 · Touch feedback.** *(Apps acknowledge every touch.)* CSS only, global (not media-gated):
+- [x] **M6 · Touch feedback.** DONE by Fable (base.css §29, hover:none + reduced-motion gated). Original spec: *(Apps acknowledge every touch.)* CSS only, global (not media-gated):
   `@media (hover:none){ .btn:active, .filter-btn:active, .list-row:active, .bottom-nav__link:active,
   .recommendation-card:active { transform:scale(.985); transition:transform .05s } }` — plus disable
   iOS tap highlight (`-webkit-tap-highlight-color: transparent` on those selectors). Respect
@@ -198,6 +198,29 @@ Forced password change on first login + delete demo accounts · Flyway baseline 
   `input.files = e.dataTransfer.files`). CRITICAL: ids `#file`, `#title` and the suggestion-container
   ids are load-bearing (§6) — the input keeps its id and change handler behavior. Done-when: mobile
   shows a big friendly tap target; drag-drop works on desktop; AI title suggestions still fire.
+
+**Precision batch (added after owner's "more, simpler, more precise" — M11–M13):**
+Also DONE by Fable inline (base.css §29): breadcrumbs hidden ≤860 (2–3 lines of header rent, info
+repeats in subtitle/details), page-head `h1` clamped to 2 lines, **modals → bottom sheets** ≤860
+(`.modal-overlay` bottom-aligned, `.modal-card` full-width sheet w/ safe-area padding — DOM/JS untouched).
+
+- [ ] **M11 · Collapse the rail on submission-detail (phones).** *(GitHub app: secondary sections are
+  disclosures.)* In `student/submission-detail.html`, wrap the rail's "Version history" and "Suggested
+  reviewers" `.card-section` CONTENT in native `<details class="rail-collapse"><summary>…</summary>…</details>`
+  (the existing `.card-head h2` text becomes the summary label; keep heading semantics via CSS).
+  "Details" section stays always-open. Additive `initRailCollapse()` in app.js: on load, if
+  `min-width:861px` set `open = true` on every `.rail-collapse` (desktop unchanged). CSS: style
+  `summary` like `.card-head h2` with a chevron, ≥44px tap height. Done-when: at 390px the rail
+  reads as two tappable headings; desktop identical to today.
+- [ ] **M12 · Dashboard greeting compaction.** Add class `page-head--greeting` to the page-head of
+  `student/dashboard.html` + `lecturer/dashboard.html`. CSS ≤640: its `h1` → 1.05rem, margin-bottom
+  0.15rem; its `.subtitle` ("N waiting for review" / progress line) becomes the emphasis —
+  `color:var(--text); font-weight:600`. Done-when: at 390×760 the first submission row is visible
+  without scrolling on both dashboards.
+- [ ] **M13 · Mobile spacing constants.** One audit pass, ≤640: `.container` gutter exactly 16px;
+  `.card` and `.card-stack > .card-section` padding exactly 14px 16px; `.page-head` margin-bottom
+  0.75rem; sibling section gap 0.75rem. Fix any page with double-padding (card inside padded card).
+  Done-when: spacing feels uniform across dashboard/detail/explore at 390px; no nested-padding wells.
 
 **Phase-M guardrails recap:** never rename §6 hooks; CSRF hidden inputs stay; all assets self-hosted;
 dark low-glare; desktop ≥861px must remain pixel-stable except where a spec says otherwise; owner
