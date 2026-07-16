@@ -354,6 +354,149 @@ pushes to git (never push); bump SW VERSION per batch; build green before report
 - [x] **R10 · Ship check.** Bump `sw.js` VERSION, build green, then verify at 390px: announcements,
   queue, inbox, explore, submission detail. Desktop must be pixel-stable except where specced.
 
+---
+
+# ═══ VERSION 2 — "THE REGISTRY" REBRAND (art direction locked by Fable) ═══
+
+> **Why:** the current look reads competent-generic ("AI-built smell"). V2 is a full identity
+> rebrand — structure and personality, not a palette swap — for university students + lecturers,
+> mobile AND desktop. **The direction below is DECIDED. Opus executes; zero re-deciding.**
+>
+> **The concept — "The Registry":** a university is paper — ledgers, stamps, index cards, docket
+> numbers, notice boards. UniSubmit V2 looks like a beautifully-run registrar's archive at night:
+> warm ink surfaces, parchment text, typewriter metadata, statuses that are literal STAMPS.
+> Nothing floats, nothing glows, nothing is a smooth teal pill. Every surface has an honest edge.
+>
+> **Anti-slop rules (binding):** no teal/purple/blue-gradient anywhere · no glassy translucency ·
+> no backdrop-filter (still banned) · no rounded-pill buttons (radius 2px everywhere; the ONLY
+> circles are avatars and score rings) · no decorative gradients except the two paper-grain
+> radial washes specced in V2.3 · no emoji in UI · metadata is ALWAYS mono · if an element could
+> appear in a generic dashboard template, redesign it.
+
+## V2.0 — Safety net + reality prep (OPUS · DO FIRST, before any wipe or restyle)
+- [x] **V2.0a Preserve v1 + git strategy (BINDING for all V2 work).** Created tag `v1.0` and backup branch `v1-backup` (pushed).
+  **Branch & Worktree flow:**
+  - **V2.0 (safety/backend) lands on `main` directly** — work done in primary folder, pushed to main -> Railway deploys.
+  - **V2.1–V2.3 (visual rebrand) happen in worktree `unisubmit-v2`** linked to branch `v2-registry`.
+    Worktree setup: `git worktree add ../unisubmit-v2 v2-registry` (completed).
+    All V2.1–V2.3 changes are committed/pushed from the `unisubmit-v2` directory.
+  - **Merge gate:** after the design-review checkpoint passes, merge `v2-registry` into `main` and deploy.
+  - V2.4+ continue on main post-merge.
+- [ ] **V2.0b GATE RichTestDataSeeder (verified ungated at config/RichTestDataSeeder.java:23).**
+  Add `@ConditionalOnProperty(name = "unisubmit.demo.seed-rich-data", havingValue = "true")`;
+  property `true` ONLY in application-local.yml. ALSO strip the demo `lecturer`/`student` accounts
+  from `UnisubmitApplication.seedData` behind the same flag (keep `admin` + lookup tags — a fresh
+  prod boot still needs an admin). WITHOUT THIS, WIPING THE DB IS POINTLESS (reseeds on boot).
+- [ ] **V2.0c Forced password change.** Real users are coming. Add `must_change_password boolean
+  default false` to users (Hibernate adds column); set TRUE on: CSV-imported accounts and the
+  seeded admin. A `HandlerInterceptor` redirects flagged users to `/account/password` (new page,
+  minimal) until changed. Done-when: fresh admin login forces a change; CSV students likewise.
+- [ ] **V2.0d Lecturer CSV import** (owner asked "do teachers need a csv" — yes, adoption).
+  Second importer alongside students: columns `name,email,staffId,departmentCode`. Same
+  preview→apply→credentials flow, same validateAndAdd-style shared rules, generated passwords +
+  must_change_password. Tab or second card on /admin/import.
+- [ ] **V2.0e Wipe day runbook (owner action, AFTER 0b deploys):** `pg_dump` backup via Supabase →
+  delete demo rows (or full wipe + let migrations/seeder rebuild schema + admin) → mount the
+  Railway Volume at `/app/uploads` if STILL unmounted (root cause of both "file no longer
+  available" AND "Could not load the document preview") → change admin password on first login.
+
+## V2.1 — Registry tokens + type (OPUS · the foundation; every page inherits)
+- [ ] **V2.1a Fonts:** replace Inter/Fraunces with the **IBM Plex trio** (free, self-host woff2
+  latin subsets to `static/fonts/`, same download method as F2.1): **Plex Serif SemiBold** =
+  display/h1-h2 · **Plex Sans** 400/500/600 = UI · **Plex Mono** 400/500 = ALL metadata (IDs,
+  codes, dates, stamps, table headers, figure numbers). Update `--font-display/--font-sans/
+  --font-mono`, remove old font files + @font-face.
+- [ ] **V2.1b Palette (full token swap in base.css :root — no teal survives):**
+  canvas `#141109` warm ink-black · surface `#1C1812` · raised `#252017` · hairline `#3A3225` /
+  strong `#4E4433` · text `#EDE4CE` parchment · muted `#A69A7E` · subtle `#7A7059` ·
+  **accent = oxblood `#B5453A`** (links, active nav, focus ring, primary-button border) ·
+  primary button = parchment text on `#2E2617` w/ 1px oxblood border (quiet, printed) ·
+  approved-stamp green `#5A9367` · changes-stamp red `#C0563F` · pending-stamp `#B08D3F` brass ·
+  info `#7D8CA6` slate. Remap EVERY old token (--primary, --brand, --gold, tints, badges) —
+  grep for leftover hex values; zero `#5fbfab`/`#2e8f7f`/`#cda660` may remain.
+- [ ] **V2.1c Geometry:** `--radius: 2px` and `--radius-lg: 3px` (sharp, printed); pill radius
+  reserved ONLY for avatars + score rings. Buttons/inputs/cards/badges all inherit. Focus ring
+  → oxblood. Section separations become RULES: `.card-head` gets a 2px bottom rule (--border-strong)
+  under the title like a ledger heading. Update manifest `theme_color`/`background_color` to
+  `#141109`, regenerate favicon + PWA icons from the brandMark recolored (mark keeps its geometry,
+  tile becomes ink `#1C1812`, U parchment, node oxblood) — same GDI+ script approach. SW bump.
+
+## V2.2 — Registry components (OPUS)
+- [ ] **V2.2a STAMPS.** Replace all status badges (`statusBadge` fragment + .badge styles):
+  mono uppercase, letter-spacing .08em, 1.5px solid border in the status color, transparent bg,
+  radius 2px, padding 2px 8px. On DETAIL pages only (submission/project/review), the stamp gets
+  `transform: rotate(-1.2deg)` + slightly heavier border — a real stamp; in tables/rows it stays
+  straight. APPROVED green / CHANGES REQUESTED red / UNDER REVIEW brass / SUBMITTED parchment-muted.
+- [ ] **V2.2b Docket numbers.** Every submission detail + review page shows a mono identifier
+  chip near the title: `№ {id}` (Plex Mono, muted). Registrar authenticity, zero backend change.
+- [ ] **V2.2c Index-card rows.** List rows (dashboard, explore results, matches): remove card-in-
+  card look → full-bleed rows separated by hairlines, title in Plex Serif 1.05rem, meta line in
+  mono 0.72rem (`DCS410 · 12 Jul · v3`), stamp right-aligned. Hover/active = surface-raised bg.
+- [ ] **V2.2d Buttons & forms.** Primary = parchment-on-ink w/ oxblood border (V2.1b); secondary =
+  hairline border transparent bg; destructive = red border. Inputs: flat `#1C1812`, 1px hairline,
+  2px radius, oxblood focus border — labels stay above, mono 0.7rem uppercase. Kill every remaining
+  `.btn-accent` teal-green.
+- [ ] **V2.2e Score ring recolor** (keep D4 structure): arc oxblood, ≥70% brass; center bg
+  follows new surface tokens.
+
+## V2.3 — Public face + shell (OPUS)
+- [ ] **V2.3a Login/register:** single centered printed card on the ink canvas with ONE static
+  paper-grain wash (`radial-gradient(720px 420px at 78% -12%, rgba(237,228,206,0.045), transparent
+  62%)` — replaces aurora, delete .aurora). Wordmark in Plex Serif, "Sign in" only — zero pitch
+  copy on login (the /about link carries it). Register equally bare.
+- [ ] **V2.3b /about rewrite in Registry voice:** terse, registrar-factual ("Every project,
+  archived. Every match, explained."), stamps as visual motif, one screenshot placeholder slot
+  for a REAL student project (owner supplies after pilot).
+- [ ] **V2.3c Shell:** topbar bg = canvas w/ 2px bottom rule; bottom-nav same treatment (active =
+  oxblood text + 2px top rule on the active tab, no tint pill); page-head h1 in Plex Serif w/
+  its ledger rule. Toasts/modals inherit tokens automatically — verify only.
+- [ ] **V2.3d Voice pass:** registrar-terse microcopy sweep — buttons are verbs ("Submit", "Approve",
+  "Export"), dates "12 Jul", no exclamation marks, no "successfully" (a thing done is done:
+  "Submission recorded.").
+- [ ] **V2.3e COMPLETE surface sweep (the "whole-app redesign", not just inherited tokens).**
+  Walk EVERY surface at 1280px and 390px and bring it to Registry deliberately: student dashboard ·
+  submission detail · new submission · lecturer dashboard · review workspace · announcements (both
+  roles) · explore/discover/search · inbox · groups · notifications · all 10 admin pages · error
+  pages · offline page. Per page: (1) components adopt V2.2 grammar (stamps, index-card rows,
+  ledger rules, mono meta); (2) layout uses the editorial grid — content column + quiet margin,
+  asymmetry over centered-everything; (3) anything still looking like a generic dashboard card gets
+  redesigned, not recolored. Done-when: no page passes as "template default".
+- [ ] **V2.3f Simplicity audit (the "no unnecessary explanation" pass — owner's core demand).**
+  Rule: a sentence survives ONLY if removing it could cause a wrong action. Sweep every template:
+  subtitles that restate the h1 → delete; hints that restate the label → delete; empty states >
+  1 sentence → cut to 1; the login card = wordmark, two fields, one button, two links, NOTHING else.
+  Done-when: grep for `field-hint|subtitle` returns only entries that pass the rule, documented in
+  the log line.
+
+**⛔ CHECKPOINT — Fable design review (do NOT proceed past here on the v2-registry branch):**
+after V2.3f builds green, the owner sends one desktop + one phone screenshot set (login, a
+dashboard, a submission detail with stamps) to a Fable session for art-direction sign-off. Only
+after sign-off → merge `v2-registry` → `main` (per V2.0a) and continue with V2.4.
+
+## V2.4 — Cold start / first five minutes (OPUS · the "never met reality" fix)
+- [ ] **V2.4a Admin day-zero:** fresh-DB admin dashboard leads with a numbered 3-step card
+  (mono numerals): 1 Import structure (link /admin/import) · 2 Import people · 3 Students submit.
+  Shows only while faculties==0 or users<=1.
+- [ ] **V2.4b Student/lecturer first-run empty states:** dashboard empty = ONE line + primary
+  action ("No projects yet." + [Submit your first]); lecturer = "No submissions yet — your
+  students will appear here." Each empty state exactly one sentence, Registry voice.
+- [ ] **V2.4c Pilot feedback hook:** footer link "Report a problem" → mailto:mbuyabrian290@gmail.com
+  with subject prefilled "UniSubmit feedback" — UAT evidence channel for the assessment.
+
+## V2.5 — Evidence pack (OPUS · assessment-critical, from the external review)
+- [ ] **V2.5a Security test matrix:** `@SpringBootTest` + MockMvc: student→/lecturer/** = 403,
+  lecturer→/admin/** = 403, anon→/student/** = 302 login, CSRF-less POST = 403. One file,
+  ~8 tests, run in CI before package.
+- [ ] **V2.5b Controller smoke tests:** login page 200, /about 200, authenticated dashboard 200
+  per role (seed via test profile).
+- [ ] **V2.5c Docs:** `docs/architecture.md` w/ one mermaid component diagram + `docs/user-guide.md`
+  (1 page per role, screenshots after pilot); link both from README.
+- [ ] **V2.5d** JaCoCo plugin + coverage badge in README (number for the report chapter).
+
+**V2 guardrails:** §6 JS hooks + CSRF contract STILL BINDING (restyle, never rename) · templates
+change classes only where a spec says · SW bump per batch · build green per phase · owner pushes ·
+desktop + mobile verified at 1280px and 390px per phase (owner does authed screens).
+
 ## Log (append a line per session)
 - 2026-07-13 ~03:00 Fable: roadmap created; starting F1.
 - 2026-07-13 Fable: F1 complete (bottom nav, view transitions, prefetch, density/table-stack landed across sessions, SW v4).
