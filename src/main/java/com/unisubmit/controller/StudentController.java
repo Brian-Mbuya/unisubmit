@@ -57,6 +57,9 @@ public class StudentController {
     @GetMapping("/dashboard")
     public String dashboard(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
         model.addAttribute("submissions", submissionService.getSubmissionsForStudent(userDetails.getUser()));
+        // Newest unit notice (last 48h) → pops on login so students never miss it.
+        model.addAttribute("latestNotice",
+                announcementService.getLatestNoticeForStudent(userDetails.getUser().getId()));
         return "student/dashboard";
     }
 
@@ -72,16 +75,10 @@ public class StudentController {
                 .filter(a -> a.getType() == com.unisubmit.domain.AnnouncementType.ANNOUNCEMENT)
                 .toList();
 
-        // Latest notice (within last 48 h) to power the pop-up modal
-        java.time.LocalDateTime cutoff = java.time.LocalDateTime.now().minusHours(48);
-        List<com.unisubmit.domain.Announcement> latestNotice = all.stream()
-                .filter(a -> a.getCreatedAt().isAfter(cutoff))
-                .limit(1)
-                .toList();
-                
+        // The newest-notice pop-up now lives on the dashboard (so students see it on
+        // login); this screen just lists everything.
         model.addAttribute("assignments", assignments);
         model.addAttribute("generalAnnouncements", generalAnnouncements);
-        model.addAttribute("latestNotice", latestNotice);
         return "student/announcements";
     }
 

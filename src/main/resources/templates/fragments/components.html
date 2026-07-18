@@ -48,6 +48,81 @@
     </div>
 
     <!-- ════════════════════════════════════════════════════════════════════
+         Newest-notice pop-up — announcementPopup(latestNotice)
+         Shows the single most recent unit notice (last 48h) as a modal, dismissed
+         per session (sessionStorage keyed by notice id). Included on the student
+         dashboard so a fresh notice greets students on login. Renders nothing when
+         latestNotice is empty.
+         ════════════════════════════════════════════════════════════════════ -->
+    <th:block th:fragment="announcementPopup(latestNotice)">
+        <div th:if="${not #lists.isEmpty(latestNotice)}"
+             id="announcementPopup"
+             class="modal-overlay"
+             style="display:none;"
+             onclick="if(event.target===this) dismissNoticePopup()">
+            <div class="modal-card" th:with="notice=${latestNotice[0]}">
+                <div class="modal-header">
+                    <div>
+                        <span class="eyebrow" th:text="${notice.unit.unitCode}">Unit</span>
+                        <h2 class="m-0 mt-1" th:text="${notice.title}">Notice Title</h2>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        <span class="badge"
+                              th:classappend="${notice.type.name() == 'ASSIGNMENT' ? 'badge-under_review' : 'badge-draft'}"
+                              th:text="${notice.type.name()}">Type</span>
+                        <button class="btn btn-sm btn-secondary" onclick="dismissNoticePopup()">✕</button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <p class="readable text-sm message-box" th:text="${notice.message}">Message</p>
+                    <div th:if="${notice.type.name() == 'ASSIGNMENT' and notice.deadline != null}"
+                         class="deadline-tag mt-4"
+                         th:classappend="${#temporals.createNow().isAfter(notice.deadline) ? 'overdue' : ''}">
+                        Due: <strong th:text="${#temporals.format(notice.deadline, 'dd MMM yyyy, HH:mm')}">Date</strong>
+                    </div>
+                    <div th:if="${notice.type.name() == 'ASSIGNMENT' and notice.deadline != null and #temporals.createNow().isAfter(notice.deadline) and notice.lateWindowOpen}"
+                         class="alert alert-info mt-2 text-sm">
+                        The deadline has passed, but your lecturer has opened a
+                        <strong>late submission window</strong>. You may still submit —
+                        your work will be labelled as a late submission.
+                    </div>
+                    <div class="modal-footer">
+                        <span class="text-xs text-muted" th:text="'Posted by ' + ${notice.lecturer.name} + ' · ' + ${#temporals.format(notice.createdAt, 'dd MMM yyyy')}">Info</span>
+                        <button class="btn" onclick="dismissNoticePopup()">Got it</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script th:inline="javascript" th:if="${not #lists.isEmpty(latestNotice)}">
+            (function() {
+                // Show pop-up for the latest notice unless already dismissed this session
+                var popup = document.getElementById('announcementPopup');
+                if (!popup) return;
+                var latestId = /*[[${latestNotice[0].id}]]*/ 0;
+                var key = 'unisubmit_notice_seen_' + latestId;
+                if (latestId && !sessionStorage.getItem(key)) {
+                    popup.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                }
+            })();
+
+            function dismissNoticePopup() {
+                var popup = document.getElementById('announcementPopup');
+                if (!popup) return;
+                var latestId = /*[[${latestNotice[0].id}]]*/ 0;
+                if (latestId) sessionStorage.setItem('unisubmit_notice_seen_' + latestId, '1');
+                popup.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') dismissNoticePopup();
+            });
+        </script>
+    </th:block>
+
+    <!-- ════════════════════════════════════════════════════════════════════
          Version & feedback timeline — feedbackTimeline(versions, maskUploaders)
          maskUploaders=true hides student identity (blind review mode).
          ════════════════════════════════════════════════════════════════════ -->

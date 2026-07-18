@@ -227,6 +227,19 @@ public class AnnouncementService {
         return allAnnouncements.stream().distinct().collect(Collectors.toList());
     }
 
+    /**
+     * The single most recent notice for a student, if one was posted in the last 48h —
+     * powers the dashboard pop-up so students see fresh notices on login. Returns an empty
+     * list (never null) when there is nothing recent, so templates can guard with isEmpty.
+     */
+    public List<Announcement> getLatestNoticeForStudent(Long userId) {
+        java.time.LocalDateTime cutoff = java.time.LocalDateTime.now().minusHours(48);
+        return getAnnouncementsForStudent(userId).stream()
+                .filter(a -> a.getCreatedAt() != null && a.getCreatedAt().isAfter(cutoff))
+                .limit(1)
+                .collect(Collectors.toList());
+    }
+
     public List<Announcement> getAnnouncementsByLecturer(Long lecturerId) {
         return announcementRepository.findByLecturerIdOrderByCreatedAtDesc(lecturerId);
     }

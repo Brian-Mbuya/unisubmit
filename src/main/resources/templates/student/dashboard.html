@@ -5,6 +5,9 @@
                   changes=${submissions.?[status.name() == 'REJECTED']},
                   active=${submissions.?[status.name() == 'SUBMITTED' or status.name() == 'UNDER_REVIEW']}">
 
+        <!-- Newest unit notice greets the student on login (dismiss per session) -->
+        <th:block th:replace="~{fragments/components :: announcementPopup(${latestNotice})}"></th:block>
+
         <div class="page-head page-head--greeting">
             <div>
                 <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
