@@ -212,12 +212,18 @@ public class StudentController {
     public String retrySubmissionAnalysis(@AuthenticationPrincipal CustomUserDetails userDetails,
                                           @PathVariable Long id,
                                           RedirectAttributes ra) {
+        // Access check first (throws if this student can't see the submission).
         Submission submission = submissionService.getSubmissionForStudent(id, userDetails.getUser());
-        if (submission != null) {
-            aiInsightService.initiateAnalysis(submission);
+        if (submission == null) {
+            ra.addFlashAttribute("errorMessage", "Submission not found.");
+            return "redirect:/student/submission/" + id;
+        }
+        // Atomic re-run: refuses if a run is already in flight (PENDING/PROCESSING).
+        boolean requeued = aiInsightService.rerunAnalysis(id);
+        if (requeued) {
             ra.addFlashAttribute("successMessage", "AI analysis has been re-queued using the active model.");
         } else {
-            ra.addFlashAttribute("errorMessage", "Submission not found.");
+            ra.addFlashAttribute("errorMessage", "Analysis is already running or queued — please wait for it to finish.");
         }
         return "redirect:/student/submission/" + id;
     }

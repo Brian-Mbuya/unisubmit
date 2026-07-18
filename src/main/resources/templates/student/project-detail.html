@@ -15,7 +15,9 @@
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/></svg>
                     <span class="btn-share-label">Share</span>
                 </button>
-                <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
+                <a sec:authorize="hasRole('STUDENT')" th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
+                <a sec:authorize="hasRole('LECTURER')" th:href="@{/lecturer/dashboard}" class="btn btn-secondary">Back</a>
+                <a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/dashboard}" class="btn btn-secondary">Back</a>
             </div>
         </div>
 
@@ -89,7 +91,7 @@
                     <div th:if="${canAccessFile and not #lists.isEmpty(submission.versions)}">
                         <a th:href="@{'/files/' + ${submission.versions[submission.versions.size() - 1].filePath}}"
                            class="btn btn-accent btn-block" target="_blank">Download latest version</a>
-                        <p th:if="${submission.status.name() != 'APPROVED'}" class="field-hint">
+                        <p th:if="${viaCollaboration}" class="field-hint">
                             Unlocked because you are an accepted collaborator on this project.
                         </p>
                     </div>

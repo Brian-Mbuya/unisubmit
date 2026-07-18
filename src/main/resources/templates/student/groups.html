@@ -5,7 +5,7 @@
         <div class="page-head">
             <div>
                 <h1>Project groups</h1>
-                <p class="subtitle">Create or join a group, then submit a project together.</p>
+                <p class="subtitle">Create a group, or ask a group leader to add you.</p>
             </div>
             <!-- Create group — the page's one primary action -->
             <form th:action="@{/groups}" method="post" class="inline-form flex gap-2 items-center">
@@ -35,7 +35,15 @@
                             <span th:text="${#lists.size(group.members)} + ' member(s)'">0 members</span>
                         </div>
                     </div>
-                    <a th:href="@{/student/submission/new(groupId=${group.id})}" class="btn btn-sm">Submit project</a>
+                    <div class="flex items-center gap-2">
+                        <a th:href="@{/student/submission/new(groupId=${group.id})}" class="btn btn-sm">Submit project</a>
+                        <!-- Non-leader members may leave; the leader cannot (no transfer yet) -->
+                        <form th:if="${group.leader.id != #authentication.principal.user.id}"
+                              th:action="@{'/groups/' + ${group.id} + '/leave'}" method="post" class="inline-form">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <button type="submit" class="btn btn-sm btn-secondary">Leave group</button>
+                        </form>
+                    </div>
                 </div>
 
                 <!-- Members -->
@@ -45,7 +53,7 @@
                         <span th:each="member : ${group.members}" class="member-chip">
                             <span class="avatar avatar-sm" th:text="${#strings.substring(member.name,0,1)}">M</span>
                             <span th:text="${member.name}">Member</span>
-                            <form th:if="${member.id != group.leader.id}"
+                            <form th:if="${member.id != group.leader.id and group.leader.id == #authentication.principal.user.id}"
                                   th:action="@{'/groups/' + ${group.id} + '/members/' + ${member.id} + '/remove'}"
                                   method="post" class="inline-form">
                                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">

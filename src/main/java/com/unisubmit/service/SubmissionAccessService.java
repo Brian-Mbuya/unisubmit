@@ -62,6 +62,48 @@ public class SubmissionAccessService {
     }
 
     /**
+     * True when the ONLY thing granting this user file access is an accepted
+     * collaboration — i.e. {@link #canAccessSubmissionFile} passes but the user is not
+     * an admin, the owner, a group member, or an assigned lecturer. Drives the
+     * "Unlocked because you are an accepted collaborator" hint so it never shows to the
+     * owner/staff (2.5).
+     */
+    public boolean isCollaboratorOnlyFileAccess(User user, Submission submission) {
+        if (user == null || submission == null) {
+            return false;
+        }
+        if (!canAccessSubmissionFile(user, submission)) {
+            return false;
+        }
+        if (user.getRole() == Role.ADMIN) {
+            return false;
+        }
+        if (submission.getStudent().getId().equals(user.getId())) {
+            return false;
+        }
+        if (submission.getProjectGroup() != null
+                && submission.getProjectGroup().getMembers().stream()
+                        .anyMatch(m -> m.getId().equals(user.getId()))) {
+            return false;
+        }
+        if (user.getRole() == Role.LECTURER && user.getLecturerProfile() != null
+                && submission.getCurriculum() != null) {
+            List<TeachingAssignment> assignments = teachingAssignmentRepository
+                    .findByCurriculumId(submission.getCurriculum().getId());
+            boolean assignedLecturer = assignments.stream()
+                    .anyMatch(assignment ->
+                            assignment.getLecturer().getId().equals(user.getLecturerProfile().getId())
+                            && "ACTIVE".equals(assignment.getStatus()));
+            if (assignedLecturer) {
+                return false;
+            }
+        }
+        // canAccessSubmissionFile was true, but none of the above grants applied →
+        // only the collaboration check could have returned true.
+        return true;
+    }
+
+    /**
      * Whether a user may *discover* a submission — i.e. see its title, summary,
      * keywords and owner in similarity/recommendation results and on the shared
      * project page. Weaker than file access: discovery is the collaboration

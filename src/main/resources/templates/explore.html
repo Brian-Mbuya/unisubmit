@@ -29,7 +29,8 @@
                 </svg>
                 Search
             </a>
-            <a th:href="@{/explore(tab='discover')}"
+            <a sec:authorize="hasRole('STUDENT')"
+               th:href="@{/explore(tab='discover')}"
                th:classappend="${activeTab == 'discover'} ? ' explore-tab-active' : ''"
                class="explore-tab" id="tab-discover-link">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -81,8 +82,8 @@
         </div>
     </div>
 
-    <!-- DISCOVER TAB -->
-    <div th:if="${activeTab == 'discover'}" class="page-grid">
+    <!-- DISCOVER TAB (students only — panel + opt-in rail gated together) -->
+    <div sec:authorize="hasRole('STUDENT')" th:if="${activeTab == 'discover'}" class="page-grid">
         <div class="page-main">
 
             <div th:if="${!discoverable}" class="empty-state">

@@ -1,5 +1,7 @@
 package com.unisubmit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -11,11 +13,14 @@ import com.unisubmit.domain.*;
 import com.unisubmit.repository.*;
 import com.unisubmit.service.UserService;
 import java.util.List;
+import java.util.TimeZone;
 
 @SpringBootApplication
 @EnableAsync
 @EnableScheduling
 public class UnisubmitApplication {
+
+	private static final Logger log = LoggerFactory.getLogger(UnisubmitApplication.class);
 
 	public static void main(String[] args) {
 		SpringApplication.run(UnisubmitApplication.class, args);
@@ -41,6 +46,12 @@ public class UnisubmitApplication {
 			ProgrammingLanguageRepository programmingLanguageRepository,
 			SkillRepository skillRepository) {
 		return args -> {
+			// Boot-time timezone banner — deadlines enforce on this wall-clock (2.1).
+			// On Railway this must read Africa/Nairobi (see Dockerfile TZ + -Duser.timezone).
+			log.info("Application timezone: {} (offset now {})",
+					TimeZone.getDefault().getID(),
+					java.time.ZonedDateTime.now().getOffset());
+
 			// Default accounts — created idempotently (per-account), so they exist
 			// regardless of seeder ordering. Admin logs in with username; students
 			// with studentId; lecturers with staffId. All password123.

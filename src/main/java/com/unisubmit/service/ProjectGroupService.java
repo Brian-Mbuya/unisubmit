@@ -101,6 +101,35 @@ public class ProjectGroupService {
         return groupRepository.save(group);
     }
 
+    /**
+     * The requesting user removes THEMSELF from the group. Any non-leader member may
+     * leave; the leader cannot (leadership transfer isn't supported yet — an admin must
+     * intervene). Notifies the leader that a member left.
+     */
+    @Transactional
+    public ProjectGroup leaveGroup(User requestingUser, Long groupId) {
+        ProjectGroup group = findGroupById(groupId);
+
+        if (group.getLeader().getId().equals(requestingUser.getId())) {
+            throw new IllegalArgumentException(
+                    "Transfer leadership is not supported yet — ask an admin.");
+        }
+
+        boolean isMember = group.getMembers().stream()
+                .anyMatch(m -> m.getId().equals(requestingUser.getId()));
+        if (!isMember) {
+            throw new IllegalArgumentException("You are not a member of this group.");
+        }
+
+        group.getMembers().removeIf(m -> m.getId().equals(requestingUser.getId()));
+        notificationService.createNotification(
+                group.getLeader(),
+                NotificationType.SYSTEM_NOTICE,
+                requestingUser.getName() + " left the project group '" + group.getName() + "'.",
+                null);
+        return groupRepository.save(group);
+    }
+
     public ProjectGroup findGroupById(Long groupId) {
         return groupRepository.findById(groupId)
                 .orElseThrow(() -> new RuntimeException("Group not found: " + groupId));

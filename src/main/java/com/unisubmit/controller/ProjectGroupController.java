@@ -76,6 +76,20 @@ public class ProjectGroupController {
         return "redirect:/groups";
     }
 
+    /** Leave a group — any non-leader member removes themselves. */
+    @PostMapping("/{id}/leave")
+    public String leaveGroup(@AuthenticationPrincipal CustomUserDetails userDetails,
+                             @PathVariable Long id,
+                             RedirectAttributes redirectAttributes) {
+        try {
+            groupService.leaveGroup(userDetails.getUser(), id);
+            redirectAttributes.addFlashAttribute("successMessage", "You have left the group.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/groups";
+    }
+
     /** Remove a member — only leader or admin. */
     @PreAuthorize("hasRole('ADMIN') or @projectGroupService.isLeader(#id, principal.username)")
     @PostMapping("/{id}/members/{userId}/remove")

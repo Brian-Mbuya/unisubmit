@@ -12,6 +12,8 @@ import java.util.List;
 @Setter
 @Table(name = "submission_similarities", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"submission_a_id", "submission_b_id"})
+}, indexes = {
+    @Index(name = "ix_simil_b", columnList = "submission_b_id")
 })
 public class SubmissionSimilarity {
 

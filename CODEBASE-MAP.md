@@ -20,7 +20,7 @@ bulk import. PWA (installable, offline shell, bottom nav) wrapped as an Android 
 - DB: **Supabase Postgres** (prod) / **H2 file** (local, `application-local.yml`, profile `local`).
 - Frontend: ONE stylesheet `static/css/base.css` (design system "Nocturne Laurel", numbered
   sections, tokens at top) + ONE vanilla `static/js/app.js` (510 lines, IIFE, no deps) +
-  `static/sw.js` (**VERSION `unisubmit-shell-v13`** — bump on any css/js/icon shape change!).
+  `static/sw.js` (**VERSION `unisubmit-shell-v14`** — bump on any css/js/icon shape change!).
 - Zero external runtime deps: fonts (Inter+Fraunces woff2), Chart.js vendored, icons local.
 - Build: `JAVA_HOME=C:\Users\mbuya\.jdks\jdk-17.0.19+10` then `.\mvnw.cmd -B -ntp -DskipTests package`.
 - Local run: `run-local.ps1 -Port 8090` → seeds `admin`/`L001`/`S001`, all `password123`.
@@ -77,11 +77,13 @@ unit) · announcements(GET/POST, `{id}/delete`, `{id}/toggle-late-window`) · `s
 reset-pw) · faculties/departments/programmes/units/curricula/assignments(CRUD) · tags ·
 evaluation(match-weight what-if harness → EvaluationService) · landscape(=AnalyticsService
 PCA scatter of corpus) · import(CSV/XLSX students: page/preview/apply/results.csv/template).
-**Shared authenticated**: `/explore`(ExploreController: tabs archive|search|matches; also owns
-`/search`→redirect) · `/discover`(cross-dept opportunities) · `/notifications`(+`/read-all`) ·
-`/groups`(ProjectGroupController: list/create/addMember/removeMember ONLY — no join/leave/
-delete despite UI copy) · `/projects/{id}`(ProjectController
-→ student/project-detail, group-scoped) · `/files/{path}`(FileController, access-checked
+**Shared authenticated**: `/explore`(ExploreController: tabs archive|search|matches; Discover
+tab now STUDENT-only via sec:authorize) · `/discover`(cross-dept opportunities) ·
+`/notifications`(+`/mark-read`, +`/open/{submissionId}` → role-aware redirect to the right
+detail page) · `/groups`(ProjectGroupController: list/create/addMember/removeMember +
+`/{id}/leave` (non-leader self-removal; leader blocked) — still no delete) ·
+`/projects/{id}`(ProjectController → student/project-detail, group-scoped; role-aware Back +
+viaCollaboration hint) · `/files/{path}`(FileController, access-checked
 download; 404 msg explains storage-fix history).
 **APIs**: `/api/ai-insights/{id}`(GET status poll) `/api/ai-insights/{id}/retry`(POST) ·
 `/api/ai/analyze-draft-file`(POST multipart → 3 title suggestions; the ONLY live suggest path) ·
@@ -104,10 +106,13 @@ download; 404 msg explains storage-fix history).
 - **CollaborationDiscoveryService** (432): Stage-1 whole-corpus cross-disciplinary shortlist
   (excludes same unit; mentor detection); **CollaborationAssessmentService** (361): Stage-2 LLM
   verdict/pitch on shortlisted pairs (no-op without key).
-- **SubmissionService** (417): create/version (deadline+approved guards, group perms, SHA-256
-  content hash) → triggers analysis; lecturer queue via TeachingAssignments; access checks;
-  feedback+status+grade with notifications (owner + group members); batch lecturer populate
-  (anti-N+1). Dead tail: addSupervisor/removeSupervisor.
+- **SubmissionService** (417): create/version (deadline guard now honours the lecturer's late
+  window via injected AnnouncementService — past-deadline uploads allowed while open + flagged
+  `version.late=true`; strict curriculum: a student WITH a programme must have a matching
+  curriculum or gets a clear error, only profile-less accounts keep the first-curriculum
+  fallback; approved guard; group perms; SHA-256 content hash) → triggers analysis; lecturer
+  queue via TeachingAssignments; access checks; feedback+status+grade with notifications (owner
+  + group members); batch lecturer populate (anti-N+1). Dead tail: addSupervisor/removeSupervisor.
 - **SearchService** (245): BM25-ish keyword search + optional pgvector semantic channel (flag).
 - **KnowledgeTagService** (379): master-list CRUD for 6 tag families; only Technology +
   ResearchArea are ever attached to submissions (LLM path). Framework/Database/Language/Skill
@@ -125,7 +130,11 @@ download; 404 msg explains storage-fix history).
   **ProjectGroupService** (179): groups CRUD/membership. **CollaborationRequestService** (143):
   request lifecycle → Collaboration on accept. **LecturerRecommendationService** (137):
   supervisor suggestions by tag overlap with lecturer profiles.
-  **SubmissionAccessService** (88): single source of discover-visibility truth.
+  **SubmissionAccessService** (88): single source of discover-visibility truth; +isCollaborator
+  OnlyFileAccess (drives the "unlocked as collaborator" hint). **AIInsightService**: retry/rerun
+  now atomic via `AIInsightRepository.transition(id,to,from)` (@Modifying conditional UPDATE —
+  performAnalysisAsync claims PENDING→PROCESSING, only one winner; rerunAnalysis from
+  COMPLETED/FAILED). **ProjectGroupService**: +leaveGroup (non-leader self-removal).
   **FileStorageService** (100): UUID-named store under upload dir, MIME/extension whitelist,
   25MB cap. **NotificationService/AuditService**: bell + immutable per-submission audit trail.
   **GrobidService/SpecterService/OcrService**: HTTP sidecars, all flag-gated OFF.
@@ -174,6 +183,9 @@ Skill (dead). Lookup seeding: UnisubmitApplication CommandLineRunner (count==0 g
   DeadlineReminderScheduler (real feature: notifies upcoming deadlines).
 - `forward-headers-strategy: framework` (TLS terminates at proxy).
 - Blind review: `BLIND_REVIEW=true` masks identity until first grade (UI + marks CSV).
+- manifest.webmanifest ships a student-only "New submission" shortcut for ALL roles (JSON has
+  no per-role gating and no comments) — accepted trade-off: a lecturer/admin who taps it lands
+  on /student/submission/new and hits the normal role guard. Left as-is (ROADMAP 2.7c).
 
 ## 8 · Frontend contract (summary — full list handoff §6)
 - Restyle in base.css; **never rename** hook classes/ids/data-attrs; CSRF meta + hidden inputs
@@ -215,8 +227,9 @@ Postgres convenience) · deploy/ (real ops docs) · UserService "legacy" createU
 all of app.js.
 
 ## 10 · Known weaknesses (current, honest)
-1. Only 9 test files for 13.4k LOC — the pipeline, matching math, and access rules are
-   effectively untested; refactors rely on manual verification.
+1. Test coverage is thin but improving — 13 test files (ROADMAP V3 Phase 2 added the floor:
+   SubmissionServiceGuards, SubmissionAccessService, AiPipelineIdempotency, SecurityMatrix +
+   RecommendationService cases; 65 tests green). Controllers/templates still largely untested.
 2. RichTestDataSeeder runs in prod on a fresh DB (demo data pollution; make it env-gated like
    CollaborationDemoSeeder). (being addressed by ROADMAP V3)
 3. Default `password123` accounts seeded everywhere incl. prod (handoff flags it; forced

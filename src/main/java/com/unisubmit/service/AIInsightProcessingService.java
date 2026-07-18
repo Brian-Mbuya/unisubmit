@@ -256,9 +256,9 @@ public class AIInsightProcessingService {
                 if (insight == null) {
                     return null;
                 }
-                insight.setStatus(AIInsightStatus.PROCESSING);
-                aiInsightRepository.save(insight);
 
+                // Read everything we need BEFORE the atomic claim (keeps lazy access on a
+                // fresh managed entity; the claim is the last write in this block).
                 Submission submission = insight.getSubmission();
                 if (submission.getVersions().isEmpty()) {
                     throw new IllegalStateException("Submission has no file versions to analyse.");
@@ -269,6 +269,14 @@ public class AIInsightProcessingService {
                 Path resolved = uploadRoot.resolve(fileName);
                 if (!resolved.toFile().exists()) {
                     throw new IllegalStateException("Uploaded file could not be found on storage.");
+                }
+
+                // Atomically claim this run: PENDING → PROCESSING. If another invocation
+                // already owns the insight (rowcount 0), abandon silently — no double work.
+                int claimed = aiInsightRepository.transition(insightId, AIInsightStatus.PROCESSING,
+                        java.util.List.of(AIInsightStatus.PENDING));
+                if (claimed == 0) {
+                    return null;
                 }
                 return resolved;
             });

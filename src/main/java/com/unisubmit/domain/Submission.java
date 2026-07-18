@@ -13,7 +13,10 @@ import java.util.Set;
 @Entity
 @Getter
 @Setter
-@Table(name = "submissions")
+@Table(name = "submissions", indexes = {
+    @Index(name = "ix_submission_student", columnList = "student_id"),
+    @Index(name = "ix_submission_curriculum", columnList = "curriculum_id")
+})
 public class Submission {
     
     @Id

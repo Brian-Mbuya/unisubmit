@@ -78,6 +78,7 @@ public class AuthController {
                            @RequestParam String studentId,
                            @RequestParam(required = false) Long courseId,
                            @RequestParam(required = false) Long departmentId,
+                           @RequestParam(required = false) Long facultyId,
                            Model model) {
         // Basic input validation
         String validationError = null;
@@ -98,6 +99,7 @@ public class AuthController {
             model.addAttribute("formStudentId", studentId);
             model.addAttribute("formCourseId", courseId);
             model.addAttribute("formDepartmentId", departmentId);
+            model.addAttribute("formFacultyId", facultyId);
             return "register";
         }
 
@@ -111,6 +113,7 @@ public class AuthController {
             model.addAttribute("formStudentId", studentId);
             model.addAttribute("formCourseId", courseId);
             model.addAttribute("formDepartmentId", departmentId);
+            model.addAttribute("formFacultyId", facultyId);
             return "register";
         }
     }

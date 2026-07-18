@@ -60,6 +60,7 @@ public class ProjectController {
 
         model.addAttribute("submission", submission);
         model.addAttribute("canAccessFile", submissionAccessService.canAccessSubmissionFile(currentUser, submission));
+        model.addAttribute("viaCollaboration", submissionAccessService.isCollaboratorOnlyFileAccess(currentUser, submission));
         model.addAttribute("timeline", auditService.getHistory(submission));
         model.addAttribute("relations", relationService.getRelationsFor(submission));
         model.addAttribute("canManageRelations", canManageRelations);

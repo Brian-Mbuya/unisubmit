@@ -10,6 +10,7 @@ import com.unisubmit.domain.Role;
 import com.unisubmit.domain.Submission;
 import com.unisubmit.domain.SubmissionSimilarity;
 import com.unisubmit.domain.SubmissionStatus;
+import com.unisubmit.domain.SubmissionVersion;
 import com.unisubmit.domain.Technology;
 import com.unisubmit.domain.Unit;
 import com.unisubmit.domain.User;
@@ -176,6 +177,48 @@ class RecommendationServiceTest {
         assertTrue(captor.getValue().isEmpty(), "private drafts must not produce similarity rows");
     }
 
+    @Test
+    void identicalHashForcesFullScoreEvenWithoutSharedTags() {
+        Submission current = submission(1L, owner, "Alpha",
+                Set.of(), Set.of(), List.of());
+        Submission candidate = submission(2L, otherStudent, "Completely Different Title",
+                Set.of(), Set.of(), List.of());
+        addVersion(current, "HASH-123");
+        addVersion(candidate, "HASH-123");
+
+        SubmissionSimilarity saved = runPrecompute(current, candidate);
+
+        // Byte-identical latest files are a duplicate submission — full score, retained
+        // even though the pair shares no tags, keywords, or title words.
+        assertEquals(1.0, saved.getSimilarityScore(), 1e-9);
+        assertTrue(saved.getReason().toLowerCase().contains("identical"),
+                "reason should flag the duplicate");
+    }
+
+    @Test
+    void aPairWhoseOnlyLinkIsTheUnitIsNotRetained() {
+        Submission current = submission(1L, owner, "Alpha Bravo",
+                Set.of(), Set.of(), List.of());
+        Submission candidate = submission(2L, otherStudent, "Xylophone Zeppelin",
+                Set.of(), Set.of(), List.of());
+
+        when(submissionRepository.findByCurriculum_UnitAndStudentNot(sharedUnit, owner))
+                .thenReturn(List.of(candidate));
+        when(submissionRepository.findByStudentNotOrderByCreatedAtDesc(any(User.class), any(Pageable.class)))
+                .thenReturn(List.of());
+        when(submissionRepository.findWithRecommendationDataByIdIn(anyCollection()))
+                .thenReturn(List.of(candidate));
+        when(accessService.canDiscoverSubmission(any(User.class), any(Submission.class)))
+                .thenReturn(true);
+
+        recommendationService.precomputeForSubmission(current);
+
+        ArgumentCaptor<List<SubmissionSimilarity>> captor = ArgumentCaptor.forClass(List.class);
+        verify(similarityRepository).saveAll(captor.capture());
+        assertTrue(captor.getValue().isEmpty(),
+                "same-unit alone must never create a match");
+    }
+
     // ── read side: viewer filtering ──────────────────────────────────────────
 
     @Test
@@ -242,6 +285,12 @@ class RecommendationServiceTest {
         user.setName("Student " + id);
         user.setRole(Role.STUDENT);
         return user;
+    }
+
+    private void addVersion(Submission submission, String contentHash) {
+        SubmissionVersion version = new SubmissionVersion();
+        version.setContentHash(contentHash);
+        submission.getVersions().add(version);
     }
 
     private Submission submission(Long id, User student, String title,

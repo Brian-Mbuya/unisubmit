@@ -29,6 +29,7 @@ public class SubmissionService {
     private final NotificationService notificationService;
     private final ProjectGroupRepository groupRepository;
     private final AuditService auditService;
+    private final AnnouncementService announcementService;
 
     public SubmissionService(SubmissionRepository submissionRepository,
                              SubmissionVersionRepository versionRepository,
@@ -41,7 +42,8 @@ public class SubmissionService {
                              AIInsightService aiInsightService,
                              NotificationService notificationService,
                              ProjectGroupRepository groupRepository,
-                             AuditService auditService) {
+                             AuditService auditService,
+                             AnnouncementService announcementService) {
         this.submissionRepository = submissionRepository;
         this.versionRepository = versionRepository;
         this.feedbackRepository = feedbackRepository;
@@ -54,6 +56,7 @@ public class SubmissionService {
         this.notificationService = notificationService;
         this.groupRepository = groupRepository;
         this.auditService = auditService;
+        this.announcementService = announcementService;
     }
 
     @Transactional
@@ -61,34 +64,43 @@ public class SubmissionService {
         Unit unit = unitRepository.findById(unitId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Unit not found: " + unitId));
 
+        // Deadline gate: after the deadline, a submission is allowed ONLY while the
+        // lecturer's late window is open — and then it is flagged late=true.
+        boolean late = false;
         if (unit.getSubmissionDeadline() != null && java.time.LocalDateTime.now().isAfter(unit.getSubmissionDeadline())) {
-            throw new IllegalArgumentException("The submission deadline for this unit has passed. Submissions are closed.");
+            if (!announcementService.isLateWindowOpen(unitId)) {
+                throw new IllegalArgumentException("The submission deadline for this unit has passed. Submissions are closed.");
+            }
+            late = true;
         }
 
-        // Match curriculum against unit and student's programme
-        Curriculum curriculum = null;
-        if (student.getStudentProfile() != null && student.getStudentProfile().getProgramme() != null) {
-            Long progId = student.getStudentProfile().getProgramme().getId();
-            List<Curriculum> curricula = curriculumRepository.findByUnitId(unitId);
+        // Resolve the curriculum linking this unit to the student's programme. A student
+        // WITH a programme must have a matching curriculum — we no longer silently drop
+        // them into another programme's curriculum (2.3). Only profile-less / programme-less
+        // accounts keep the lenient "first curriculum for the unit" fallback.
+        StudentProfile profile = student.getStudentProfile();
+        boolean hasProgramme = profile != null && profile.getProgramme() != null;
+        List<Curriculum> curricula = curriculumRepository.findByUnitId(unitId);
+        Curriculum curriculum;
+        boolean noProgrammeFallback = false;
+
+        if (hasProgramme) {
+            Long progId = profile.getProgramme().getId();
             curriculum = curricula.stream()
                     .filter(c -> c.getProgramme() != null && c.getProgramme().getId().equals(progId))
                     .findFirst()
-                    .orElse(null);
-        }
-
-        // Fallback: use the first curriculum for this unit, or the first one at all
-        if (curriculum == null) {
-            List<Curriculum> curricula = curriculumRepository.findByUnitId(unitId);
-            if (!curricula.isEmpty()) {
-                curriculum = curricula.get(0);
+                    .orElseThrow(() -> new SubmissionNotFoundException(
+                            "Your programme isn't linked to this unit yet — ask your admin to add it under Curricula."));
+        } else {
+            // No programme on file — do NOT auto-create a phantom curriculum; use the first
+            // curriculum for this unit if one exists, otherwise surface a clear error.
+            if (curricula.isEmpty()) {
+                throw new SubmissionNotFoundException(
+                        "This unit has not been assigned to any programme yet. " +
+                        "Please contact the admin to set up the curriculum.");
             }
-        }
-
-        // If still null, do NOT auto-create a phantom curriculum — surface a clear error
-        if (curriculum == null) {
-            throw new SubmissionNotFoundException(
-                    "This unit has not been assigned to any programme yet. " +
-                    "Please contact the admin to set up the curriculum.");
+            curriculum = curricula.get(0);
+            noProgrammeFallback = true;
         }
 
         Submission submission = new Submission();
@@ -105,8 +117,9 @@ public class SubmissionService {
 
         submission = submissionRepository.save(submission);
         auditService.record(submission, AuditAction.SUBMISSION_CREATED,
-                "Project created", student);
-        appendNewVersion(submission, file, student);
+                "Project created" + (noProgrammeFallback ? " (no programme on file — first curriculum used)" : ""),
+                student);
+        appendNewVersion(submission, file, student, null, late);
 
         // Trigger AI analysis asynchronously (non-blocking)
         final Long submissionId = submission.getId();
@@ -126,8 +139,12 @@ public class SubmissionService {
                 .orElseThrow(() -> new SubmissionNotFoundException(submissionId));
 
         Unit unit = submission.getCurriculum().getUnit();
+        boolean late = false;
         if (unit != null && unit.getSubmissionDeadline() != null && java.time.LocalDateTime.now().isAfter(unit.getSubmissionDeadline())) {
-            throw new IllegalArgumentException("The submission deadline for this unit has passed. Submissions are closed.");
+            if (!announcementService.isLateWindowOpen(unit.getId())) {
+                throw new IllegalArgumentException("The submission deadline for this unit has passed. Submissions are closed.");
+            }
+            late = true;
         }
 
         boolean isOwner = submission.getStudent().getId().equals(student.getId());
@@ -144,17 +161,14 @@ public class SubmissionService {
 
         submission.setStatus(SubmissionStatus.SUBMITTED);
         submissionRepository.save(submission);
-        appendNewVersion(submission, file, student, changesSummary);
+        appendNewVersion(submission, file, student, changesSummary, late);
         aiInsightService.initiateAnalysis(submission);
 
         return submission;
     }
 
-    private void appendNewVersion(Submission submission, MultipartFile file, User uploadedBy) {
-        appendNewVersion(submission, file, uploadedBy, null);
-    }
-
-    private void appendNewVersion(Submission submission, MultipartFile file, User uploadedBy, String changesSummary) {
+    private void appendNewVersion(Submission submission, MultipartFile file, User uploadedBy,
+                                  String changesSummary, boolean late) {
         String storedFileName = fileStorageService.storeFile(file);
         int nextVersionNum = submission.getVersions().size() + 1;
 
@@ -167,6 +181,7 @@ public class SubmissionService {
         version.setVersionNumber(nextVersionNum);
         version.setUploadedBy(uploadedBy);
         version.setContentHash(sha256Hex(file));
+        version.setLate(late);
         if (changesSummary != null && !changesSummary.isBlank()) {
             version.setChangesSummary(changesSummary.trim().length() > 500
                     ? changesSummary.trim().substring(0, 500) : changesSummary.trim());

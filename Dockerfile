@@ -20,6 +20,9 @@ COPY --from=build /workspace/target/unisubmit-0.0.1-SNAPSHOT.jar /app/unisubmit.
 
 ENV PORT=8080
 ENV APP_UPLOAD_DIR=/app/uploads
+# Pin the wall-clock so deadlines enforce at Nairobi (EAT) time. TZ alone depends on
+# the base image's tzdata; -Duser.timezone in the ENTRYPOINT is the belt-and-braces guard.
+ENV TZ=Africa/Nairobi
 
 EXPOSE 8080
 # NOTE: no `VOLUME` instruction — Railway rejects it. For persistent uploads,
@@ -42,4 +45,5 @@ ENTRYPOINT ["sh", "-c", "java \
   -XX:MaxMetaspaceSize=128m \
   -XX:+UseG1GC \
   -Djava.security.egd=file:/dev/./urandom \
+  -Duser.timezone=Africa/Nairobi \
   -jar /app/unisubmit.jar"]

@@ -27,6 +27,9 @@ import java.time.LocalDateTime;
 @Setter
 @Table(name = "collaboration_matches", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"submission_a_id", "submission_b_id"})
+}, indexes = {
+    @Index(name = "ix_collab_a", columnList = "submission_a_id"),
+    @Index(name = "ix_collab_b", columnList = "submission_b_id")
 })
 public class CollaborationMatch {
 

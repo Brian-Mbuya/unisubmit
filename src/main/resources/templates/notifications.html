@@ -35,7 +35,7 @@
                                      th:text="${#temporals.format(n.createdAt, 'dd MMM yyyy, HH:mm')}">Date</div>
                             </div>
                             <a th:if="${n.relatedSubmissionId != null}"
-                               th:href="@{'/projects/' + ${n.relatedSubmissionId}}"
+                               th:href="@{'/notifications/open/' + ${n.relatedSubmissionId}}"
                                class="btn btn-secondary btn-sm">View</a>
                         </div>
                     </div>

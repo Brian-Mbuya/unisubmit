@@ -171,7 +171,7 @@ every role; staff never 403 from /projects navigation; groups can be left, and b
 render for viewers who can use them; the unread-bell query is index-backed; concurrent
 re-analysis is impossible; build green + new tests green.
 
-- [ ] **2.1 Timezone pinning.** `Dockerfile`: add `ENV TZ=Africa/Nairobi` AND extend the java
+- [x] **2.1 Timezone pinning.** `Dockerfile`: add `ENV TZ=Africa/Nairobi` AND extend the java
   launch with `-Duser.timezone=Africa/Nairobi` (belt and braces — TZ alone depends on distro
   tzdata). `deploy/unisubmit.env.example`: document both + one warning line: "flipping the
   zone shifts the displayed time of EXISTING naive timestamps (+3h) — re-check any live
@@ -179,7 +179,7 @@ re-analysis is impossible; build green + new tests green.
   already EAT). Done-when: `TimeZone.getDefault()` logged at boot (add one INFO line in
   UnisubmitApplication.main via a CommandLineRunner or the existing seeder log) says
   Africa/Nairobi in the Railway deploy log.
-- [ ] **2.2 Late-window becomes real.** `SubmissionService` (both guards, createSubmission ~L64
+- [x] **2.2 Late-window becomes real.** `SubmissionService` (both guards, createSubmission ~L64
   and addNewVersion ~L129): replace the unconditional throw with: past-deadline AND
   `announcementService.isLateWindowOpen(unitId)` false → throw (same message); past-deadline
   AND window open → proceed and mark the created version `setLate(true)` (in
@@ -189,21 +189,21 @@ re-analysis is impossible; build green + new tests green.
   `isLateWindowOpen` into a tiny `LateWindowService` instead). The "Late submission" badge
   (components.html:50) and the `is_late` column already exist — no template work. Done-when:
   test in 2.8 covers all three states (before deadline / after+closed / after+open→late flag).
-- [ ] **2.3 Curriculum fallback made strict.** `SubmissionService.createSubmission` ~L79-85:
+- [x] **2.3 Curriculum fallback made strict.** `SubmissionService.createSubmission` ~L79-85:
   keep the programme-matched lookup; the `curricula.get(0)` fallback now applies ONLY when
   `student.getStudentProfile() == null || profile.getProgramme() == null` (profile-less
   accounts keep working, audit detail gains " (no programme on file — first curriculum
   used)"). A student WITH a programme whose programme has no curriculum for the unit →
   `SubmissionNotFoundException("Your programme isn't linked to this unit yet — ask your
   admin to add it under Curricula.")`. Done-when: 2.8 test pins both branches.
-- [ ] **2.4 Notification links open the right page.** New endpoint in
+- [x] **2.4 Notification links open the right page.** New endpoint in
   `NotificationController`: `GET /notifications/open/{submissionId}` → redirect by
   `userDetails.getUser().getRole()`: STUDENT → `/student/submission/{id}`, LECTURER →
   `/lecturer/submission/{id}`, ADMIN → `/projects/{id}`. `notifications.html:36-38`: View
   href → `@{'/notifications/open/' + ${n.relatedSubmissionId}}`. SecurityConfig already
   permits /notifications/** for authenticated. (Lecturer target 403s if unassigned —
   acceptable: getSubmissionForLecturer's message explains.)
-- [ ] **2.5 /projects/{id} works for every role.** `student/project-detail.html`: (a) L18 Back
+- [x] **2.5 /projects/{id} works for every role.** `student/project-detail.html`: (a) L18 Back
   link → role-conditional via `sec:authorize`: STUDENT → /student/dashboard, LECTURER →
   /lecturer/dashboard, ADMIN → /admin/dashboard (three anchors, one rendered); (b) the
   "Unlocked because you are an accepted collaborator" hint (L92-94): the access *reason* is
@@ -213,7 +213,7 @@ re-analysis is impossible; build green + new tests green.
   `canAccessSubmissionFile` passes but the user is not admin/owner/group-member/assigned-
   lecturer (i.e. only `collaborationRepository.existsByUserAndSubmission` granted it);
   ProjectController sets model attr `viaCollaboration` from it; template gates the hint.
-- [ ] **2.6 Groups: leave + honest buttons.** (a) `ProjectGroupController` + Service: new
+- [x] **2.6 Groups: leave + honest buttons.** (a) `ProjectGroupController` + Service: new
   `POST /groups/{id}/leave` — any non-leader member removes themself (leader attempting →
   flash error "Transfer leadership is not supported yet — ask an admin."); (b)
   `groups.html:48-53`: wrap the ✕ remove form in a viewer-is-leader check —
@@ -223,7 +223,7 @@ re-analysis is impossible; build green + new tests green.
   add a "Leave group" button (btn-sm btn-secondary) for non-leader members; (c) copy fix
   L8: "Create a group, or ask a group leader to add you." Done-when: member sees Leave (works),
   sees no ✕; leader sees ✕ (works), no Leave.
-- [ ] **2.7 Explore Discover tab is student-only + secondary fixes.** (a) `explore.html`: wrap
+- [x] **2.7 Explore Discover tab is student-only + secondary fixes.** (a) `explore.html`: wrap
   the Discover tab link AND its tab-panel + opt-in rail in `sec:authorize="hasRole('STUDENT')"`
   (controller already computes; template now enforces — lecturers/admins see Archive+Search
   only). (b) Registration cascade echo: `AuthController.register` error paths — add
@@ -234,7 +234,7 @@ re-analysis is impossible; build green + new tests green.
   CODEBASE-MAP §7. (d) Upload copy — BOTH occurrences (audited):
   `student/new-submission.html:26` and `student/submission-detail.html:56`, "max 50 MB" →
   "max 25 MB" (FileStorageService caps at 25 MB).
-- [ ] **2.8 Indexes + pipeline idempotency + tests.**
+- [x] **2.8 Indexes + pipeline idempotency + tests.**
   (a) Indexes via `@Table(indexes=...)` — column names AUDITED against the entities, use
   as-is: `AppNotification` (@Table app_notifications) → `ix_appnotif_recipient
   (recipient_id, read)`; `SubmissionSimilarity` → `ix_simil_b (submission_b_id)`;
@@ -266,7 +266,7 @@ re-analysis is impossible; build green + new tests green.
   CSRF-less POST /logout 403, /health 200 anon, /about 200 anon) — this is V2.5a from the
   archive, now in scope. Pure-unit where possible (construct services with mocks; MockMvc
   only for the security matrix). Run `.\mvnw.cmd -B -ntp test`.
-- [ ] **2.9 Ship check.** SW → v14 (templates changed). Build + tests green. Commit
+- [x] **2.9 Ship check.** SW → v14 (templates changed). Build + tests green. Commit
   `"fix: TZ pinning, real late-window, strict curriculum, role-aware links, groups leave, indexes, pipeline idempotency + test floor (SW v14)"`.
 
 ## Phase 3 · CLEAN — dead code out, one LLM client, honest docs (SW → v15)
@@ -608,6 +608,16 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
 ## Log (one line per session)
 - 2026-07-17 Fable: V3 authored (planner). Verified-gap sweep 2026-07-17 is fully folded in;
   Registry superseded per owner; visual = Phase 1 per owner. Opus·high executes top-down.
+- 2026-07-18 Opus: Phase 2 TRUTH done (SW v14). TZ pinned (Dockerfile TZ + -Duser.timezone,
+  boot log confirms Africa/Nairobi); real late-window (SubmissionService injects
+  AnnouncementService, no cycle; version.late flagged); strict curriculum (programme-linked or
+  clear error); role-aware GET /notifications/open/{id}; project-detail role Back links +
+  viaCollaboration hint via SubmissionAccessService.isCollaboratorOnlyFileAccess; POST
+  /groups/{id}/leave + leader-gated ✕; Discover tab student-only (sec:authorize); register
+  facultyId echo; 50→25MB copy; @Table indexes on 5 entities; AIInsightRepository.transition()
+  atomic claim wired into performAnalysisAsync/retryAnalysis/new rerunAnalysis. Test floor:
+  +AiPipelineIdempotency, +SubmissionAccessService, +SubmissionServiceGuards, +SecurityMatrix,
+  +2 RecommendationService cases → 65 tests green (BUILD SUCCESS). Not pushed. Next: Phase 3.
 - 2026-07-18 Opus: Phase 1 VISUAL done (SW v13). Tokens: steel-blue `--tint-blue-*`, amber
   `--warning`, jade `--brand` lightened for AA, `--text-subtle` bumped. De-jaded
   `.filter-btn.active` (neutral), lecturer count bubble → `.unit-count`, dropzone

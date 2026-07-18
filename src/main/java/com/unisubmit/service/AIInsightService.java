@@ -102,21 +102,56 @@ public class AIInsightService {
     }
 
     /**
-     * Retry entry point: only allowed when status == FAILED.
-     * Returns false if the insight is not in a retriable state.
+     * Retry entry point (FAILED analyses only). Atomically flips FAILED → PENDING; if the
+     * insight isn't FAILED (already running, already done, or gone) nothing is claimed and
+     * this returns false — matching the javadoc's "only allowed when status == FAILED".
      */
+    @org.springframework.transaction.annotation.Transactional
     public boolean retryAnalysis(Long insightId) {
-        AIInsight insight = aiInsightRepository.findById(insightId).orElse(null);
-        if (insight == null || (insight.getStatus() != AIInsightStatus.FAILED
-                && insight.getStatus() != AIInsightStatus.PENDING)) {
+        int claimed = aiInsightRepository.transition(insightId, AIInsightStatus.PENDING,
+                java.util.List.of(AIInsightStatus.FAILED));
+        if (claimed == 0) {
             return false;
         }
-        insight.setStatus(AIInsightStatus.PENDING);
-        insight.setSummary(null);
-        insight.setKeywords(new java.util.LinkedHashSet<>());
-        insight.setErrorMessage(null);
-        aiInsightRepository.save(insight);
-        aiInsightProcessingService.performAnalysisAsync(insightId);
+        fireAfterCommit(insightId);
         return true;
+    }
+
+    /**
+     * Student-triggered re-run from the submission page. Atomically flips a COMPLETED or
+     * FAILED insight back to PENDING (a concurrent click, or a run still PROCESSING, is
+     * refused) and re-fires the pipeline. Returns false when nothing was claimed.
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public boolean rerunAnalysis(Long submissionId) {
+        Submission submission = submissionRepository.findById(submissionId).orElse(null);
+        if (submission == null || submission.getAiInsight() == null) {
+            return false;
+        }
+        Long insightId = submission.getAiInsight().getId();
+        int claimed = aiInsightRepository.transition(insightId, AIInsightStatus.PENDING,
+                java.util.List.of(AIInsightStatus.COMPLETED, AIInsightStatus.FAILED));
+        if (claimed == 0) {
+            return false;
+        }
+        fireAfterCommit(insightId);
+        return true;
+    }
+
+    /**
+     * Runs the async pipeline AFTER the current transaction commits, so the worker thread
+     * sees the committed PENDING row (the same guard initiateAnalysis uses).
+     */
+    private void fireAfterCommit(Long insightId) {
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    aiInsightProcessingService.performAnalysisAsync(insightId);
+                }
+            });
+        } else {
+            aiInsightProcessingService.performAnalysisAsync(insightId);
+        }
     }
 }
