@@ -46,10 +46,12 @@
     <!-- SEARCH TAB (no sidebar) -->
     <div th:if="${activeTab == 'search'}">
         <div th:if="${query.isEmpty()}" class="empty-state">
+            <div th:replace="~{fragments/components :: emptyGlyph('compass')}"></div>
             <p>Search the archive.</p>
         </div>
 
         <div th:if="${!query.isEmpty() and #lists.isEmpty(hits)}" class="empty-state">
+            <div th:replace="~{fragments/components :: emptyGlyph('compass')}"></div>
             <p>No matches — try broader terms.</p>
         </div>
 
@@ -84,6 +86,7 @@
         <div class="page-main">
 
             <div th:if="${!discoverable}" class="empty-state">
+                <div th:replace="~{fragments/components :: emptyGlyph('compass')}"></div>
                 <p>Discovery is off — opt in to see matches.</p>
             </div>
 

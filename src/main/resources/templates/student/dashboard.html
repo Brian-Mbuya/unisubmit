@@ -36,16 +36,7 @@
 
         <!-- First-run empty state -->
         <div th:if="${#lists.isEmpty(submissions)}" class="empty-state">
-            <svg class="empty-state-svg" width="110" height="110" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" stroke="var(--border)" stroke-width="0.75" stroke-dasharray="3 3"/>
-                <path d="M12 2v2M12 20v2M2 12h2M20 12h2" stroke="var(--border-muted)" stroke-width="0.75"/>
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" stroke="var(--gold)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M12 6l4.5 2-4.5 2-4.5-2z" fill="var(--brand)" fill-opacity="0.25" stroke="var(--primary)" stroke-width="1.2" stroke-linejoin="round"/>
-                <path d="M16.5 8v3.5c0 0.5-0.5 0.8-1 0.8" stroke="var(--gold)" stroke-width="1" stroke-linecap="round"/>
-                <circle cx="15.5" cy="12.3" r="0.6" fill="var(--gold)"/>
-                <line x1="9" y1="11" x2="15" y2="11" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"/>
-                <line x1="9" y1="14" x2="13" y2="14" stroke="var(--text-muted)" stroke-width="1" stroke-linecap="round"/>
-            </svg>
+            <div th:replace="~{fragments/components :: emptyGlyph('folder')}"></div>
             <h3>No projects yet</h3>
             <a th:href="@{/student/submission/new}" class="btn mt-4">New submission</a>
         </div>
