@@ -91,6 +91,7 @@
             </div>
 
             <div th:if="${discoverable and totalCount == 0}" class="empty-state">
+                <div th:replace="~{fragments/components :: emptyGlyph('compass')}"></div>
                 <p>No matches yet.</p>
             </div>
 

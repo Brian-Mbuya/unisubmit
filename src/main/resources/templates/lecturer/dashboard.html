@@ -42,6 +42,7 @@
             <div class="page-main">
 
                 <div th:if="${#maps.isEmpty(submissionsByUnit)}" class="empty-state">
+                    <div th:replace="~{fragments/components :: emptyGlyph('page')}"></div>
                     <p th:if="${statusFilter != null}">Nothing matches this filter. <a th:href="@{/lecturer/dashboard}">Clear filter</a></p>
                     <p th:if="${statusFilter == null}">No submissions yet.</p>
                 </div>

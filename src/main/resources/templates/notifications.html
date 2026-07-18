@@ -14,6 +14,7 @@
 
         <!-- Empty state -->
         <div th:if="${#lists.isEmpty(notifications)}" class="empty-state">
+            <div th:replace="~{fragments/components :: emptyGlyph('bell')}"></div>
             <p>No notifications yet.</p>
         </div>
 

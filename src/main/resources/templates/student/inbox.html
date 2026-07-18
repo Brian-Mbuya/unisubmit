@@ -22,6 +22,7 @@
                     </div>
 
                     <div th:if="${#lists.isEmpty(inbox.incomingRequests)}" class="empty-state empty-state-compact text-sm">
+                        <div th:replace="~{fragments/components :: emptyGlyph('envelope')}"></div>
                         No requests yet.
                     </div>
 
@@ -70,6 +71,7 @@
                     </div>
 
                     <div th:if="${#lists.isEmpty(inbox.activeCollaborations)}" class="empty-state empty-state-compact text-sm">
+                        <div th:replace="~{fragments/components :: emptyGlyph('envelope')}"></div>
                         No active collaborations.
                     </div>
 
@@ -104,6 +106,7 @@
                     </div>
 
                     <div th:if="${#lists.isEmpty(inbox.outgoingRequests)}" class="empty-state empty-state-compact text-sm">
+                        <div th:replace="~{fragments/components :: emptyGlyph('envelope')}"></div>
                         Nothing sent yet — find matches in
                         <a th:href="@{/explore(tab='discover')}">Discover</a>.
                     </div>
