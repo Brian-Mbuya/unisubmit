@@ -47,8 +47,8 @@
     /* Brand — jade laurel + brass */
     --primary: #5fbfab;
     --primary-strong: #74cdbb;
-    --brand: #2e8f7f;
-    --brand-strong: #26786b;
+    --brand: #35a08c;
+    --brand-strong: #2e8f7f;
     --gold: #cda660;
     --gold-bright: #e0be7e;
     --gold-dim: rgba(205, 166, 96, 0.32);
@@ -59,7 +59,7 @@
     --success: #6fc389;
     --danger: #e07a6b;
     --danger-strong: #c95f50;
-    --warning: #d6a657;
+    --warning: #e0964a;
 
     /* Surfaces — deep ink, never pure black */
     --canvas: #121417;
@@ -73,7 +73,7 @@
     /* Text */
     --text: #eae7e0;
     --text-muted: #a8a399;
-    --text-subtle: #7d7973;
+    --text-subtle: #8a857d;
     --text-on-brand: #ffffff;
 
     /* Lines */
@@ -82,7 +82,7 @@
     --border-strong: #47505a;
 
     /* Tints — dim ground, bright figure */
-    --tint-blue-bg: #1d2c2a;    --tint-blue-fg: #5cc3b2;   --tint-blue-bd: #2f4a46;
+    --tint-blue-bg: #1d2733;    --tint-blue-fg: #8ab4d8;   --tint-blue-bd: #2e4257;
     --tint-green-bg: #1f2b23;   --tint-green-fg: #80cf98;  --tint-green-bd: #314536;
     --tint-amber-bg: #2b2718;   --tint-amber-fg: #dcb061;  --tint-amber-bd: #49401f;
     --tint-red-bg: #2d1f1c;     --tint-red-fg: #ec8a7b;    --tint-red-bd: #482e29;
@@ -1067,9 +1067,9 @@ input[type="file"].form-control::file-selector-button {
 }
 .filter-btn:hover { background: var(--surface-muted); color: var(--text); text-decoration: none; }
 .filter-btn.active {
-    background: var(--tint-blue-bg);
-    border-color: var(--tint-blue-bd);
-    color: var(--primary);
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    color: var(--text);
     font-weight: 600;
 }
 

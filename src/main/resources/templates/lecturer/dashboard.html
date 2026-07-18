@@ -54,7 +54,7 @@
                                  th:text="${entry.key.department.name + ' / ' + (not entry.value.empty and entry.value[0].curriculum != null and entry.value[0].curriculum.programme != null ? entry.value[0].curriculum.programme.name : '—')}">Department / Course</div>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span class="badge badge-submitted" th:text="${#lists.size(entry.value)}">0</span>
+                            <span class="badge unit-count" th:text="${#lists.size(entry.value)}">0</span>
                             <a th:href="@{'/lecturer/units/' + ${entry.key.id} + '/marks.csv'}"
                                download class="btn btn-secondary btn-sm">Export CSV</a>
                         </div>
