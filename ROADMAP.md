@@ -101,7 +101,7 @@ WCAG AA (≥4.5:1 white-on-jade); each empty state on 1.4's pinned list shows ex
 line glyph above its single line of text; desktop layout is otherwise pixel-identical; SW is
 v13; build green.
 
-- [ ] **1.1 Steel-blue state family.** `static/css/base.css` §01 tokens, exact values:
+- [x] **1.1 Steel-blue state family.** `static/css/base.css` §01 tokens, exact values:
   `--tint-blue-bg: #1d2733; --tint-blue-fg: #8ab4d8; --tint-blue-bd: #2e4257;`
   (replaces the jade-teal trio at the current `--tint-blue-*` lines, base.css:85). Inheritors
   (all intended, audited): badge-submitted/processing/student, grade chip, .dot-pending/
@@ -109,7 +109,7 @@ v13; build green.
   .timeline-item.is-feedback::before (969), .alert-info (1009), and mobile
   `.nav-link.active` (base.css:2147 — steel fill under jade text: flag this one for the 1.5
   owner screenshot check). Zero template edits.
-- [ ] **1.2 De-jade the chrome.** (a) base.css: active filter chip (`.filter-btn.active`
+- [x] **1.2 De-jade the chrome.** (a) base.css: active filter chip (`.filter-btn.active`
   and the submission-filter `.active` treatment, §14): background `var(--surface-2)`, color
   `var(--text)`, border-color `var(--border-strong)` — remove jade fill/tint; (b) lecturer
   unit-header count bubble = `<span class="badge badge-submitted">` at
@@ -121,7 +121,7 @@ v13; build green.
   `.dropzone:focus-within { outline: 2px solid var(--primary); outline-offset: 2px; }`.
   Jade remains ONLY on: primary `.btn`, links, `.bento-tile--action`, active-nav underline.
   Do not touch `.btn-selected` (review action).
-- [ ] **1.3 Correctness trio.** base.css §01, exact values:
+- [x] **1.3 Correctness trio.** base.css §01, exact values:
   `--warning: #e0964a;` (was #d6a657 — 2° from gold, now real amber) ·
   `--brand: #35a08c;` + `--brand-strong: #2e8f7f;` (button bg lightens one step → white text
   ≈4.6:1; old brand becomes the hover, keeping the family) · `--text-subtle: #8a857d;`
@@ -129,7 +129,7 @@ v13; build green.
   is no `.chip-amber`): `.stat-amber` (base.css:849/856), `.alert-warning` (1010),
   `.btn-warning` (553-558), tint-amber badges (722/729/732) — they use the tint-amber trio;
   leave those values alone.
-- [ ] **1.4 D5 empty-state glyphs.** New fragment in `templates/fragments/components.html`:
+- [x] **1.4 D5 empty-state glyphs.** New fragment in `templates/fragments/components.html`:
   ```html
   <div th:fragment="emptyGlyph(name)" class="empty-glyph" aria-hidden="true">
     <svg th:switch="${name}" xmlns="http://www.w3.org/2000/svg" width="40" height="40"
@@ -156,7 +156,7 @@ v13; build green.
   `fragments/components.html` version-list empty → 'page'. Syntax:
   `<div th:replace="~{fragments/components :: emptyGlyph('folder')}"></div>` above the text.
   No new words — glyph + the existing single line only.
-- [ ] **1.5 Ship check.** sw.js VERSION → `unisubmit-shell-v13`. Build green. Commit
+- [x] **1.5 Ship check.** sw.js VERSION → `unisubmit-shell-v13`. Build green. Commit
   `"visual: steel-blue states, de-jade chrome, AA buttons, empty-state glyphs (SW v13)"`.
   **Owner/Fable verification (the one non-Opus lane):** owner opens dashboard + queue +
   inbox on device; Fable reviews screenshots if asked. Opus does NOT self-judge color taste.
@@ -608,6 +608,12 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
 ## Log (one line per session)
 - 2026-07-17 Fable: V3 authored (planner). Verified-gap sweep 2026-07-17 is fully folded in;
   Registry superseded per owner; visual = Phase 1 per owner. Opus·high executes top-down.
+- 2026-07-18 Opus: Phase 1 VISUAL done (SW v13). Tokens: steel-blue `--tint-blue-*`, amber
+  `--warning`, jade `--brand` lightened for AA, `--text-subtle` bumped. De-jaded
+  `.filter-btn.active` (neutral), lecturer count bubble → `.unit-count`, dropzone
+  `:focus-within`. New `emptyGlyph(name)` fragment + `.empty-glyph` CSS wired into 6 templates
+  (folder/compass/envelope/bell/page). Build green (BUILD SUCCESS). Not pushed. Color-taste
+  check deferred to owner per 1.5. Next: Phase 2 (TRUTH).
 - 2026-07-18 Opus: Phase 0 GROUND done. WIP parked to `wip/password-change` (6 files,
   commit e108f6d); V3 docs (ROADMAP/ROADMAP-ARCHIVE/CODEBASE-MAP) committed on `main`
   (3410a23) with §3/§10 map sync folded in; `unisubmit-v2` worktree restored clean & dormant

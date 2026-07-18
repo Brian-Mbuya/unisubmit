@@ -20,7 +20,7 @@ bulk import. PWA (installable, offline shell, bottom nav) wrapped as an Android 
 - DB: **Supabase Postgres** (prod) / **H2 file** (local, `application-local.yml`, profile `local`).
 - Frontend: ONE stylesheet `static/css/base.css` (design system "Nocturne Laurel", numbered
   sections, tokens at top) + ONE vanilla `static/js/app.js` (510 lines, IIFE, no deps) +
-  `static/sw.js` (**VERSION `unisubmit-shell-v12`** — bump on any css/js/icon shape change!).
+  `static/sw.js` (**VERSION `unisubmit-shell-v13`** — bump on any css/js/icon shape change!).
 - Zero external runtime deps: fonts (Inter+Fraunces woff2), Chart.js vendored, icons local.
 - Build: `JAVA_HOME=C:\Users\mbuya\.jdks\jdk-17.0.19+10` then `.\mvnw.cmd -B -ntp -DskipTests package`.
 - Local run: `run-local.ps1 -Port 8090` → seeds `admin`/`L001`/`S001`, all `password123`.
