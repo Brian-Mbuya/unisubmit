@@ -1,16 +1,19 @@
 # Deploying & updating UniSubmit
 
-Live setup: **Supabase** (managed Postgres) + **Oracle Cloud** VM (runs the app) +
-**Caddy** (automatic HTTPS on a free `sslip.io` host) + **GitHub Actions** (auto-deploy
-on push to `main`). No Docker anywhere — the app is a plain Spring Boot fat-jar run by
-systemd.
+**LIVE setup (current):** push to `main` → **Railway** builds the repo **Dockerfile**
+server-side → runs the container → **Supabase** (managed Postgres). See `RAILWAY.md`.
 
 ```
-Browser ──HTTPS──► Caddy :443 ──► app :8080 (systemd) ──JDBC/SSL──► Supabase Postgres
-GitHub push→main ─► Actions (build jar) ─scp─► VM ─► sudo unisubmit-deploy ─► /health
+Browser ──HTTPS──► Railway edge ──► app container :8080 ──JDBC/SSL──► Supabase Postgres
+GitHub push→main ─► Railway builds Dockerfile ─► deploy ─► /health
 ```
 
-## One-time server setup (Oracle Cloud)
+**DORMANT:** the Oracle-Cloud VM + Caddy + systemd path documented below is parked (its
+GitHub Actions push trigger is commented out — "auto-deploy is handled by Railway for
+now"). Everything from here on describes that dormant path; ignore it unless/until the
+Oracle VM is revived.
+
+## One-time server setup (Oracle Cloud — DORMANT)
 
 1. **Create the VM**: Ubuntu 22.04, shape `VM.Standard.A1.Flex` (ARM, Always-Free),
    1–2 OCPU / 6–12 GB. In the VCN Security List add ingress rules for TCP **22, 80, 443**.
@@ -40,9 +43,11 @@ git add -A && git commit -m "…" && git push origin main
 GitHub Actions builds the jar and ships it. The DB and the `uploads/` folder are untouched.
 Trigger a redeploy without a code change from the Actions tab ("Run workflow").
 
-**Database schema changes**: add a new `src/main/resources/db/migration/V20__*.sql` and push —
-Flyway applies it on the next boot. New `@Entity` fields are picked up automatically by
-Hibernate `ddl-auto=update`; no migration needed for simple column additions.
+**Database schema changes**: Flyway is **DISABLED** (the `db/migration/*.sql` files are
+dormant — see the application.yml comment for the re-adopt recipe). The schema is owned by
+Hibernate `ddl-auto=update`, so new `@Entity` fields / `@Table(indexes=…)` are applied
+automatically on the next boot. For anything ddl-auto won't do (dropping a column, a
+concurrent index, a type change), run the SQL directly against Supabase.
 
 ## First-login & security
 

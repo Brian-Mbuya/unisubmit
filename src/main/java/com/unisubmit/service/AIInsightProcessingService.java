@@ -71,15 +71,7 @@ public class AIInsightProcessingService {
     private final SubmissionRepository submissionRepository;
     private final TransactionTemplate transactionTemplate;
     private final Path uploadRoot;
-
-    @Value("${spring.ai.openai.api-key:NO_KEY}")
-    private String apiKey;
-
-    @Value("${spring.ai.openai.base-url:https://openrouter.ai/api/v1}")
-    private String baseUrl;
-
-    @Value("${spring.ai.openai.chat.options.model:openai/gpt-4o-mini}")
-    private String model;
+    private final com.unisubmit.service.ai.LlmClient llmClient;
 
     /** Upper bound for one full pipeline run — GROBID + LLM regularly exceeds 30s. */
     @Value("${unisubmit.ai.timeout-seconds:120}")
@@ -97,6 +89,7 @@ public class AIInsightProcessingService {
                                       CollaborationAssessmentService collaborationAssessmentService,
                                       SubmissionRepository submissionRepository,
                                       PlatformTransactionManager transactionManager,
+                                      com.unisubmit.service.ai.LlmClient llmClient,
                                       @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.aiInsightRepository = aiInsightRepository;
         this.recommendationService = recommendationService;
@@ -110,6 +103,7 @@ public class AIInsightProcessingService {
         this.collaborationAssessmentService = collaborationAssessmentService;
         this.submissionRepository = submissionRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.llmClient = llmClient;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -136,27 +130,8 @@ public class AIInsightProcessingService {
                 .collect(Collectors.joining(" "));
     }
 
-    private String getCompletionsUrl() {
-        String url = baseUrl;
-        if (url == null) {
-            return "https://openrouter.ai/api/v1/chat/completions";
-        }
-        url = url.trim();
-        if (url.endsWith("/chat/completions")) {
-            return url;
-        }
-        if (url.endsWith("/")) {
-            return url + "chat/completions";
-        }
-        return url + "/chat/completions";
-    }
-
     private LlmResult callOpenAi(String trimmedText) throws Exception {
-        if (apiKey == null || apiKey.isBlank() || "NO_KEY".equals(apiKey)) {
-            throw new IllegalStateException("OpenAI/OpenRouter API key is not configured.");
-        }
-
-        String prompt = """
+        String userPrompt = """
             Analyze the following academic project document.
             Return a strict JSON object with these fields:
             {
@@ -169,70 +144,20 @@ public class AIInsightProcessingService {
               "problemStatement": "A concise description of the problem this project intends to solve."
             }
             Do not include any markdown styling like ```json or ```. Return only the raw JSON.
-            
+
             Document text:
             %s
             """.formatted(trimmedText);
 
-        ObjectMapper mapper = new ObjectMapper();
-        String escapedPrompt = mapper.writeValueAsString(prompt);
-
-        String requestBody = """
-            {
-              "model": "%s",
-              "max_tokens": 1500,
-              "temperature": 0.2,
-              "messages": [
-                {
-                  "role": "user",
-                  "content": %s
-                }
-              ]
-            }
-            """.formatted(model, escapedPrompt);
-
-        // Bounded timeouts so a slow / rate-limited provider fails fast into the
-        // local fallback instead of blocking the pipeline up to its 120s limit.
-        java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                .connectTimeout(java.time.Duration.ofSeconds(10))
-                .build();
-        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                .uri(java.net.URI.create(getCompletionsUrl()))
-                .timeout(java.time.Duration.ofSeconds(45))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + apiKey)
-                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestBody, java.nio.charset.StandardCharsets.UTF_8))
-                .build();
-
-        log.info("Sending request to OpenRouter/OpenAI API at {} using model {}...", getCompletionsUrl(), model);
-        java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-
-        if (response.statusCode() != 200) {
-            throw new RuntimeException("API request failed with status code " + response.statusCode() + ": " + response.body());
+        // One LLM client, one untrusted-data system prompt, one bounded re-ask. Empty →
+        // provider unusable/no-key → throw so the caller drops to the heuristic fallback.
+        java.util.Optional<com.fasterxml.jackson.databind.JsonNode> json =
+                llmClient.completeJson(com.unisubmit.service.ai.LlmClient.DEFAULT_SYSTEM_PROMPT,
+                        userPrompt, 1500, 0.2);
+        if (json.isEmpty()) {
+            throw new RuntimeException("LLM returned no usable JSON for document analysis.");
         }
-
-        String responseBody = response.body();
-        com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(responseBody);
-        com.fasterxml.jackson.databind.JsonNode choices = rootNode.get("choices");
-        if (choices == null || !choices.isArray() || choices.isEmpty()) {
-            throw new RuntimeException("Unexpected API response structure: " + responseBody);
-        }
-        String content = choices.get(0).get("message").get("content").asText();
-
-        if (content.contains("```json")) {
-            content = content.substring(content.indexOf("```json") + 7);
-            if (content.contains("```")) {
-                content = content.substring(0, content.indexOf("```"));
-            }
-        } else if (content.contains("```")) {
-            content = content.substring(content.indexOf("```") + 3);
-            if (content.contains("```")) {
-                content = content.substring(0, content.indexOf("```"));
-            }
-        }
-        content = content.trim();
-
-        return mapper.readValue(content, LlmResult.class);
+        return llmClient.mapper().treeToValue(json.get(), LlmResult.class);
     }
 
     /**
@@ -618,143 +543,26 @@ public class AIInsightProcessingService {
     }
 
     /**
-     * Uses the LLM to suggest 3 creative, professional project titles based on
-     * the AI insight (summary, keywords, objectives, problem statement).
-     * Returns an empty list if the API key is not configured or the call fails.
-     */
-    public List<String> suggestTitles(Long submissionId) {
-        if (apiKey == null || apiKey.isBlank() || "NO_KEY".equals(apiKey)) {
-            return List.of();
-        }
-
-        Optional<com.unisubmit.domain.Submission> optSub = submissionRepository.findById(submissionId);
-        if (optSub.isEmpty() || optSub.get().getAiInsight() == null) {
-            return List.of();
-        }
-
-        AIInsight insight = optSub.get().getAiInsight();
-        String currentTitle = optSub.get().getTitle();
-
-        String prompt = """
-            Suggest exactly 3 titles for this student project.
-            Rules:
-            - Plain and precise: say what the project actually is, nothing more.
-            - Maximum 8 words each. No colons, no subtitles, no buzzwords,
-              no "Leveraging/Enhancing/Navigating/Towards".
-            - Name the concrete subject (e.g. "Hotel Booking Website", not
-              "Designing a User-Centric Hospitality Information System").
-            - If the document is a report or assignment rather than a project,
-              title it as that document, plainly.
-
-            Current title: %s
-            Summary: %s
-            Problem statement: %s
-            Keywords: %s
-            Objectives: %s
-
-            Return ONLY a JSON array of 3 strings, no markdown fences.
-            Example: ["Title One", "Title Two", "Title Three"]
-            """.formatted(
-                currentTitle != null ? currentTitle : "Untitled",
-                insight.getSummary() != null ? insight.getSummary() : "No summary",
-                insight.getProblemStatement() != null ? insight.getProblemStatement() : "No problem statement",
-                insight.getKeywords() != null ? String.join(", ", insight.getKeywords()) : "none",
-                insight.getObjectives() != null ? String.join("; ", insight.getObjectives()) : "none"
-        );
-
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            String escapedPrompt = mapper.writeValueAsString(prompt);
-
-            String requestBody = """
-                {
-                  "model": "%s",
-                  "max_tokens": 300,
-                  "temperature": 0.4,
-                  "messages": [
-                    {
-                      "role": "user",
-                      "content": %s
-                    }
-                  ]
-                }
-                """.formatted(model, escapedPrompt);
-
-            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                    .connectTimeout(java.time.Duration.ofSeconds(10))
-                    .build();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(getCompletionsUrl()))
-                    .timeout(java.time.Duration.ofSeconds(30))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + apiKey)
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestBody, java.nio.charset.StandardCharsets.UTF_8))
-                    .build();
-
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                log.warn("Title suggestion LLM call failed with status {}", response.statusCode());
-                return List.of();
-            }
-
-            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.body());
-            com.fasterxml.jackson.databind.JsonNode choices = root.get("choices");
-            if (choices == null || !choices.isArray() || choices.isEmpty()) {
-                return List.of();
-            }
-            String content = choices.get(0).get("message").get("content").asText("").trim();
-
-            // Strip markdown fences if present
-            if (content.contains("```")) {
-                int start = content.indexOf('[');
-                int end = content.lastIndexOf(']');
-                if (start >= 0 && end > start) {
-                    content = content.substring(start, end + 1);
-                }
-            }
-
-            com.fasterxml.jackson.databind.JsonNode array = mapper.readTree(content);
-            if (!array.isArray()) {
-                return List.of();
-            }
-            List<String> titles = new ArrayList<>();
-            for (com.fasterxml.jackson.databind.JsonNode n : array) {
-                titles.add(n.asText());
-            }
-            return titles;
-
-        } catch (Exception ex) {
-            log.warn("Title suggestion failed: {}", ex.getMessage());
-            return List.of();
-        }
-    }
-
-    /**
      * Stateless title suggestion: parses a raw uploaded MultipartFile and calls the LLM
      * to suggest 3 titles based on the extracted text. Does not write to database.
      */
     public List<String> suggestTitlesForDraft(MultipartFile file) {
-        if (apiKey == null || apiKey.isBlank() || "NO_KEY".equals(apiKey)) {
+        if (!llmClient.hasKey()) {
             return List.of();
         }
         try {
             AutoDetectParser parser = new AutoDetectParser();
             BodyContentHandler handler = new BodyContentHandler(-1);
-            Metadata metadata = new Metadata();
-            ParseContext context = new ParseContext();
-            
             try (InputStream stream = file.getInputStream()) {
-                parser.parse(stream, handler, metadata, context);
+                parser.parse(stream, handler, new Metadata(), new ParseContext());
             }
             String rawText = handler.toString();
             if (rawText == null || rawText.isBlank()) {
                 return List.of();
             }
-            
+
             String trimmedText = trimFrontMatter(rawText);
-            
-            // Now call LLM to generate 3 suggested titles
-            String prompt = """
+            String userPrompt = """
                 Read this extract from a student's document and suggest exactly 3 titles for it.
                 Rules:
                 - Plain and precise: say what the document actually is, nothing more.
@@ -771,61 +579,14 @@ public class AIInsightProcessingService {
                 Example: ["Title One", "Title Two", "Title Three"]
                 """.formatted(trimmedText.substring(0, Math.min(trimmedText.length(), 2000)));
 
-            ObjectMapper mapper = new ObjectMapper();
-            String escapedPrompt = mapper.writeValueAsString(prompt);
-
-            String requestBody = """
-                {
-                  "model": "%s",
-                  "max_tokens": 300,
-                  "temperature": 0.4,
-                  "messages": [
-                    {
-                      "role": "user",
-                      "content": %s
-                    }
-                  ]
-                }
-                """.formatted(model, escapedPrompt);
-
-            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                    .connectTimeout(java.time.Duration.ofSeconds(10))
-                    .build();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(getCompletionsUrl()))
-                    .timeout(java.time.Duration.ofSeconds(30))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + apiKey)
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(requestBody, java.nio.charset.StandardCharsets.UTF_8))
-                    .build();
-
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                log.warn("Draft title suggestion LLM call failed with status {}", response.statusCode());
-                return List.of();
-            }
-
-            com.fasterxml.jackson.databind.JsonNode root = mapper.readTree(response.body());
-            com.fasterxml.jackson.databind.JsonNode choices = root.get("choices");
-            if (choices == null || !choices.isArray() || choices.isEmpty()) {
-                return List.of();
-            }
-            String content = choices.get(0).get("message").get("content").asText("").trim();
-
-            if (content.contains("```")) {
-                int start = content.indexOf('[');
-                int end = content.lastIndexOf(']');
-                if (start >= 0 && end > start) {
-                    content = content.substring(start, end + 1);
-                }
-            }
-
-            com.fasterxml.jackson.databind.JsonNode array = mapper.readTree(content);
-            if (!array.isArray()) {
+            java.util.Optional<com.fasterxml.jackson.databind.JsonNode> json =
+                    llmClient.completeJson(com.unisubmit.service.ai.LlmClient.DEFAULT_SYSTEM_PROMPT,
+                            userPrompt, 300, 0.4);
+            if (json.isEmpty() || !json.get().isArray()) {
                 return List.of();
             }
             List<String> titles = new ArrayList<>();
-            for (com.fasterxml.jackson.databind.JsonNode n : array) {
+            for (com.fasterxml.jackson.databind.JsonNode n : json.get()) {
                 titles.add(n.asText());
             }
             return titles;

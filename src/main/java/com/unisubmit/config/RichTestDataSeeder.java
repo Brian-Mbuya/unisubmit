@@ -6,6 +6,7 @@ import com.unisubmit.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +21,7 @@ import java.util.*;
 
 @Component
 @Order(15) // Runs after CollaborationDemoSeeder (Order 10) and before RecommendationRefreshRunner (Order 20)
+@ConditionalOnProperty(name = "unisubmit.demo.seed-rich-test-data", havingValue = "true")
 public class RichTestDataSeeder implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(RichTestDataSeeder.class);

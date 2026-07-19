@@ -76,6 +76,9 @@ unisubmit:
     # (application-local.yml). Disabling only stops RE-seeding — any demo rows
     # already in the DB remain until cleaned.
     seed-collaboration: ${DEMO_SEED_COLLABORATION:false}
+    # Rich demo data ("Prof. Ada Demo" assignments/announcements/groups/reviews). OFF by
+    # default in prod — flip on with DEMO_SEED_RICH=true. Local dev keeps it on.
+    seed-rich-test-data: ${DEMO_SEED_RICH:false}
   ai:
     # Upper bound (seconds) for one full analysis run — GROBID + LLM can be slow.
     timeout-seconds: ${AI_TIMEOUT_SECONDS:120}

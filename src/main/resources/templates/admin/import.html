@@ -19,7 +19,7 @@
             <h2>Import complete</h2>
             <a th:href="@{/admin/import/students/results.csv}" class="btn">Download passwords (CSV)</a>
         </div>
-        <p class="field-hint mb-4">Passwords are shown here once. Download and share them securely — they can't be retrieved later.</p>
+        <p class="field-hint mb-4">Download now — this list disappears after the CSV is downloaded. Passwords are shown once and can't be retrieved later.</p>
         <div class="table-wrap table-stack">
             <table class="table">
                 <thead>
@@ -97,8 +97,9 @@
                 <div class="field-hint">
                     Columns: <span class="mono">name, email, studentId, programmeCode, year</span>.
                     <a th:href="@{/admin/import/template/students.csv}">Download template</a>.
-                    In Excel/LibreOffice use <strong>File → Save As → CSV</strong> (.ods/.xlsx won't appear
-                    in the picker) — and save before uploading.
+                    Both <strong>.csv</strong> and <strong>.xlsx</strong> files are accepted (max 5 MB).
+                    For <span class="mono">programmeCode</span>, use YOUR programme codes
+                    (see <strong>Admin → Programmes</strong>), not the template's samples.
                 </div>
             </div>
             <button type="submit" class="btn">Preview</button>

@@ -33,6 +33,7 @@ public class StudentController {
     private final com.unisubmit.service.ProjectGroupService groupService;
     private final com.unisubmit.service.AnnouncementService announcementService;
     private final com.unisubmit.service.AIInsightService aiInsightService;
+    private final com.unisubmit.service.ai.AiRateLimitService rateLimitService;
 
     public StudentController(SubmissionService submissionService,
                              UnitService unitService,
@@ -42,7 +43,8 @@ public class StudentController {
                              AcademicHierarchyService academicHierarchyService,
                              com.unisubmit.service.ProjectGroupService groupService,
                              com.unisubmit.service.AnnouncementService announcementService,
-                             com.unisubmit.service.AIInsightService aiInsightService) {
+                             com.unisubmit.service.AIInsightService aiInsightService,
+                             com.unisubmit.service.ai.AiRateLimitService rateLimitService) {
         this.submissionService = submissionService;
         this.unitService = unitService;
         this.recommendationService = recommendationService;
@@ -52,6 +54,7 @@ public class StudentController {
         this.groupService = groupService;
         this.announcementService = announcementService;
         this.aiInsightService = aiInsightService;
+        this.rateLimitService = rateLimitService;
     }
 
     @GetMapping("/dashboard")
@@ -213,6 +216,13 @@ public class StudentController {
         Submission submission = submissionService.getSubmissionForStudent(id, userDetails.getUser());
         if (submission == null) {
             ra.addFlashAttribute("errorMessage", "Submission not found.");
+            return "redirect:/student/submission/" + id;
+        }
+        // Rate-limit re-runs (RERUN bucket) so a student can't hammer the provider.
+        if (!rateLimitService.tryConsume(userDetails.getUser().getId(),
+                com.unisubmit.service.ai.AiRateLimitService.Bucket.RERUN)) {
+            ra.addFlashAttribute("errorMessage",
+                    "You've re-run the analysis several times — please wait a little before trying again.");
             return "redirect:/student/submission/" + id;
         }
         // Atomic re-run: refuses if a run is already in flight (PENDING/PROCESSING).

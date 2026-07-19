@@ -12,8 +12,8 @@ and **auto-redeploys on every push to `main`**. HTTPS is provided free on a
 
 1. **Push the repo** (so Railway can build it) — see the git steps in chat / `deploy/README.md`.
 2. Go to **railway.app** → **New Project** → **Deploy from GitHub repo** → pick
-   `Brian-Mbuya/unisubmit`, branch `main`. Railway detects `railway.toml` and builds the
-   Dockerfile.
+   `Brian-Mbuya/unisubmit`, branch `main`. Railway detects the repo `Dockerfile` and builds
+   it.
 3. Open the service → **Variables** → add (from Supabase → **Connect** → **Session pooler**,
    port 5432):
 
@@ -32,7 +32,9 @@ and **auto-redeploys on every push to `main`**. HTTPS is provided free on a
 5. Service → **Settings → Networking → Generate Domain** → you get
    `https://<name>.up.railway.app`.
 6. Watch **Deployments** until the build finishes and the `/health` check goes green, then open
-   the URL. First boot runs the migrations + seeds against Supabase (~1–2 min).
+   the URL. On first boot Hibernate `ddl-auto` reconciles the schema and the base
+   accounts/lookups seed against Supabase (~1–2 min). Flyway is disabled — there are no
+   migrations to run.
 
 ## Updates
 Edit code → `git commit` → `git push origin main`. Railway rebuilds and redeploys automatically.

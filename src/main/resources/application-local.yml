@@ -53,6 +53,8 @@ unisubmit:
     # shows real cross-disciplinary matches without an API key. Safe: it never
     # touches existing data and runs at most once (marker-guarded).
     seed-collaboration: true
+    # Local dev keeps the rich demo data on (gated off in prod — see application.yml).
+    seed-rich-test-data: true
 
 server:
   port: 8080

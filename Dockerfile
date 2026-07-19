@@ -28,8 +28,8 @@ EXPOSE 8080
 # NOTE: no `VOLUME` instruction — Railway rejects it. For persistent uploads,
 # attach a Railway Volume mounted at /app/uploads (or a host mount elsewhere).
 
-# Give the app 120 s to boot on first run (Flyway migrations + Hibernate ddl-auto
-# against a remote Supabase DB can take 30-60 s on a cold container).
+# Give the app 120 s to boot on first run (Hibernate ddl-auto reconciling the schema
+# against a remote Supabase DB can take 30-60 s on a cold container; Flyway is disabled).
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
   CMD ["sh", "-c", "curl -fsS http://127.0.0.1:${PORT}/health || exit 1"]
 

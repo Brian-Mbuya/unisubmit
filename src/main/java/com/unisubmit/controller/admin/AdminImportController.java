@@ -55,9 +55,21 @@ public class AdminImportController {
             ra.addFlashAttribute("errorMessage", "Choose a CSV file first.");
             return "redirect:/admin/import";
         }
+        // Reject oversize uploads BEFORE parsing, so a huge file can never OOM the node.
+        if (file.getSize() > 5L * 1024 * 1024) {
+            ra.addFlashAttribute("errorMessage", "File too large — max 5 MB; split it and import in batches.");
+            return "redirect:/admin/import";
+        }
         StudentPreview preview = csvImportService.parseStudents(file);
-        List<StudentRow> valid = preview.rows().stream().filter(StudentRow::valid).toList();
-        session.setAttribute(SESSION_ROWS, valid);
+        if (preview.fatalError() != null) {
+            // A fatal-error preview (bad file, missing column, row cap) must NEVER leave
+            // applicable rows in the session — otherwise a direct POST to apply could import
+            // a truncated batch.
+            session.removeAttribute(SESSION_ROWS);
+        } else {
+            List<StudentRow> valid = preview.rows().stream().filter(StudentRow::valid).toList();
+            session.setAttribute(SESSION_ROWS, valid);
+        }
         model.addAttribute("activeMenu", "import");
         model.addAttribute("preview", preview);
         return "admin/import";
@@ -96,6 +108,8 @@ public class AdminImportController {
         if (creds == null || creds.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+        // One-shot: the plaintext passwords are handed out exactly once, then dropped.
+        session.removeAttribute(SESSION_CREDS);
         return csvDownload(csvImportService.credentialsCsv(creds), "unisubmit-credentials.csv");
     }
 

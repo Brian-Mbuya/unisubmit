@@ -394,30 +394,6 @@ public class SubmissionService {
         }
     }
 
-    @Transactional
-    public Submission addSupervisor(Long submissionId, Long lecturerId) {
-        Submission submission = submissionRepository.findById(submissionId)
-                .orElseThrow(() -> new SubmissionNotFoundException(submissionId));
-
-        User lecturer = userRepository.findById(lecturerId)
-                .orElseThrow(() -> new SubmissionNotFoundException("User not found: " + lecturerId));
-
-        if (lecturer.getRole() != Role.LECTURER) {
-            throw new IllegalArgumentException("Only lecturers can be assigned as supervisors.");
-        }
-
-        submission.getSupervisors().add(lecturer);
-        return submissionRepository.save(submission);
-    }
-
-    @Transactional
-    public Submission removeSupervisor(Long submissionId, Long lecturerId) {
-        Submission submission = submissionRepository.findById(submissionId)
-                .orElseThrow(() -> new SubmissionNotFoundException(submissionId));
-        submission.getSupervisors().removeIf(l -> l.getId().equals(lecturerId));
-        return submissionRepository.save(submission);
-    }
-
     public Unit getUnitById(Long id) {
         return unitRepository.findById(id)
                 .orElseThrow(() -> new SubmissionNotFoundException("Unit not found: " + id));

@@ -277,7 +277,7 @@ prompt, lenient JSON, one bounded re-ask, and shared timeouts; the seeder can no
 write demo rows to prod; import can no longer OOM the node or apply a truncated batch;
 deploy docs tell no lies; CODEBASE-MAP reflects all of it.
 
-- [ ] **3.1 Dead-code excision (Tier 1, verified list — delete exactly these).**
+- [x] **3.1 Dead-code excision (Tier 1, verified list — delete exactly these).**
   `controller/SearchController.java` · `service/CollaboratorService.java` +
   `dto/CollaboratorDTO.java` · `service/AssistantService.java` +
   `controller/AssistantApiController.java` (AFTER 3.2 salvages from it) ·
@@ -295,7 +295,7 @@ deploy docs tell no lies; CODEBASE-MAP reflects all of it.
   `UserService.findByRole` itself STAYS — AuthController:66 and AdminAccountController:47
   use it; optionally also drop the unused raw `UserRepository.findByRole(Role)` declaration
   at UserRepository:17). Build green after EACH deletion group; commit as one commit.
-- [ ] **3.2 Salvage before the axe (from AssistantService into new files).**
+- [x] **3.2 Salvage before the axe (from AssistantService into new files).**
   (a) `service/ai/AiRateLimitService.java`: the sliding-window deque limiter
   (AssistantService:84-120) re-keyed to `(userId, bucket)` where bucket ∈
   {DRAFT_TITLES(10/h), RERUN(4/h), DRAFT_FEEDBACK(15/h)} — in-memory Map, same eviction; note
@@ -307,7 +307,7 @@ deploy docs tell no lies; CODEBASE-MAP reflects all of it.
   `@AuthenticationPrincipal CustomUserDetails` + limiter check (429 + friendly JSON when
   exhausted — app.js already renders `data.error` text); `rerunAnalysis` path (2.8b) checks
   RERUN bucket.
-- [ ] **3.3 One LlmClient.** New `service/ai/LlmClient.java` — the single home for what is
+- [x] **3.3 One LlmClient.** New `service/ai/LlmClient.java` — the single home for what is
   now triplicated in AIInsightProcessingService (callOpenAi / suggestTitles×2):
   constructor-injected key/baseUrl/model from the same properties; public
   `Optional<JsonNode> completeJson(String systemPrompt, String userPrompt, int maxTokens,
@@ -332,7 +332,7 @@ deploy docs tell no lies; CODEBASE-MAP reflects all of it.
   given 90s (CollaborationAssessmentService:233); do not silently halve it.
   Done-when: `grep -rn "HttpClient" src/main/java` hits only LlmClient (+SpecterService/
   GrobidService/OcrService sidecars).
-- [ ] **3.4 Duplication + hygiene.** (a) CSV escaping: single
+- [x] **3.4 Duplication + hygiene.** (a) CSV escaping: single
   `util/CsvUtil.escape(String)` used by LecturerController.csv() and CsvImportService.
   (b) `RichTestDataSeeder`: add `@ConditionalOnProperty(name = "unisubmit.demo.seed-rich-test-data", havingValue = "true")`
   + application.yml `unisubmit.demo.seed-rich-test-data: ${DEMO_SEED_RICH:false}` +
@@ -340,7 +340,7 @@ deploy docs tell no lies; CODEBASE-MAP reflects all of it.
   (c) `admin/layout.html`: add `defer` to the Chart.js `<script>` tag (it's vendored,
   parser-blocking on every admin page, used on dashboard only — verify dashboard's inline
   chart script also defers or runs on DOMContentLoaded).
-- [ ] **3.5 Import hardening (O1.5 residue + verified OOM).** `CsvImportService` +
+- [x] **3.5 Import hardening (O1.5 residue + verified OOM).** `CsvImportService` +
   `AdminImportController`: (a) pre-parse gate in the controller: reject files > 5MB
   ("File too large — max 5 MB; split it and import in batches.") BEFORE any parse; (b) xlsx
   magic-byte check (first 4 bytes == PK\x03\x04) before `new XSSFWorkbook` — else the
@@ -357,13 +357,13 @@ deploy docs tell no lies; CODEBASE-MAP reflects all of it.
   DEMO-BCS sample programme code → add hint "use YOUR programme codes (see Admin →
   Programmes)". Done-when: oversize/reject/one-shot behaviors manually tested locally with
   a 3-row CSV + a renamed .txt→.xlsx.
-- [ ] **3.6 Doc truth sweep.** `deploy/README.md`: header paragraph → Railway-live/Oracle-
+- [x] **3.6 Doc truth sweep.** `deploy/README.md`: header paragraph → Railway-live/Oracle-
   dormant (mirror §0 above); "Database schema changes" section → replace the Flyway workflow
   with the truth ("Flyway disabled — schema via ddl-auto; for manual DDL (indexes, drops) run
   SQL in Supabase; the re-adopt recipe lives in application.yml"). `Dockerfile` L28-29 comment
   + `deploy/RAILWAY.md` step 6: same correction. RAILWAY.md: remove the `railway.toml`
   reference (file doesn't exist) or add the file — DECIDED: just remove the reference.
-- [ ] **3.7 Ship check.** SW → v15. Build + tests green. Update CODEBASE-MAP (§4 routes minus
+- [x] **3.7 Ship check.** SW → v15. Build + tests green. Update CODEBASE-MAP (§4 routes minus
   deleted endpoints, §5 services list, §9 dead-code section → "EXCISED in V3 Phase 3").
   Commit `"clean: dead code out, LlmClient + limiter, seeder gated, import hardened, docs truthful (SW v15)"`.
 
@@ -608,6 +608,19 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
 ## Log (one line per session)
 - 2026-07-17 Fable: V3 authored (planner). Verified-gap sweep 2026-07-17 is fully folded in;
   Registry superseded per owner; visual = Phase 1 per owner. Opus·high executes top-down.
+- 2026-07-19 Opus: Phase 3 CLEAN done (SW v15). New `service/ai/LlmClient` (single LLM HTTP
+  path — untrusted system prompt, lenient JSON, 1 re-ask, extractCapped) + `AiRateLimitService`
+  (DRAFT_TITLES/RERUN/DRAFT_FEEDBACK buckets, wired into analyze-draft-file 429 + student
+  rerun). callOpenAi/suggestTitlesForDraft/CollaborationAssessment all refactored onto it —
+  grep HttpClient now hits only LlmClient + OcrService sidecar. EXCISED: SearchController,
+  DiscoverController, CollaboratorService+DTO, AssistantService+AssistantApiController,
+  suggest-title/rename endpoints, suggestTitles(Long), addSupervisor/removeSupervisor +
+  Submission.supervisors mapping, updateTags + tagService, search.html/discover.html,
+  github-ready/, ProjectGroupController students block. Hygiene: CsvUtil.escape (shared),
+  RichTestDataSeeder @ConditionalOnProperty (prod-off), Chart.js defer. Import hardened:
+  5MB gate, xlsx magic-byte, fatalError never stashes rows, credentials one-shot. Docs:
+  deploy/README + RAILWAY + Dockerfile now Railway-live/Flyway-disabled truth. 65 tests green
+  (BUILD SUCCESS). Not pushed. Next: Phase 4 (PLATFORM).
 - 2026-07-18 Opus: Phase 2 TRUTH done (SW v14). TZ pinned (Dockerfile TZ + -Duser.timezone,
   boot log confirms Africa/Nairobi); real late-window (SubmissionService injects
   AnnouncementService, no cycle; version.late flagged); strict curriculum (programme-linked or

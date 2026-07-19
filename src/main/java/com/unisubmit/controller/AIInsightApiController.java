@@ -1,13 +1,12 @@
 package com.unisubmit.controller;
 
 import com.unisubmit.domain.AIInsight;
-import com.unisubmit.domain.Submission;
 import com.unisubmit.repository.AIInsightRepository;
-import com.unisubmit.repository.SubmissionRepository;
 import com.unisubmit.security.CustomUserDetails;
 import com.unisubmit.service.AIInsightService;
 import com.unisubmit.service.AIInsightProcessingService;
 import com.unisubmit.service.SubmissionAccessService;
+import com.unisubmit.service.ai.AiRateLimitService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +19,9 @@ import java.util.Optional;
 /**
  * Lightweight REST API used by the polling JavaScript in layout.html.
  * <p>
- * GET  /api/ai-insights/{id}                 — returns current insight state
- * POST /api/ai-insights/{id}/retry           — re-triggers analysis for a FAILED insight
- * GET  /api/ai/suggest-title/{submissionId}  — generates 3 AI title suggestions
- * POST /api/ai/rename/{submissionId}         — applies a chosen title to a submission
+ * GET  /api/ai-insights/{id}          — returns current insight state
+ * POST /api/ai-insights/{id}/retry    — re-triggers analysis for a FAILED insight
+ * POST /api/ai/analyze-draft-file     — 3 title suggestions for an unsaved draft file
  */
 @RestController
 public class AIInsightApiController {
@@ -32,18 +30,18 @@ public class AIInsightApiController {
     private final AIInsightService aiInsightService;
     private final AIInsightProcessingService aiProcessingService;
     private final SubmissionAccessService accessService;
-    private final SubmissionRepository submissionRepository;
+    private final AiRateLimitService rateLimitService;
 
     public AIInsightApiController(AIInsightRepository aiInsightRepository,
                                   AIInsightService aiInsightService,
                                   AIInsightProcessingService aiProcessingService,
                                   SubmissionAccessService accessService,
-                                  SubmissionRepository submissionRepository) {
+                                  AiRateLimitService rateLimitService) {
         this.aiInsightRepository = aiInsightRepository;
         this.aiInsightService = aiInsightService;
         this.aiProcessingService = aiProcessingService;
         this.accessService = accessService;
-        this.submissionRepository = submissionRepository;
+        this.rateLimitService = rateLimitService;
     }
 
     @GetMapping("/api/ai-insights/{id}")
@@ -78,68 +76,21 @@ public class AIInsightApiController {
     }
 
     /**
-     * Suggest 3 AI-generated project titles based on the AI analysis.
-     * Requires the submission to have a COMPLETED AI insight.
-     */
-    @GetMapping("/api/ai/suggest-title/{submissionId}")
-    public ResponseEntity<Map<String, Object>> suggestTitle(
-            @PathVariable Long submissionId,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-
-        Optional<Submission> sub = submissionRepository.findById(submissionId);
-        if (sub.isEmpty() || userDetails == null
-                || !accessService.canAccessSubmissionFile(userDetails.getUser(), sub.get())) {
-            return ResponseEntity.notFound().build();
-        }
-        if (sub.get().getAiInsight() == null) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "AI analysis has not completed for this submission"));
-        }
-
-        List<String> suggestions = aiProcessingService.suggestTitles(submissionId);
-        if (suggestions.isEmpty()) {
-            return ResponseEntity.ok(Map.of(
-                    "suggestions", List.of(),
-                    "message", "Could not generate suggestions. Check that an AI API key is configured."
-            ));
-        }
-        return ResponseEntity.ok(Map.of("suggestions", suggestions));
-    }
-
-    /**
-     * Rename a submission to a chosen AI-suggested title.
-     */
-    @PostMapping("/api/ai/rename/{submissionId}")
-    public ResponseEntity<Map<String, String>> renameSubmission(
-            @PathVariable Long submissionId,
-            @RequestBody Map<String, String> body,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-
-        Optional<Submission> sub = submissionRepository.findById(submissionId);
-        if (sub.isEmpty() || userDetails == null
-                || !accessService.canAccessSubmissionFile(userDetails.getUser(), sub.get())) {
-            return ResponseEntity.notFound().build();
-        }
-        String newTitle = body.get("title");
-        if (newTitle == null || newTitle.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Title cannot be empty"));
-        }
-
-        Submission submission = sub.get();
-        submission.setTitle(newTitle.trim());
-        submissionRepository.save(submission);
-        return ResponseEntity.ok(Map.of("status", "OK", "title", newTitle.trim()));
-    }
-
-    /**
      * Stateless endpoint: analyzes a chosen draft file from the student's local computer
      * and suggests 3 creative titles before the project submission is officially created.
+     * Rate-limited per user (DRAFT_TITLES bucket) to keep provider costs bounded.
      */
     @PostMapping("/api/ai/analyze-draft-file")
     public ResponseEntity<Map<String, Object>> analyzeDraftFile(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
         if (file == null || file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "File is empty or not provided"));
+        }
+        if (userDetails != null && !rateLimitService.tryConsume(
+                userDetails.getUser().getId(), AiRateLimitService.Bucket.DRAFT_TITLES)) {
+            return ResponseEntity.status(429).body(Map.of(
+                    "error", "You've asked for title suggestions several times — please wait a little and try again."));
         }
         List<String> suggestions = aiProcessingService.suggestTitlesForDraft(file);
         if (suggestions.isEmpty()) {

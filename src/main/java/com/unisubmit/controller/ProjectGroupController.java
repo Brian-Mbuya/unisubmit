@@ -3,7 +3,6 @@ package com.unisubmit.controller;
 import com.unisubmit.domain.ProjectGroup;
 import com.unisubmit.security.CustomUserDetails;
 import com.unisubmit.service.ProjectGroupService;
-import com.unisubmit.service.UserService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,21 +18,15 @@ import java.util.List;
 public class ProjectGroupController {
 
     private final ProjectGroupService groupService;
-    private final UserService userService;
 
-    public ProjectGroupController(ProjectGroupService groupService, UserService userService) {
+    public ProjectGroupController(ProjectGroupService groupService) {
         this.groupService = groupService;
-        this.userService = userService;
     }
 
     @GetMapping
     public String listGroups(@AuthenticationPrincipal CustomUserDetails userDetails, Model model) {
         List<com.unisubmit.dto.GroupSummaryDto> groups = groupService.findGroupsForUser(userDetails.getUser());
         model.addAttribute("groups", groups);
-        List<com.unisubmit.domain.User> students = userService.findByRole(com.unisubmit.domain.Role.STUDENT).stream()
-                .filter(u -> !u.getId().equals(userDetails.getUser().getId()))
-                .toList();
-        model.addAttribute("students", students);
         return "student/groups";
     }
 

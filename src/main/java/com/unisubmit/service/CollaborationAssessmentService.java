@@ -82,26 +82,20 @@ public class CollaborationAssessmentService {
     private final SubmissionRepository submissionRepository;
     private final ObjectMapper mapper = new ObjectMapper();
     private final TransactionTemplate transactionTemplate;
-
-    @Value("${spring.ai.openai.api-key:NO_KEY}")
-    private String apiKey;
-
-    @Value("${spring.ai.openai.base-url:https://openrouter.ai/api/v1}")
-    private String baseUrl;
-
-    @Value("${spring.ai.openai.chat.options.model:openai/gpt-4o-mini}")
-    private String model;
+    private final com.unisubmit.service.ai.LlmClient llmClient;
 
     public CollaborationAssessmentService(CollaborationMatchRepository matchRepository,
                                           SubmissionRepository submissionRepository,
-                                          PlatformTransactionManager transactionManager) {
+                                          PlatformTransactionManager transactionManager,
+                                          com.unisubmit.service.ai.LlmClient llmClient) {
         this.matchRepository = matchRepository;
         this.submissionRepository = submissionRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.llmClient = llmClient;
     }
 
     public boolean isConfigured() {
-        return apiKey != null && !apiKey.isBlank() && !"NO_KEY".equals(apiKey);
+        return llmClient.hasKey();
     }
 
     /**
@@ -212,56 +206,27 @@ public class CollaborationAssessmentService {
             userContent.set("project", ctx.projectNode);
             userContent.set("candidates", ctx.candidatesNode);
 
-            ObjectNode body = mapper.createObjectNode();
-            body.put("model", model);
-            body.put("max_tokens", 1500);
-            body.put("temperature", 0.2);
-            ArrayNode messages = body.putArray("messages");
-            ObjectNode system = messages.addObject();
-            system.put("role", "system");
-            system.put("content", SYSTEM_PROMPT);
-            ObjectNode user = messages.addObject();
-            user.put("role", "user");
-            user.put("content", "Assess these candidate collaborations. DATA:\n"
-                    + mapper.writeValueAsString(userContent));
+            String userMessage = "Assess these candidate collaborations. DATA:\n"
+                    + mapper.writeValueAsString(userContent);
 
-            java.net.http.HttpClient client = java.net.http.HttpClient.newBuilder()
-                    .connectTimeout(Duration.ofSeconds(10))
-                    .build();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create(completionsUrl()))
-                    .timeout(Duration.ofSeconds(90))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + apiKey)
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(
-                            mapper.writeValueAsString(body), StandardCharsets.UTF_8))
-                    .build();
-
-            java.net.http.HttpResponse<String> response =
-                    client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                log.warn("Collaboration assessment LLM failed with status {}", response.statusCode());
+            // Keeps its own richer system prompt; the Stage-2 call is ONE batched request
+            // over all pairs (max_tokens 1500) and is deliberately given 90s.
+            java.util.Optional<JsonNode> json =
+                    llmClient.completeJson(SYSTEM_PROMPT, userMessage, 1500, 0.2, 90);
+            if (json.isEmpty()) {
                 return null;
             }
-            JsonNode root = mapper.readTree(response.body());
-            JsonNode choices = root.get("choices");
-            if (choices == null || !choices.isArray() || choices.isEmpty()) {
-                return null;
-            }
-            String content = choices.get(0).get("message").get("content").asText("").trim();
-            return parseAssessments(content);
+            return parseAssessments(json.get());
         } catch (Exception ex) {
             log.warn("Collaboration assessment LLM call failed: {}", ex.getMessage());
             return null;
         }
     }
 
-    private Map<Long, Assessment> parseAssessments(String content) {
+    private Map<Long, Assessment> parseAssessments(JsonNode array) {
         Map<Long, Assessment> out = new HashMap<>();
         try {
-            String json = stripFences(content);
-            JsonNode array = mapper.readTree(json);
-            if (!array.isArray()) {
+            if (array == null || !array.isArray()) {
                 return out;
             }
             for (JsonNode node : array) {
@@ -331,31 +296,4 @@ public class CollaborationAssessmentService {
         }
     }
 
-    private static String stripFences(String content) {
-        String c = content.trim();
-        if (c.startsWith("```")) {
-            int firstNewline = c.indexOf('\n');
-            if (firstNewline > 0) {
-                c = c.substring(firstNewline + 1);
-            }
-            if (c.endsWith("```")) {
-                c = c.substring(0, c.length() - 3);
-            }
-        }
-        // If the model wrapped the array in prose, grab the outermost [ ... ].
-        int start = c.indexOf('[');
-        int end = c.lastIndexOf(']');
-        if (start >= 0 && end > start) {
-            return c.substring(start, end + 1);
-        }
-        return c.trim();
-    }
-
-    private String completionsUrl() {
-        String url = baseUrl == null ? "https://openrouter.ai/api/v1" : baseUrl.trim();
-        if (url.endsWith("/chat/completions")) {
-            return url;
-        }
-        return url.endsWith("/") ? url + "chat/completions" : url + "/chat/completions";
-    }
 }

@@ -170,6 +170,19 @@ public class CsvImportService {
         Set<String> seenEmails = new HashSet<>();
         Set<String> seenIds = new HashSet<>();
 
+        // Magic-byte gate: a real .xlsx (a ZIP) starts with "PK\x03\x04". Reject anything
+        // else BEFORE handing it to POI, which otherwise buffers/parses hostile input.
+        try (java.io.InputStream in = file.getInputStream()) {
+            byte[] magic = new byte[4];
+            int read = in.read(magic);
+            if (read < 4 || magic[0] != 0x50 || magic[1] != 0x4B
+                    || magic[2] != 0x03 || magic[3] != 0x04) {
+                return new StudentPreview(List.of(), 0, 0, "That doesn't look like a valid .xlsx file.");
+            }
+        } catch (IOException ex) {
+            return new StudentPreview(List.of(), 0, 0, "Could not read the file: " + ex.getMessage());
+        }
+
         try (Workbook wb = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = wb.getSheetAt(0);
             if (sheet == null) return new StudentPreview(List.of(), 0, 0, "The spreadsheet has no sheets.");
@@ -291,12 +304,8 @@ public class CsvImportService {
         return sb.toString();
     }
 
-    /** Minimal CSV field escaping for the results download. */
+    /** Delegates to the shared {@link com.unisubmit.util.CsvUtil#escape} escaper. */
     private static String csv(String v) {
-        if (v == null) return "";
-        if (v.contains(",") || v.contains("\"") || v.contains("\n")) {
-            return '"' + v.replace("\"", "\"\"") + '"';
-        }
-        return v;
+        return com.unisubmit.util.CsvUtil.escape(v);
     }
 }

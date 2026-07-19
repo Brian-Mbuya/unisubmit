@@ -38,14 +38,6 @@ public class Submission {
     @JoinColumn(name = "project_group_id")
     private ProjectGroup projectGroup;
 
-    @ManyToMany
-    @JoinTable(
-        name = "submission_supervisors",
-        joinColumns = @JoinColumn(name = "submission_id"),
-        inverseJoinColumns = @JoinColumn(name = "user_id")
-    )
-    private Set<User> supervisors = new HashSet<>();
-
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "submission_technologies",
       joinColumns = @JoinColumn(name = "submission_id"),

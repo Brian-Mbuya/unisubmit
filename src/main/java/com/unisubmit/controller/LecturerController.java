@@ -24,7 +24,6 @@ public class LecturerController {
 
     private final SubmissionService submissionService;
     private final com.unisubmit.service.AnnouncementService announcementService;
-    private final com.unisubmit.service.KnowledgeTagService tagService;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final com.unisubmit.service.RecommendationService recommendationService;
 
@@ -34,12 +33,10 @@ public class LecturerController {
 
     public LecturerController(SubmissionService submissionService,
                               com.unisubmit.service.AnnouncementService announcementService,
-                              com.unisubmit.service.KnowledgeTagService tagService,
                               TeachingAssignmentRepository teachingAssignmentRepository,
                               com.unisubmit.service.RecommendationService recommendationService) {
         this.submissionService = submissionService;
         this.announcementService = announcementService;
-        this.tagService = tagService;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
         this.recommendationService = recommendationService;
     }
@@ -150,18 +147,6 @@ public class LecturerController {
         return "lecturer/review-split";
     }
 
-    @PostMapping("/submission/{id}/tags")
-    public String updateTags(@PathVariable Long id,
-                             @RequestParam(required = false) List<Long> technologyIds,
-                             @RequestParam(required = false) List<Long> researchAreaIds,
-                             @RequestParam(required = false) List<Long> frameworkIds,
-                             @RequestParam(required = false) List<Long> databaseIds,
-                             @RequestParam(required = false) List<Long> programmingLanguageIds,
-                             @RequestParam(required = false) List<Long> skillIds) {
-        tagService.updateSubmissionTags(id, technologyIds, researchAreaIds, frameworkIds, databaseIds, programmingLanguageIds, skillIds);
-        return "redirect:/lecturer/submission/" + id + "?success=Tags updated";
-    }
-
     /** Phase 9 — export a unit's marks as CSV (one row per submission). */
     @GetMapping("/units/{unitId}/marks.csv")
     public org.springframework.http.ResponseEntity<String> exportMarks(
@@ -201,13 +186,9 @@ public class LecturerController {
                 .body(csv.toString());
     }
 
-    /** Minimal CSV field escaping. */
+    /** Delegates to the shared {@link com.unisubmit.util.CsvUtil#escape} escaper. */
     private static String csv(String value) {
-        if (value == null) return "";
-        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
-            return "\"" + value.replace("\"", "\"\"") + "\"";
-        }
-        return value;
+        return com.unisubmit.util.CsvUtil.escape(value);
     }
 
     @PostMapping("/submission/{id}/review")
