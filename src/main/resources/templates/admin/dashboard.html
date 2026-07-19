@@ -8,6 +8,13 @@
             <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
             <p class="subtitle">Here's a snapshot of the system.</p>
         </div>
+        <!-- AI status: whether a real provider key is configured (heuristic/DEGRADED mode otherwise) -->
+        <div class="page-head-actions" title="Whether AI provider keys are configured. Without them the app runs in heuristic (basic) mode.">
+            <span class="badge" th:classappend="${aiChatConfigured} ? 'badge-approved' : 'badge-degraded'"
+                  th:text="${aiChatConfigured} ? 'AI: key active' : 'AI: heuristic mode'">AI</span>
+            <span class="badge" th:classappend="${aiEmbeddingsConfigured} ? 'badge-approved' : 'badge-draft'"
+                  th:text="${aiEmbeddingsConfigured} ? 'Semantic: key active' : 'Semantic: off'">Semantic</span>
+        </div>
     </div>
 
     <!-- Population stats -->

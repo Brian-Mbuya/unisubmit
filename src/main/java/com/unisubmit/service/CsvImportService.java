@@ -80,7 +80,8 @@ public class CsvImportService {
     /** Single entry point — dispatches by extension so the controller stays simple. */
     public StudentPreview parseStudents(MultipartFile file) {
         String fn = file.getOriginalFilename();
-        if (fn != null && fn.toLowerCase().endsWith(".xlsx")) {
+        String lower = fn == null ? "" : fn.toLowerCase();
+        if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
             return parseStudentsWorkbook(file);
         }
         return parseStudentsCsv(file);
@@ -170,20 +171,26 @@ public class CsvImportService {
         Set<String> seenEmails = new HashSet<>();
         Set<String> seenIds = new HashSet<>();
 
-        // Magic-byte gate: a real .xlsx (a ZIP) starts with "PK\x03\x04". Reject anything
-        // else BEFORE handing it to POI, which otherwise buffers/parses hostile input.
+        // Magic-byte gate BEFORE handing the file to POI (which otherwise buffers/parses
+        // hostile input). Accept the two real spreadsheet signatures: .xlsx is a ZIP
+        // ("PK\x03\x04"); .xls is an OLE2 compound file (0xD0 0xCF 0x11 0xE0).
         try (java.io.InputStream in = file.getInputStream()) {
             byte[] magic = new byte[4];
             int read = in.read(magic);
-            if (read < 4 || magic[0] != 0x50 || magic[1] != 0x4B
-                    || magic[2] != 0x03 || magic[3] != 0x04) {
-                return new StudentPreview(List.of(), 0, 0, "That doesn't look like a valid .xlsx file.");
+            boolean xlsx = read >= 4 && magic[0] == 0x50 && magic[1] == 0x4B
+                    && magic[2] == 0x03 && magic[3] == 0x04;
+            boolean xls = read >= 4 && (magic[0] & 0xFF) == 0xD0 && (magic[1] & 0xFF) == 0xCF
+                    && (magic[2] & 0xFF) == 0x11 && (magic[3] & 0xFF) == 0xE0;
+            if (!xlsx && !xls) {
+                return new StudentPreview(List.of(), 0, 0,
+                        "That doesn't look like a valid .xlsx or .xls file.");
             }
         } catch (IOException ex) {
             return new StudentPreview(List.of(), 0, 0, "Could not read the file: " + ex.getMessage());
         }
 
-        try (Workbook wb = new XSSFWorkbook(file.getInputStream())) {
+        // WorkbookFactory auto-detects .xls (HSSF) vs .xlsx (XSSF).
+        try (Workbook wb = org.apache.poi.ss.usermodel.WorkbookFactory.create(file.getInputStream())) {
             Sheet sheet = wb.getSheetAt(0);
             if (sheet == null) return new StudentPreview(List.of(), 0, 0, "The spreadsheet has no sheets.");
 
@@ -218,8 +225,8 @@ public class CsvImportService {
                         colVal(row, col, "programmecode"), colVal(row, col, "year"));
             }
         } catch (Exception ex) {
-            log.warn("XLSX import parse failed: {}", ex.getMessage());
-            return new StudentPreview(List.of(), 0, 0, "That doesn't look like a valid .xlsx file.");
+            log.warn("Spreadsheet import parse failed: {}", ex.getMessage());
+            return new StudentPreview(List.of(), 0, 0, "That doesn't look like a valid .xlsx or .xls file.");
         }
 
         return new StudentPreview(rows, count(rows, true), count(rows, false), null);

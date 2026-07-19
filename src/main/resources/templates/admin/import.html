@@ -93,11 +93,12 @@
             <div class="form-group">
                 <label class="form-label" for="file">Students CSV</label>
                 <input type="file" id="file" name="file" class="form-control"
-                       accept=".csv,.xlsx" required>
+                       accept=".csv,.xlsx,.xls" required>
                 <div class="field-hint">
                     Columns: <span class="mono">name, email, studentId, programmeCode, year</span>.
                     <a th:href="@{/admin/import/template/students.csv}">Download template</a>.
-                    Both <strong>.csv</strong> and <strong>.xlsx</strong> files are accepted (max 5 MB).
+                    <strong>.csv</strong>, <strong>.xlsx</strong> and <strong>.xls</strong> files are accepted (max 5 MB).
+                    Other formats (e.g. .ods, Google Sheets) — use <strong>File → Save As → .xlsx or .csv</strong> first.
                     For <span class="mono">programmeCode</span>, use YOUR programme codes
                     (see <strong>Admin → Programmes</strong>), not the template's samples.
                 </div>

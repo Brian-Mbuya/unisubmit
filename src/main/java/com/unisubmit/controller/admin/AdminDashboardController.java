@@ -24,19 +24,22 @@ public class AdminDashboardController {
     private final AcademicHierarchyService academicHierarchyService;
     private final CurriculumRepository curriculumRepository;
     private final SubmissionRepository submissionRepository;
+    private final com.unisubmit.service.ai.LlmClient llmClient;
 
     public AdminDashboardController(UserService userService,
                                     UnitService unitService,
                                     CourseService courseService,
                                     AcademicHierarchyService academicHierarchyService,
                                     CurriculumRepository curriculumRepository,
-                                    SubmissionRepository submissionRepository) {
+                                    SubmissionRepository submissionRepository,
+                                    com.unisubmit.service.ai.LlmClient llmClient) {
         this.userService = userService;
         this.unitService = unitService;
         this.courseService = courseService;
         this.academicHierarchyService = academicHierarchyService;
         this.curriculumRepository = curriculumRepository;
         this.submissionRepository = submissionRepository;
+        this.llmClient = llmClient;
     }
 
     @GetMapping({"", "/", "/dashboard"})
@@ -58,6 +61,10 @@ public class AdminDashboardController {
         model.addAttribute("statUnderReview", submissionRepository.countByStatus(SubmissionStatus.UNDER_REVIEW));
         model.addAttribute("statFinal",       submissionRepository.countByStatus(SubmissionStatus.FINAL));
         model.addAttribute("statArchived",    submissionRepository.countByStatus(SubmissionStatus.ARCHIVED));
+
+        // AI status indicator — is a real provider key configured? (heuristic/DEGRADED mode otherwise)
+        model.addAttribute("aiChatConfigured", llmClient.hasKey());
+        model.addAttribute("aiEmbeddingsConfigured", llmClient.hasEmbeddingsKey());
 
         return "admin/dashboard";
     }
