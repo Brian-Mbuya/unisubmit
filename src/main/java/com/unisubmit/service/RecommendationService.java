@@ -187,7 +187,11 @@ public class RecommendationService {
         // denominator instead of silently dragging every score down.
         // Without this, two identical documents could never exceed ~84%
         // whenever the SPECTER sidecar is off.
-        boolean semanticEvaluable = current.getEmbedding() != null && candidate.getEmbedding() != null;
+        // Non-null AND equal-length — a dimension mismatch (e.g. an old SPECTER 768-d vector
+        // beside a new 1536-d one) must not enter the score or throw downstream.
+        boolean semanticEvaluable = current.getEmbedding() != null && candidate.getEmbedding() != null
+                && current.getEmbedding().length == candidate.getEmbedding().length
+                && current.getEmbedding().length > 0;
         boolean keywordEvaluable = !currentKeywords.isEmpty() && !candidateKeywords.isEmpty();
         double effectiveWeight = w.getTitle() + w.getUnit()
                 + w.getTechnology() + w.getResearchArea()
@@ -330,7 +334,7 @@ public class RecommendationService {
     }
 
     private List<String> getKeywords(AIInsight insight) {
-        if (insight == null || insight.getStatus() != AIInsightStatus.COMPLETED) return List.of();
+        if (insight == null || !insight.getStatus().hasContent()) return List.of();
         Set<String> kws = insight.getKeywords();
         return kws != null ? new ArrayList<>(kws) : List.of();
     }

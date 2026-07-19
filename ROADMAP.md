@@ -375,7 +375,7 @@ carries the v(n−1) insight snapshot needed by Phase 5; the embedding column is
 pgvector `vector(1536)` with a working write path, dimension guards, and a backfill from
 stored insights; semantic search returns results on live data.
 
-- [ ] **4.1 DEGRADED status.** Add `DEGRADED` to `AIInsightStatus`. In
+- [x] **4.1 DEGRADED status.** Add `DEGRADED` to `AIInsightStatus`. In
   AIInsightProcessingService's LLM-failure fallback (~L360-376): set status DEGRADED (not
   COMPLETED), store the heuristic summary WITHOUT the "(Automated fallback…)" prefix, and set
   `errorMessage` to the short provider reason.
@@ -399,14 +399,14 @@ stored insights; semantic search returns results on live data.
   non-PENDING/PROCESSING — verify). Done-when: with NO_KEY, a new submission lands DEGRADED,
   shows "Basic summary" + retry everywhere above, AND still appears in similar-work/search;
   test updated.
-- [ ] **4.2 Version snapshot (B1's foundation).** `SubmissionVersion` gains
+- [x] **4.2 Version snapshot (B1's foundation).** `SubmissionVersion` gains
   `@Column(length=4000) String insightSummarySnapshot` and `@Column(length=1000) String
   insightKeywordsSnapshot`. In `SubmissionService.addNewVersion` — BEFORE
   `aiInsightService.initiateAnalysis` (which nulls the live insight) — copy the current
   insight's summary + comma-joined keywords into the NEW version row when status is
   COMPLETED or DEGRADED. Done-when: unit test — upload v2 → v2's row snapshots v1-era
   summary; initiateAnalysis ordering asserted.
-- [ ] **4.3 pgvector for real (B4a).** (a) SQL in Supabase (owner runs it, or via Supabase
+- [x] **4.3 pgvector for real (B4a).** [CODE done; owner runs the SQL + Railway vars — see RAILWAY.md] (a) SQL in Supabase (owner runs it, or via Supabase
   MCP if connected — EXACT statements): `create extension if not exists vector schema
   extensions;` · `alter table submissions alter column embedding type extensions.vector(1536)
   using null;` (all live values are NULL — verified: embeddings were never writable) ·
@@ -427,12 +427,12 @@ stored insights; semantic search returns results on live data.
   `SearchService.isSemanticEnabled()` (:115) from `specterService != null` to
   LlmClient-embeddings-key-present. `SpecterService`+`OcrService` stay (OCR still rides the
   sidecar) but the SPECTER embedding path retires — note in map.
-- [ ] **4.4 Dimension guards.** `RecommendationService`: `semanticEvaluable` (~L190) becomes
+- [x] **4.4 Dimension guards.** `RecommendationService`: `semanticEvaluable` (~L190) becomes
   non-null AND equal-length; `AnalyticsService.buildLandscape`: filter the embedding rows to
   the majority dimension before kMeans (drop others; prevents the verified
   ArrayIndexOutOfBounds 500). One test each in RecommendationServiceTest/new
   AnalyticsServiceTest.
-- [ ] **4.5 Backfill.** One-shot admin action `POST /admin/ai/backfill-embeddings` (button on
+- [x] **4.5 Backfill.** [CODE done; owner runs backfill + HNSW index + SEARCH_SEMANTIC_ENABLED] One-shot admin action `POST /admin/ai/backfill-embeddings` (button on
   admin/evaluation.html, `data-loading-submit`): kicks an **@Async** job (reuse the existing
   async pattern — a synchronous request would exceed Railway/browser timeouts on a real
   corpus) and immediately flashes "Backfill started — progress in the logs." The job: for
@@ -445,7 +445,7 @@ stored insights; semantic search returns results on live data.
   the done-when would otherwise be unobservable. Then create the HNSW index (4.3a). Flip
   `SEARCH_SEMANTIC_ENABLED=true` (Railway var, owner). Done-when: /explore search with a
   semantic-ish query returns results AND the new INFO line reports non-zero candidates.
-- [ ] **4.6 Ship check.** SW → v16 (templates/app.js touched). Build + tests green. Map
+- [x] **4.6 Ship check.** SW → v16 (templates/app.js touched). Build + tests green. Map
   updated (§6 SubmissionVersion fields, §7 embedding truth, AIInsightStatus values). Commit
   `"platform: DEGRADED state, version snapshots, real pgvector + backfill, dimension guards (SW v16)"`.
 
@@ -608,6 +608,22 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
 ## Log (one line per session)
 - 2026-07-17 Fable: V3 authored (planner). Verified-gap sweep 2026-07-17 is fully folded in;
   Registry superseded per owner; visual = Phase 1 per owner. Opus·high executes top-down.
+- 2026-07-19 Opus: Phase 4 PLATFORM done (SW v16, 68 tests green). DEGRADED status added to
+  AIInsightStatus (+`hasContent()`); pipeline LLM-failure now lands DEGRADED (heuristic summary,
+  no prefix, errorMessage=reason); 5 read-gates (Recommendation.getKeywords, Search BM25+snippet,
+  CollabDiscovery corpus, Analytics landscape) accept DEGRADED; retry/rerun from-sets include
+  DEGRADED; 4 template spots (components AI panel banner+retry, dashboard "Basic summary",
+  base.css badge/dot-degraded, submission-detail rerun). SubmissionVersion +insightSummary/
+  Keywords snapshot (captured in addNewVersion before re-analysis). LlmClient.embed +
+  hasEmbeddingsKey (EMBEDDINGS_API_KEY, text-embedding-3-small); both specter.embed call-sites
+  swapped; isSemanticEnabled re-keyed; embedding @Column length=32000; DEGRADED excluded from
+  inline embed. Dimension guards (Recommendation semanticEvaluable equal-length; Analytics
+  majority-dim filter). Backfill: EmbeddingBackfillService @Async + AdminAiController POST
+  /admin/ai/backfill-embeddings + evaluation.html button; SearchService INFO "semantic channel:
+  N candidates". **OWNER ACTIONS PENDING (semantic search inert until done):** Supabase SQL
+  (vector ext + alter column + HNSW), JDBC &stringtype=unspecified, EMBEDDINGS_API_KEY, run
+  backfill, SEARCH_SEMANTIC_ENABLED=true — full steps in RAILWAY.md. All degrades to keyword-only
+  without them. Not pushed. Next: Phase 5 (ASSIST).
 - 2026-07-19 Opus: Phase 3 CLEAN done (SW v15). New `service/ai/LlmClient` (single LLM HTTP
   path — untrusted system prompt, lenient JSON, 1 re-ask, extractCapped) + `AiRateLimitService`
   (DRAFT_TITLES/RERUN/DRAFT_FEEDBACK buckets, wired into analyze-draft-file 429 + student

@@ -84,7 +84,7 @@
                                     <span class="meta-item" th:if="${sub.aiInsight != null and sub.aiInsight.status.name() != 'COMPLETED'}">
                                         <span class="inline-flex items-center gap-1">
                                             <span class="dot" th:classappend="'dot-' + ${#strings.toLowerCase(sub.aiInsight.status.name())}"></span>
-                                            <span th:text="${sub.aiInsight.status.name() == 'FAILED' ? 'AI failed' : 'AI analysing'}">AI</span>
+                                            <span th:text="${sub.aiInsight.status.name() == 'FAILED' ? 'AI failed' : (sub.aiInsight.status.name() == 'DEGRADED' ? 'Basic summary' : 'AI analysing')}">AI</span>
                                         </span>
                                     </span>
                                     <span th:if="${sub.unit != null and sub.unit.daysToDeadline != null}"

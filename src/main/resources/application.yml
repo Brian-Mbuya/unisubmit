@@ -93,9 +93,16 @@ unisubmit:
     # (pytesseract + pdf2image installed in specter-service).
     enabled: ${OCR_ENABLED:false}
     url: ${OCR_URL:http://localhost:5001}
+  embeddings:
+    # Embeddings need a SEPARATE key — OpenRouter has no embeddings endpoint. Default is
+    # OpenAI text-embedding-3-small (1536-dim). Without a key the whole semantic channel is
+    # off (hasEmbeddingsKey() gates it) — keyword search still works everywhere.
+    api-key: ${EMBEDDINGS_API_KEY:NO_KEY}
+    url: ${EMBEDDINGS_URL:https://api.openai.com/v1/embeddings}
+    model: ${EMBEDDINGS_MODEL:text-embedding-3-small}
   search:
     # pgvector semantic channel of /search — PostgreSQL-only; keyword BM25
-    # works everywhere regardless of this flag.
+    # works everywhere regardless of this flag. Needs BOTH this flag AND an embeddings key.
     semantic-enabled: ${SEARCH_SEMANTIC_ENABLED:false}
   review:
     # Blind review: lecturers see "Anonymous student" until a grade is given.

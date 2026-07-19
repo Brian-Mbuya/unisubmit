@@ -34,7 +34,7 @@ class SearchServiceTest {
     private SubmissionAccessService accessService;
 
     @Mock
-    private SpecterService specterService;
+    private com.unisubmit.service.ai.LlmClient llmClient;
 
     private SearchService searchService;
     private User viewer;
@@ -42,7 +42,7 @@ class SearchServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        searchService = new SearchService(submissionRepository, accessService, specterService, null);
+        searchService = new SearchService(submissionRepository, accessService, llmClient, null);
         viewer = new User();
         viewer.setId(1L);
         viewer.setRole(Role.STUDENT);

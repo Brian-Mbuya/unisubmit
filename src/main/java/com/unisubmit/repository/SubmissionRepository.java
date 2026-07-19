@@ -18,6 +18,10 @@ import java.util.List;
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     long countByStatus(SubmissionStatus status);
 
+    /** Ids of submissions whose insight has the given status — drives the embedding backfill. */
+    @Query("select s.id from Submission s where s.aiInsight is not null and s.aiInsight.status = :status")
+    List<Long> findIdsByInsightStatus(@Param("status") com.unisubmit.domain.AIInsightStatus status);
+
     List<Submission> findByStudent(User student);
     List<Submission> findByCurriculumIn(List<Curriculum> curricula);
     List<Submission> findByProjectGroupId(Long groupId);

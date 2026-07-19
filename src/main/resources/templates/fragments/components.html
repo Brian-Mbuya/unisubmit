@@ -221,8 +221,13 @@
                 </div>
             </div>
 
-            <!-- COMPLETED -->
-            <div th:if="${insight.status.name() == 'COMPLETED'}" class="ai-complete">
+            <!-- COMPLETED / DEGRADED (DEGRADED = heuristic fallback: real summary, flagged + retryable) -->
+            <div th:if="${insight.status.name() == 'COMPLETED' or insight.status.name() == 'DEGRADED'}" class="ai-complete">
+                <div th:if="${insight.status.name() == 'DEGRADED'}"
+                     class="alert alert-warning text-sm mb-4 flex items-center justify-between gap-2 flex-wrap">
+                    <span>AI was unavailable — this is a basic summary. Retry when connected.</span>
+                    <button class="btn btn-secondary btn-sm" th:attr="data-retry-id=${insight.id}" data-retry-analysis>Retry</button>
+                </div>
                 <div class="ai-tabs" role="tablist">
                     <button type="button" class="ai-tab-btn active" data-ai-tab="tab-summary">Summary</button>
                     <button type="button" class="ai-tab-btn" th:if="${insight.problemStatement != null}"

@@ -196,6 +196,23 @@ class RecommendationServiceTest {
     }
 
     @Test
+    void mismatchedEmbeddingDimensionsAreNotScoredSemantically() {
+        Submission current = submission(1L, owner, "Alpha",
+                Set.of("Java"), Set.of(), List.of());
+        Submission candidate = submission(2L, otherStudent, "Beta",
+                Set.of("java"), Set.of(), List.of());
+        current.setEmbedding(new float[]{0.1f, 0.2f, 0.3f});          // 3-d
+        candidate.setEmbedding(new float[]{0.1f, 0.2f, 0.3f, 0.4f});  // 4-d — dimension mismatch
+
+        SubmissionSimilarity saved = runPrecompute(current, candidate);
+
+        // Shared tech retains the pair, but the mismatched-dimension embeddings must neither
+        // be scored nor throw (4.4 dimension guard).
+        assertEquals(0.0, saved.getSemanticScore(), 1e-9);
+        assertEquals(1.0, saved.getTechnologyScore(), 1e-9);
+    }
+
+    @Test
     void aPairWhoseOnlyLinkIsTheUnitIsNotRetained() {
         Submission current = submission(1L, owner, "Alpha Bravo",
                 Set.of(), Set.of(), List.of());

@@ -20,7 +20,7 @@ bulk import. PWA (installable, offline shell, bottom nav) wrapped as an Android 
 - DB: **Supabase Postgres** (prod) / **H2 file** (local, `application-local.yml`, profile `local`).
 - Frontend: ONE stylesheet `static/css/base.css` (design system "Nocturne Laurel", numbered
   sections, tokens at top) + ONE vanilla `static/js/app.js` (510 lines, IIFE, no deps) +
-  `static/sw.js` (**VERSION `unisubmit-shell-v15`** — bump on any css/js/icon shape change!).
+  `static/sw.js` (**VERSION `unisubmit-shell-v16`** — bump on any css/js/icon shape change!).
 - Zero external runtime deps: fonts (Inter+Fraunces woff2), Chart.js vendored, icons local.
 - Build: `JAVA_HOME=C:\Users\mbuya\.jdks\jdk-17.0.19+10` then `.\mvnw.cmd -B -ntp -DskipTests package`.
 - Local run: `run-local.ps1 -Port 8090` → seeds `admin`/`L001`/`S001`, all `password123`.
@@ -154,10 +154,13 @@ User(role STUDENT|LECTURER|ADMIN, deleted flag, suspension fields) 1–1 Student
 +year/sem) ; TeachingAssignment(lecturerProfile+curriculum) ; Enrollment(student+unit) ;
 AcademicYear/Semester(reference). Submission(student, curriculum, status DRAFT|PROPOSAL|
 SUBMITTED|UNDER_REVIEW|CHANGES_REQUESTED|APPROVED|REJECTED|FINAL|ARCHIVED, projectGroup?,
-embedding float[] via VectorConverter, technologies/researchAreas [+4 dead tag sets],
-supervisors(dead)) 1–N SubmissionVersion(filePath, originalName, size, contentHash SHA-256,
-uploadedBy, changesSummary) 1–N Feedback(lecturer, message, grade 0-100). AIInsight 1–1
-Submission(status PENDING|PROCESSING|COMPLETED|FAILED, summary, keywords, objectives,
+embedding float[] via VectorConverter (pgvector `vector(1536)` on prod — see §7),
+technologies/researchAreas [+4 dead tag sets]; supervisors mapping EXCISED (join table remains))
+1–N SubmissionVersion(filePath, originalName, size, contentHash SHA-256, uploadedBy,
+changesSummary, is_late, insightSummarySnapshot/insightKeywordsSnapshot = prior-version
+insight snapshot for Phase 5) 1–N Feedback(lecturer, message, grade 0-100). AIInsight 1–1
+Submission(status PENDING|PROCESSING|COMPLETED|DEGRADED|FAILED — DEGRADED=heuristic fallback,
+`hasContent()`=COMPLETED||DEGRADED gates matching/search; summary, keywords, objectives,
 problemDomains, problemStatement, errorMessage). SubmissionSimilarity(A,B, score + per-signal
 scores + matched lists + reason + sameUnit). CollaborationMatch(Stage-1 row + Stage-2 verdict/
 pitch), CollaborationRequest(PENDING|ACCEPTED|DECLINED)→Collaboration. ProjectGroup(leader,
@@ -168,9 +171,15 @@ Tag families: Technology, ResearchArea (live) · Framework, Database, Programmin
 Skill (dead). Lookup seeding: UnisubmitApplication CommandLineRunner (count==0 guarded).
 
 ## 7 · Config truths (memorise these)
-- **AI is opt-in**: `OPENAI_API_KEY=NO_KEY` default → heuristic fallback everywhere; GROBID/
-  SPECTER/OCR/semantic-search each have `unisubmit.*.enabled=false` flags. UI shows honest
-  no-AI states. LLM: OpenRouter, model `openai/gpt-4o-mini` default.
+- **AI is opt-in**: `OPENAI_API_KEY=NO_KEY` default → heuristic **DEGRADED** analysis everywhere
+  (real doc-derived summary/keywords, no LLM enrichment; matching/search still work). LLM HTTP
+  is centralised in `service/ai/LlmClient` (chat via OpenRouter `openai/gpt-4o-mini`).
+- **Embeddings / semantic search (Phase 4):** separate `EMBEDDINGS_API_KEY` (OpenAI
+  text-embedding-3-small, 1536-d — OpenRouter has none) via `LlmClient.embed`; the old SPECTER
+  embedding path is RETIRED (SpecterService bean stays for OCR only). Prod `embedding` column
+  must be pgvector `vector(1536)` (owner SQL in RAILWAY.md) + JDBC `&stringtype=unspecified`.
+  Enable order: SQL → stringtype → EMBEDDINGS_API_KEY → backfill (Admin→Evaluation) → HNSW
+  index → `SEARCH_SEMANTIC_ENABLED=true`. All of it degrades to keyword-only without the key.
 - **Schema = Hibernate `ddl-auto=update`**, Flyway DISABLED (crash-loop history; yml comment
   = the recipe to re-adopt). Do NOT enable Flyway casually.
 - Sessions: in-memory (redeploy = logout). JDBC sessions BLOCKED on non-Serializable

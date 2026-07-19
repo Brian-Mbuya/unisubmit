@@ -52,6 +52,17 @@ public class SubmissionVersion {
     @Column(name = "is_late", columnDefinition = "boolean default false")
     private boolean late = false;
 
+    /**
+     * Snapshot of the PREVIOUS version's AI insight, captured when THIS version was uploaded
+     * (before re-analysis nulls the live insight). Foundation for Phase 5's AI change-summary /
+     * narrative timeline — null for the first version and when no prior insight had content.
+     */
+    @Column(length = 4000)
+    private String insightSummarySnapshot;
+
+    @Column(length = 1000)
+    private String insightKeywordsSnapshot;
+
     @ManyToOne(optional = true)
     @JoinColumn(name = "uploaded_by_id")
     private User uploadedBy;

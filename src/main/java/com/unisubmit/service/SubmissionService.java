@@ -159,12 +159,37 @@ public class SubmissionService {
             throw new IllegalStateException("Cannot add a version to an already approved submission.");
         }
 
+        // Capture the CURRENT (v(n-1)) insight before re-analysis nulls it, so the new
+        // version row carries the prior summary/keywords (Phase 5's change-summary source).
+        String summarySnapshot = null;
+        String keywordsSnapshot = null;
+        AIInsight priorInsight = submission.getAiInsight();
+        if (priorInsight != null && priorInsight.getStatus() != null && priorInsight.getStatus().hasContent()) {
+            summarySnapshot = cap(priorInsight.getSummary(), 4000);
+            keywordsSnapshot = priorInsight.getKeywords() != null
+                    ? cap(String.join(", ", priorInsight.getKeywords()), 1000) : null;
+        }
+
         submission.setStatus(SubmissionStatus.SUBMITTED);
         submissionRepository.save(submission);
         appendNewVersion(submission, file, student, changesSummary, late);
+
+        if (summarySnapshot != null || keywordsSnapshot != null) {
+            SubmissionVersion newVersion = submission.getVersions().get(submission.getVersions().size() - 1);
+            newVersion.setInsightSummarySnapshot(summarySnapshot);
+            newVersion.setInsightKeywordsSnapshot(keywordsSnapshot);
+            versionRepository.save(newVersion);
+        }
+
         aiInsightService.initiateAnalysis(submission);
 
         return submission;
+    }
+
+    /** Trims a string to at most {@code max} chars (null-safe). */
+    private static String cap(String s, int max) {
+        if (s == null) return null;
+        return s.length() > max ? s.substring(0, max) : s;
     }
 
     private void appendNewVersion(Submission submission, MultipartFile file, User uploadedBy,

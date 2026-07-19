@@ -89,7 +89,10 @@ public class Submission {
     @OneToOne(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
     private AIInsight aiInsight;
 
-    @Column(name = "embedding")
+    // VectorConverter stores the vector as its text form "[0.1,0.2,…]". On Postgres the
+    // column is migrated to pgvector `vector(1536)` (see application.yml / RAILWAY.md; needs
+    // JDBC &stringtype=unspecified). length=32000 is only so H2 dev doesn't truncate the text.
+    @Column(name = "embedding", length = 32000)
     @Convert(converter = VectorConverter.class)
     private float[] embedding;
     

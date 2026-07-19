@@ -66,9 +66,76 @@ public class LlmClient {
     @Value("${spring.ai.openai.chat.options.model:openai/gpt-4o-mini}")
     private String model;
 
+    // Embeddings use a SEPARATE provider — OpenRouter has no embeddings endpoint, so this
+    // needs its own OpenAI (or compatible) key. Independent of the chat key above.
+    @Value("${unisubmit.embeddings.api-key:NO_KEY}")
+    private String embeddingsKey;
+
+    @Value("${unisubmit.embeddings.url:https://api.openai.com/v1/embeddings}")
+    private String embeddingsUrl;
+
+    @Value("${unisubmit.embeddings.model:text-embedding-3-small}")
+    private String embeddingsModel;
+
     /** True when a real provider key is configured (not the NO_KEY sentinel). */
     public boolean hasKey() {
         return apiKey != null && !apiKey.isBlank() && !"NO_KEY".equals(apiKey);
+    }
+
+    /** True when a real embeddings key is configured (gates the whole semantic channel). */
+    public boolean hasEmbeddingsKey() {
+        return embeddingsKey != null && !embeddingsKey.isBlank() && !"NO_KEY".equals(embeddingsKey);
+    }
+
+    /**
+     * Embeds text into a dense vector via the embeddings provider (default OpenAI
+     * text-embedding-3-small → 1536 dims). Returns empty when no key is configured, the text
+     * is blank, or the provider errors — never throws (house no-key rule).
+     */
+    public Optional<float[]> embed(String text) {
+        if (!hasEmbeddingsKey() || text == null || text.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            ObjectNode body = mapper.createObjectNode();
+            body.put("model", embeddingsModel);
+            body.put("input", text);
+
+            HttpClient client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(embeddingsUrl))
+                    .timeout(Duration.ofSeconds(DEFAULT_TIMEOUT_SECONDS))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + embeddingsKey)
+                    .POST(HttpRequest.BodyPublishers.ofString(
+                            mapper.writeValueAsString(body), StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                log.warn("Embeddings call failed with status {}: {}",
+                        response.statusCode(), truncate(response.body(), 300));
+                return Optional.empty();
+            }
+            JsonNode data = mapper.readTree(response.body()).get("data");
+            if (data == null || !data.isArray() || data.isEmpty()) {
+                return Optional.empty();
+            }
+            JsonNode vec = data.get(0).get("embedding");
+            if (vec == null || !vec.isArray() || vec.isEmpty()) {
+                return Optional.empty();
+            }
+            float[] out = new float[vec.size()];
+            for (int i = 0; i < vec.size(); i++) {
+                out[i] = (float) vec.get(i).asDouble();
+            }
+            return Optional.of(out);
+        } catch (Exception ex) {
+            log.warn("Embeddings call failed: {}", ex.getMessage());
+            return Optional.empty();
+        }
     }
 
     /** The lenient mapper (ignores unknown properties) so callers can map the result. */

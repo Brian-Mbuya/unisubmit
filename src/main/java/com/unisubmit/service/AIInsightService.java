@@ -109,7 +109,7 @@ public class AIInsightService {
     @org.springframework.transaction.annotation.Transactional
     public boolean retryAnalysis(Long insightId) {
         int claimed = aiInsightRepository.transition(insightId, AIInsightStatus.PENDING,
-                java.util.List.of(AIInsightStatus.FAILED));
+                java.util.List.of(AIInsightStatus.FAILED, AIInsightStatus.DEGRADED));
         if (claimed == 0) {
             return false;
         }
@@ -130,7 +130,7 @@ public class AIInsightService {
         }
         Long insightId = submission.getAiInsight().getId();
         int claimed = aiInsightRepository.transition(insightId, AIInsightStatus.PENDING,
-                java.util.List.of(AIInsightStatus.COMPLETED, AIInsightStatus.FAILED));
+                java.util.List.of(AIInsightStatus.COMPLETED, AIInsightStatus.FAILED, AIInsightStatus.DEGRADED));
         if (claimed == 0) {
             return false;
         }

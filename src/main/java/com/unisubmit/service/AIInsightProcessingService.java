@@ -287,18 +287,22 @@ public class AIInsightProcessingService {
 
                         List<String> keywords = extractKeywords(rawText != null ? rawText : promptInputText, 10);
                         LlmResult result = null;
+                        boolean degraded = false;
+                        String degradedReason = null;
 
                         try {
                             result = callOpenAi(promptInputText);
                         } catch (Exception ex) {
                             log.warn("OpenAI/OpenRouter LLM analysis failed. Using fallback local heuristic analysis. Reason: {}", ex.getMessage());
-                            // Fallback keeps only what was genuinely derived from the
+                            // DEGRADED: keep only what was genuinely derived from the
                             // document (TF keywords + extractive summary). Structured
                             // fields stay empty — fabricated tags would pollute the
-                            // knowledge model and recommendation signals.
+                            // knowledge model and recommendation signals. No "(Automated
+                            // fallback…)" prefix — the DEGRADED status + errorMessage carry that.
+                            degraded = true;
+                            degradedReason = ex.getMessage();
                             result = new LlmResult();
-                            result.summary = "(Automated fallback — AI analysis unavailable.) "
-                                    + extractSummary(rawText != null ? rawText : promptInputText, keywords, 3);
+                            result.summary = extractSummary(rawText != null ? rawText : promptInputText, keywords, 3);
                             result.keywords = keywords;
                             result.objectives = List.of();
                             result.problemDomains = List.of();
@@ -337,18 +341,26 @@ public class AIInsightProcessingService {
                         }
 
                         txInsight.setProblemStatement(result.problemStatement);
-                        txInsight.setStatus(AIInsightStatus.COMPLETED);
+                        txInsight.setStatus(degraded ? AIInsightStatus.DEGRADED : AIInsightStatus.COMPLETED);
+                        txInsight.setErrorMessage(degraded
+                                ? "AI was unavailable — this is a basic summary."
+                                    + (degradedReason != null ? " (" + degradedReason + ")" : "")
+                                : null);
                         aiInsightRepository.save(txInsight);
 
-                        // Generate document embedding via SPECTER service
-                        try {
-                            String combinedText = txSubmission.getTitle() + " " + result.summary;
-                            Optional<float[]> embeddingOpt = specterService.embed(combinedText);
-                            if (embeddingOpt.isPresent()) {
-                                txSubmission.setEmbedding(embeddingOpt.get());
+                        // Generate the document embedding via LlmClient — but only for full LLM
+                        // completions. DEGRADED (heuristic) text would pollute the vector space,
+                        // the same reason the backfill (4.5) skips DEGRADED.
+                        if (!degraded) {
+                            try {
+                                String combinedText = txSubmission.getTitle() + " " + result.summary;
+                                Optional<float[]> embeddingOpt = llmClient.embed(combinedText);
+                                if (embeddingOpt.isPresent()) {
+                                    txSubmission.setEmbedding(embeddingOpt.get());
+                                }
+                            } catch (Exception ex) {
+                                log.warn("Failed to generate or save embedding for submission {}: {}", txSubmission.getId(), ex.getMessage());
                             }
-                        } catch (Exception ex) {
-                            log.warn("Failed to generate or save embedding for submission {}: {}", txSubmission.getId(), ex.getMessage());
                         }
 
                         // Map lookup tables

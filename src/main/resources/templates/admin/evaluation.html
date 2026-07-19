@@ -10,7 +10,17 @@
                 Measured retrieval quality of the similarity engine under different signal weightings.
             </p>
         </div>
+        <div class="page-head-actions">
+            <form th:action="@{/admin/ai/backfill-embeddings}" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn btn-secondary" data-loading-submit>Backfill embeddings</button>
+            </form>
+        </div>
     </div>
+    <p class="field-hint mb-6">
+        Backfill generates missing document embeddings for semantic search (async — needs an
+        embeddings key; watch the logs). Safe to re-run — it skips work already done.
+    </p>
 
     <!-- Collaboration engine health -->
     <div class="card mb-6">

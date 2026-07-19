@@ -55,7 +55,7 @@ public class AnalyticsService {
     public Landscape buildLandscape() {
         List<Submission> analysed = submissionRepository.findAll().stream()
                 .filter(s -> s.getAiInsight() != null
-                        && s.getAiInsight().getStatus() == AIInsightStatus.COMPLETED)
+                        && s.getAiInsight().getStatus().hasContent())
                 .toList();
         if (analysed.size() < 2) {
             return new Landscape(List.of(), List.of(), "none");
@@ -65,6 +65,21 @@ public class AnalyticsService {
         List<Submission> withEmbeddings = analysed.stream()
                 .filter(s -> s.getEmbedding() != null && s.getEmbedding().length > 0)
                 .toList();
+        // Dimension guard: mixed embedding sizes (an old 768-d SPECTER vector beside a new
+        // 1536-d one) would make the vector matrix ragged and blow up kMeans/PCA with an
+        // ArrayIndexOutOfBounds. Keep only the majority dimension.
+        if (!withEmbeddings.isEmpty()) {
+            java.util.Map<Integer, Long> byDim = withEmbeddings.stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                            s -> s.getEmbedding().length, java.util.stream.Collectors.counting()));
+            int majorityDim = byDim.entrySet().stream()
+                    .max(java.util.Map.Entry.comparingByValue())
+                    .map(java.util.Map.Entry::getKey)
+                    .orElse(0);
+            withEmbeddings = withEmbeddings.stream()
+                    .filter(s -> s.getEmbedding().length == majorityDim)
+                    .toList();
+        }
         boolean useEmbeddings = withEmbeddings.size() >= Math.max(3, analysed.size() / 2);
 
         List<Submission> subjects = useEmbeddings ? withEmbeddings : analysed;

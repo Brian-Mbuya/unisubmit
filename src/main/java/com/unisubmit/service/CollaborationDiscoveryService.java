@@ -202,7 +202,7 @@ public class CollaborationDiscoveryService {
         return s.getCurriculum() != null
                 && s.getCurriculum().getUnit() != null
                 && s.getAiInsight() != null
-                && s.getAiInsight().getStatus() == AIInsightStatus.COMPLETED
+                && s.getAiInsight().getStatus().hasContent()
                 && s.getStatus() != SubmissionStatus.DRAFT;
     }
 

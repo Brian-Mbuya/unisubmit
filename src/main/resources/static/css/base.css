@@ -732,6 +732,7 @@ input[type="file"].form-control::file-selector-button {
 .badge-pending      { background: var(--tint-amber-bg);  color: var(--tint-amber-fg);  border-color: var(--tint-amber-bd); }
 .badge-processing   { background: var(--tint-blue-bg);   color: var(--tint-blue-fg);   border-color: var(--tint-blue-bd); }
 .badge-completed    { background: var(--tint-green-bg);  color: var(--tint-green-fg);  border-color: var(--tint-green-bd); }
+.badge-degraded     { background: var(--tint-amber-bg);  color: var(--tint-amber-fg);  border-color: var(--tint-amber-bd); }
 .badge-failed       { background: var(--tint-red-bg);    color: var(--tint-red-fg);    border-color: var(--tint-red-bd); }
 .badge-ai-ready     { background: var(--tint-green-bg);  color: var(--tint-green-fg);  border-color: var(--tint-green-bd); font-size: 0.68rem; }
 
@@ -792,6 +793,7 @@ input[type="file"].form-control::file-selector-button {
 .dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; flex-shrink: 0; display: inline-block; }
 .dot-pending, .dot-processing { background: var(--tint-blue-fg); }
 .dot-completed { background: var(--accent); }
+.dot-degraded { background: var(--tint-amber-fg); }
 .dot-failed { background: var(--danger); }
 .dot-muted { background: var(--border-strong); }
 

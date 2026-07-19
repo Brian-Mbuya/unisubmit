@@ -54,7 +54,7 @@ public class SearchService {
 
     private final SubmissionRepository submissionRepository;
     private final SubmissionAccessService accessService;
-    private final SpecterService specterService;
+    private final com.unisubmit.service.ai.LlmClient llmClient;
     private final EntityManager entityManager;
 
     @Value("${unisubmit.search.semantic-enabled:false}")
@@ -62,11 +62,11 @@ public class SearchService {
 
     public SearchService(SubmissionRepository submissionRepository,
                          SubmissionAccessService accessService,
-                         SpecterService specterService,
+                         com.unisubmit.service.ai.LlmClient llmClient,
                          EntityManager entityManager) {
         this.submissionRepository = submissionRepository;
         this.accessService = accessService;
-        this.specterService = specterService;
+        this.llmClient = llmClient;
         this.entityManager = entityManager;
     }
 
@@ -112,7 +112,7 @@ public class SearchService {
     }
 
     public boolean isSemanticEnabled() {
-        return semanticEnabled && specterService != null;
+        return semanticEnabled && llmClient.hasEmbeddingsKey();
     }
 
     // ── Channel 1: BM25 ──────────────────────────────────────────────────────
@@ -124,7 +124,7 @@ public class SearchService {
             List<String> tokens = new ArrayList<>();
             tokens.addAll(tokenize(s.getTitle()));
             tokens.addAll(tokenize(s.getTitle()));
-            if (s.getAiInsight() != null && s.getAiInsight().getStatus() == AIInsightStatus.COMPLETED) {
+            if (s.getAiInsight() != null && s.getAiInsight().getStatus().hasContent()) {
                 tokens.addAll(tokenize(s.getAiInsight().getSummary()));
                 s.getAiInsight().getKeywords().forEach(k -> tokens.addAll(tokenize(k)));
             }
@@ -185,7 +185,7 @@ public class SearchService {
             return List.of();
         }
         try {
-            Optional<float[]> embedded = specterService.embed(query);
+            Optional<float[]> embedded = llmClient.embed(query);
             if (embedded.isEmpty()) {
                 return List.of();
             }
@@ -198,10 +198,13 @@ public class SearchService {
                     .setParameter("v", vectorLiteral)
                     .getResultList();
             List<Long> visible = corpus.stream().map(Submission::getId).toList();
-            return rows.stream()
+            List<Long> candidates = rows.stream()
                     .map(o -> ((Number) o).longValue())
                     .filter(visible::contains)
                     .toList();
+            // Positive INFO line so the semantic channel is observable at default log level.
+            log.info("semantic channel: {} candidates", candidates.size());
+            return candidates;
         } catch (Exception ex) {
             // H2, missing extension, sidecar down — keyword channel carries the query.
             log.debug("Semantic search unavailable, degrading to keyword-only: {}", ex.getMessage());
@@ -235,7 +238,7 @@ public class SearchService {
         if (s == null) {
             return "";
         }
-        if (s.getAiInsight() != null && s.getAiInsight().getStatus() == AIInsightStatus.COMPLETED
+        if (s.getAiInsight() != null && s.getAiInsight().getStatus().hasContent()
                 && s.getAiInsight().getSummary() != null) {
             String summary = s.getAiInsight().getSummary();
             return summary.length() > 220 ? summary.substring(0, 220) + "…" : summary;

@@ -39,6 +39,29 @@ and **auto-redeploys on every push to `main`**. HTTPS is provided free on a
 ## Updates
 Edit code → `git commit` → `git push origin main`. Railway rebuilds and redeploys automatically.
 
+## Enabling semantic search (optional — Phase 4 platform work)
+Keyword search always works; the pgvector semantic channel is opt-in and needs a few one-time
+steps. Order matters:
+
+1. **Supabase → SQL editor**, run:
+   ```sql
+   create extension if not exists vector schema extensions;
+   alter table submissions alter column embedding type extensions.vector(1536) using null;
+   ```
+   (All live `embedding` values are NULL, so nothing is lost.)
+2. **Railway → Variables**: append `&stringtype=unspecified` to `JDBC_DATABASE_URL` (it already
+   ends in `?sslmode=require`, so use `&`, NOT a second `?`), and add
+   `EMBEDDINGS_API_KEY=sk-...` (a real OpenAI key — OpenRouter has no embeddings endpoint).
+   Redeploy.
+3. **Backfill**: Admin → Evaluation → **Backfill embeddings** (async; watch the logs for
+   "semantic channel: N candidates" / per-batch lines).
+4. After the backfill finishes, create the index in Supabase:
+   ```sql
+   create index ix_submissions_embedding on submissions
+     using hnsw (embedding extensions.vector_cosine_ops);
+   ```
+5. **Railway → Variables**: set `SEARCH_SEMANTIC_ENABLED=true`. Redeploy. Done.
+
 ## When you move to Oracle (later)
 1. Bring up the VM per `deploy/README.md` and put the same Supabase vars in `/etc/unisubmit.env`.
 2. Re-enable the GitHub Actions workflow (uncomment the `push` trigger in

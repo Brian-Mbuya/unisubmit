@@ -1,5 +1,7 @@
 package com.unisubmit.service;
 
+import com.unisubmit.domain.AIInsight;
+import com.unisubmit.domain.AIInsightStatus;
 import com.unisubmit.domain.Course;
 import com.unisubmit.domain.Curriculum;
 import com.unisubmit.domain.Role;
@@ -166,6 +168,28 @@ class SubmissionServiceGuardsTest {
 
         assertThrows(UnauthorizedException.class,
                 () -> service.addNewVersion(outsider, 200L, file));
+    }
+
+    // ── 4.2 version snapshot ─────────────────────────────────────────────────
+
+    @Test
+    void newVersionSnapshotsThePriorInsight() {
+        Submission submission = ownedSubmission(SubmissionStatus.SUBMITTED);
+        AIInsight insight = new AIInsight();
+        insight.setStatus(AIInsightStatus.COMPLETED);
+        insight.setSummary("v1 summary");
+        insight.setKeywords(new java.util.LinkedHashSet<>(List.of("ml", "nlp")));
+        submission.setAiInsight(insight);
+        when(submissionRepository.findById(200L)).thenReturn(Optional.of(submission));
+
+        service.addNewVersion(student, 200L, file, "changes");
+
+        // The new version row carries the PRIOR (v1) insight, captured before re-analysis.
+        ArgumentCaptor<SubmissionVersion> captor = ArgumentCaptor.forClass(SubmissionVersion.class);
+        verify(versionRepository, org.mockito.Mockito.atLeastOnce()).save(captor.capture());
+        SubmissionVersion latest = captor.getValue();
+        assertEquals("v1 summary", latest.getInsightSummarySnapshot());
+        assertEquals("ml, nlp", latest.getInsightKeywordsSnapshot());
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
