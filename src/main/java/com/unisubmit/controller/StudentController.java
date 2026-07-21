@@ -115,13 +115,14 @@ public class StudentController {
                                    @RequestParam String title,
                                    @RequestParam("file") MultipartFile file,
                                    @RequestParam(required = false) Long groupId,
+                                   @RequestParam(required = false) String helpWanted,
                                    RedirectAttributes redirectAttributes) {
         if (unitId == null) {
             redirectAttributes.addFlashAttribute("error", "Please select a unit before submitting.");
             return "redirect:/student/submission/new" + (groupId != null ? "?groupId=" + groupId : "");
         }
         try {
-            submissionService.createSubmission(userDetails.getUser(), unitId, title, file, groupId);
+            submissionService.createSubmission(userDetails.getUser(), unitId, title, file, groupId, helpWanted);
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/student/submission/new" + (groupId != null ? "?groupId=" + groupId : "");

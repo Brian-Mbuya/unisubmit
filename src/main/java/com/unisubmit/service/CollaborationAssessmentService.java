@@ -66,17 +66,20 @@ public class CollaborationAssessmentService {
             domain data), interdisciplinary reach (different fields, same \
             real-world problem), scale-up (prototype meets deployment), or data \
             sharing (one holds a dataset the other needs).
-            4. If you cannot name a CONCRETE, specific benefit for BOTH students \
-            from the provided data, return "NONE". Be strict — a weak or generic \
-            pairing must be NONE, not LOW.
-            5. Reply with ONLY a raw JSON array, no markdown fences, one object \
+            4. If you cannot name a CONCRETE, specific contribution from BOTH students \
+            using the provided data, return verdict "NONE" with EMPTY STRINGS for the \
+            other fields — never invent overlap. Be strict: a weak or generic pairing \
+            is NONE, not POSSIBLE.
+            5. If a project states what help it is looking for, weigh whether the other \
+            project can actually supply it.
+            6. Reply with ONLY a raw JSON array, no markdown fences, one object \
             per candidate:
-            [{"candidate_id": <number>, "collaboration_value": "HIGH|MEDIUM|LOW|NONE", \
+            [{"candidate_id": <number>, "verdict": "STRONG|POSSIBLE|NONE", \
             "collaboration_type": "mentorship|skill_exchange|interdisciplinary|scale_up|data_sharing", \
-            "project_gains": "<one sentence: what the MAIN project's student gains>", \
-            "candidate_gains": "<one sentence: what the candidate's student gains>", \
-            "pitch": "<two sentences, viewer-neutral, why they should connect>", \
-            "complementary_gaps": "<one sentence: the specific gap one fills for the other>"}]""";
+            "project_brings": "<one sentence: what the MAIN project's student BRINGS to the pairing>", \
+            "candidate_brings": "<one sentence: what the candidate's student BRINGS>", \
+            "joint_idea": "<one sentence: a concrete thing they could build or produce together>", \
+            "pitch": "<two sentences, viewer-neutral, why they should connect>"}]""";
 
     private final CollaborationMatchRepository matchRepository;
     private final SubmissionRepository submissionRepository;
@@ -166,6 +169,10 @@ public class CollaborationAssessmentService {
     private ObjectNode submissionNode(Submission s) {
         ObjectNode node = mapper.createObjectNode();
         node.put("title", s.getTitle());
+        // B6e — the student's own words about what help they want (untrusted data).
+        if (s.getHelpWanted() != null && !s.getHelpWanted().isBlank()) {
+            node.put("lookingFor", s.getHelpWanted());
+        }
         AIInsight insight = s.getAiInsight();
         if (insight != null) {
             node.put("summary", insight.getSummary());
@@ -234,13 +241,28 @@ public class CollaborationAssessmentService {
                     continue;
                 }
                 Long candidateId = node.get("candidate_id").asLong();
+                // Accept the current keys and the pre-Phase-6 ones, so a model that echoes
+                // the older shape still parses instead of silently becoming NONE.
+                String verdict = node.hasNonNull("verdict")
+                        ? node.path("verdict").asText("NONE")
+                        : node.path("collaboration_value").asText("NONE");
+                String projectBrings = node.hasNonNull("project_brings")
+                        ? node.path("project_brings").asText(null)
+                        : node.path("project_gains").asText(null);
+                String candidateBrings = node.hasNonNull("candidate_brings")
+                        ? node.path("candidate_brings").asText(null)
+                        : node.path("candidate_gains").asText(null);
+                String jointIdea = node.hasNonNull("joint_idea")
+                        ? node.path("joint_idea").asText(null)
+                        : node.path("complementary_gaps").asText(null);
+
                 out.put(candidateId, new Assessment(
-                        parseValue(node.path("collaboration_value").asText("NONE")),
+                        parseValue(verdict),
                         CollaborationType.fromLoose(node.path("collaboration_type").asText(null)),
-                        node.path("project_gains").asText(null),
-                        node.path("candidate_gains").asText(null),
-                        node.path("pitch").asText(null),
-                        node.path("complementary_gaps").asText(null)));
+                        blankToNull(projectBrings),
+                        blankToNull(candidateBrings),
+                        blankToNull(node.path("pitch").asText(null)),
+                        blankToNull(jointIdea)));
             }
         } catch (Exception ex) {
             log.warn("Could not parse collaboration assessment JSON: {}", ex.getMessage());
@@ -285,15 +307,33 @@ public class CollaborationAssessmentService {
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
+    /**
+     * Maps the model's verdict onto the stored enum. Accepts both the Phase-6 vocabulary
+     * (STRONG/POSSIBLE/NONE) and the older HIGH/MEDIUM/LOW/NONE — anything unrecognised is
+     * NONE, so a garbled reply can never inflate a pairing.
+     */
     private static CollaborationValue parseValue(String raw) {
         if (raw == null) {
             return CollaborationValue.NONE;
         }
-        try {
-            return CollaborationValue.valueOf(raw.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            return CollaborationValue.NONE;
+        String norm = raw.trim().toUpperCase();
+        switch (norm) {
+            case "STRONG":
+                return CollaborationValue.HIGH;
+            case "POSSIBLE":
+                return CollaborationValue.MEDIUM;
+            default:
+                try {
+                    return CollaborationValue.valueOf(norm);
+                } catch (IllegalArgumentException ex) {
+                    return CollaborationValue.NONE;
+                }
         }
+    }
+
+    /** Empty strings from a NONE verdict become null so templates can hide the row. */
+    private static String blankToNull(String s) {
+        return s == null || s.isBlank() ? null : s;
     }
 
 }

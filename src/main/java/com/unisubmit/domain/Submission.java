@@ -89,6 +89,14 @@ public class Submission {
     @OneToOne(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
     private AIInsight aiInsight;
 
+    /**
+     * Optional student-authored line describing what help they're looking for
+     * ("someone who's done fieldwork surveys"). Shown on the submission rail and partner
+     * cards, and fed to the Stage-2 collaboration judge as one line.
+     */
+    @Column(name = "help_wanted", length = 200)
+    private String helpWanted;
+
     // VectorConverter stores the vector as its text form "[0.1,0.2,…]". On Postgres the
     // column is migrated to pgvector `vector(1536)` (see application.yml / RAILWAY.md; needs
     // JDBC &stringtype=unspecified). length=32000 is only so H2 dev doesn't truncate the text.

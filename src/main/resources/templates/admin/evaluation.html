@@ -61,6 +61,31 @@
             <code class="mono">unisubmit.collaboration.weight.*</code>. Shortlisted pairs are Stage 1
             (mechanical, cross-disciplinary); High/Medium are Stage 2 (LLM-assessed).
         </p>
+
+        <!-- B6c: does complementarity actually beat plain overlap? -->
+        <div class="table-wrap table-stack mt-4" th:if="${reasonStats != null}">
+            <table class="table">
+                <thead>
+                    <tr><th>Why suggested</th><th>Accepted</th><th>Declined</th><th class="text-right">Acceptance</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${reasonStats}">
+                        <td class="fw-600" th:text="${r.reason}">Complement</td>
+                        <td th:text="${r.accepted}">0</td>
+                        <td th:text="${r.declined}">0</td>
+                        <td class="text-right">
+                            <span th:if="${r.accepted + r.declined > 0}"
+                                  th:text="${#numbers.formatDecimal(r.acceptanceRate * 100, 1, 0)} + '%'">0%</span>
+                            <span th:if="${r.accepted + r.declined == 0}" class="text-subtle">no data yet</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="field-hint mt-2">
+            If <strong>Complement</strong> outperforms <strong>Overlap</strong> here, the
+            "same problem, different toolkit" engine is earning its weight.
+        </p>
     </div>
 
     <div class="page-grid">

@@ -23,7 +23,11 @@ public record CollaborationOpportunity(
         boolean assessed,
         boolean requestAlreadySent,
         String partnerDepartment,
-        Integer partnerYear) {
+        Integer partnerYear,
+        /** Why this pair surfaced, written for THIS viewer ("you bring … they bring …"). */
+        String reason,
+        /** "Could mentor you" / "You could mentor them", or null when neither is senior. */
+        String mentorLabel) {
 
     public boolean crossDepartment() {
         String mine = yourProject != null && yourProject.getUnit() != null

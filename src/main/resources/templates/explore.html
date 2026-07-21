@@ -122,25 +122,45 @@
                                           th:text="${o.value.name() == 'HIGH' ? 'High-value' : (o.value.name() == 'MEDIUM' ? 'Good match' : 'Shortlisted')}">
                                         value</span>
                                     <span th:if="${o.crossDepartment()}" class="chip chip-gold">Cross-dept</span>
+                                    <!-- B6d: mentorship runs one way — say which way. -->
+                                    <span th:if="${o.mentorLabel != null}" class="chip chip-gold"
+                                          th:text="${o.mentorLabel}">Mentor</span>
                                 </div>
                             </div>
+
+                            <!-- B6a: why this pair surfaced, in the viewer's own terms -->
+                            <div th:if="${o.reason != null}" class="match-reason mt-2">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                    <path d="M8 1.5a5.5 5.5 0 0 0-3.09 10.05c.34.24.59.62.59 1.05v.4h5v-.4c0-.43.25-.81.59-1.05A5.5 5.5 0 0 0 8 1.5zM6 14.5A1.5 1.5 0 0 0 7.5 16h1a1.5 1.5 0 0 0 1.5-1.5v-.5h-4v.5z"/>
+                                </svg>
+                                <span th:text="${o.reason}">Reason</span>
+                            </div>
+
+                            <!-- What the partner says they're looking for -->
+                            <div th:if="${o.partner.helpWanted != null and !o.partner.helpWanted.isBlank()}"
+                                 class="text-xs text-muted mt-2"
+                                 th:text="'Looking for: ' + ${o.partner.helpWanted}">Looking for</div>
 
                             <!-- AI pitch -->
                             <div th:if="${o.pitch != null}" class="assistant-callout mt-4">
                                 <p class="assistant-callout-text" th:text="${o.pitch}">Pitch</p>
                             </div>
 
-                            <!-- Gains -->
+                            <!-- What each side brings -->
                             <div th:if="${o.youGain != null or o.theyGain != null}" class="collab-gains mt-4">
                                 <div th:if="${o.youGain != null}" class="collab-gain">
-                                    <span class="collab-gain-label">You gain</span>
-                                    <span th:text="${o.youGain}">gain</span>
+                                    <span class="collab-gain-label">You bring</span>
+                                    <span th:text="${o.youGain}">brings</span>
                                 </div>
                                 <div th:if="${o.theyGain != null}" class="collab-gain">
-                                    <span class="collab-gain-label" th:text="${o.partner.student.name} + ' gains'">They gain</span>
-                                    <span th:text="${o.theyGain}">gain</span>
+                                    <span class="collab-gain-label" th:text="${o.partner.student.name} + ' brings'">They bring</span>
+                                    <span th:text="${o.theyGain}">brings</span>
                                 </div>
                             </div>
+
+                            <!-- B6b: the concrete thing they could build together -->
+                            <div th:if="${o.complementaryGaps != null}" class="text-sm text-muted mt-2"
+                                 th:text="'Together: ' + ${o.complementaryGaps}">Joint idea</div>
 
                             <!-- Actions -->
                             <div class="flex flex-wrap gap-2 items-center mt-4">

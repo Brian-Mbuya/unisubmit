@@ -61,6 +61,12 @@ public class SubmissionService {
 
     @Transactional
     public Submission createSubmission(User student, Long unitId, String title, MultipartFile file, Long groupId) {
+        return createSubmission(student, unitId, title, file, groupId, null);
+    }
+
+    @Transactional
+    public Submission createSubmission(User student, Long unitId, String title, MultipartFile file,
+                                       Long groupId, String helpWanted) {
         Unit unit = unitRepository.findById(unitId)
                 .orElseThrow(() -> new SubmissionNotFoundException("Unit not found: " + unitId));
 
@@ -108,6 +114,10 @@ public class SubmissionService {
         submission.setStudent(student);
         submission.setCurriculum(curriculum);
         submission.setStatus(SubmissionStatus.SUBMITTED);
+        // Optional "what would help you?" line — trimmed and capped server-side.
+        if (helpWanted != null && !helpWanted.isBlank()) {
+            submission.setHelpWanted(cap(helpWanted.trim(), 200));
+        }
 
         if (groupId != null) {
             ProjectGroup group = groupRepository.findById(groupId)

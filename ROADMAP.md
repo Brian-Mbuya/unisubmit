@@ -536,7 +536,7 @@ mentor asymmetry is visible; students can state what help they need and matching
 Stage-2 pitches read as concrete introductions (what A brings / what B brings / a joint
 deliverable). Measured by: request-acceptance rate per reason-type in admin/evaluation.
 
-- [ ] **6.1 B6a — complementarity scoring (no key needed).** `CollaborationDiscoveryService`
+- [x] **6.1 B6a — complementarity scoring (no key needed).** `CollaborationDiscoveryService`
   (Stage-1, the partner engine — RecommendationService's similar-work rail is NOT touched):
   add composite signal `complement = sharedProblemDomains>0 && (disjoint technologies ||
   disjoint researchAreas)` → score boost: add field `private double complement = 0.25;` to
@@ -547,7 +547,7 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
   each). Existing overlap scoring stays (twins still surface, below complements). Done-when:
   local seeded demo data shows a cross-department pair outranking a same-tech pair, reason
   string names both sides.
-- [ ] **6.2 B6c — cooldown + telemetry.** (a) Declined-pair cooldown — AUDITED shape:
+- [x] **6.2 B6c — cooldown + telemetry.** (a) Declined-pair cooldown — AUDITED shape:
   `CollaborationRequest` carries a target `submission` + `sender` User (CollaborationRequest.
   java:30-36), so the query is: skip candidate pair (current, candidate) when a DECLINED
   request exists with (submission==candidate AND sender==current.student) OR
@@ -557,7 +557,7 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
   (complement vs overlap vs mentor) — DECIDED: add enum column `reason_type`
   {COMPLEMENT, OVERLAP, MENTOR} on CollaborationMatch, set by Stage-1 when it builds the
   reason → one new row in admin/evaluation.html's existing table.
-- [ ] **6.3 B6d — mentor asymmetry visible.** AUDITED: CollaborationMatch already persists
+- [x] **6.3 B6d — mentor asymmetry visible.** AUDITED: CollaborationMatch already persists
   `collaborationType` (col collaboration_type, enum CollaborationType — read its values
   first). Stage-1's mentor detection ("candidate reads as mentor when its work is completed
   or its author is more senior", CollaborationDiscoveryService:269) sets it. Determine from
@@ -566,7 +566,7 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
   (candidate status APPROVED/FINAL or higher author year) — NO schema change either way.
   Render on the partner card (explore discover tab): chip "Could mentor you" /
   "You could mentor them" (chip-gold).
-- [ ] **6.4 B6b — Stage-2 becomes a structured judge (key-gated).**
+- [x] **6.4 B6b — Stage-2 becomes a structured judge (key-gated).**
   `CollaborationAssessmentService` prompt → return strict JSON:
   `{"verdict":"STRONG|POSSIBLE|NONE","a_brings":"...","b_brings":"...","joint_idea":"...","pitch":"..."}`
   — keep its UNTRUSTED preamble; anti-invention rule: "If the two projects share nothing
@@ -579,13 +579,13 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
   The card (explore.html assistant-callout) currently renders ONLY `o.pitch` — extend it:
   pitch line + two-column "You bring / They bring" + joint-idea line (all th:if non-null —
   old rows render exactly as today). NONE-verdict pairs drop from display.
-- [ ] **6.5 B6e — "Help wanted" (owner-approved IN; the one new input).** `Submission` gains
+- [x] **6.5 B6e — "Help wanted" (owner-approved IN; the one new input).** `Submission` gains
   `@Column(length=200) String helpWanted`. new-submission.html: optional input under title,
   label "What would help you? (optional)", placeholder "e.g. someone who's done fieldwork
   surveys", stored on create (StudentController param). Shown: submission-detail rail
   (muted line) + partner cards. Fed into 6.4's prompt as one line ("A is looking for: …").
   ≤200 chars enforced server-side (trim + cap, same pattern as changesSummary).
-- [ ] **6.6 Ship check.** SW → v18. Build + tests green (add B6a scoring test: complement pair
+- [x] **6.6 Ship check.** SW → v18. Build + tests green (add B6a scoring test: complement pair
   outranks same-unit overlap pair). Map updated. Commit
   `"partner: complementarity engine, cooldowns, mentor asymmetry, structured pitches, help-wanted (SW v18)"`.
 
@@ -608,6 +608,19 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
 ## Log (one line per session)
 - 2026-07-17 Fable: V3 authored (planner). Verified-gap sweep 2026-07-17 is fully folded in;
   Registry superseded per owner; visual = Phase 1 per owner. Opus·high executes top-down.
+- 2026-07-19 Opus: Phase 6 PARTNER done (SW v18, 71 tests green). **V3 ROADMAP COMPLETE.**
+  6.1 complementarity: shared problem-domain + disjoint tech/areas → `weights.complement`
+  (0.25); new test proves a complement pair outranks a same-toolkit twin. 6.2 declined-pair
+  cooldown (`existsDeclinedBetween`, checked in isValidPartner) + `MatchReasonType`
+  {COMPLEMENT,OVERLAP,MENTOR} on the match, surfaced as an acceptance-rate-per-reason table on
+  admin/evaluation. 6.3 mentor direction computed at render ("Could mentor you" / "You could
+  mentor them") — no schema change. 6.4 Stage-2 returns STRONG|POSSIBLE|NONE + what each side
+  BRINGS + a joint idea; parseValue accepts both old and new vocabularies; NONE yields empty
+  strings→null so rows hide. 6.5 `helpWanted` (≤200) on create, shown on the detail rail +
+  partner cards and fed to Stage-2. DESIGN NOTE: the reason is stored as PARTS (domain + each
+  side's item) rather than a sentence, because a match row is symmetric — this is what lets
+  both viewers read correct "you bring…/they bring…" pronouns without parsing. Not pushed.
+  Next: theme-engine integration (V4, spec'd in chat — engine fixes then UniSubmit branding).
 - 2026-07-19 Opus: Phase 5 ASSIST done (SW v17, 70 tests green). 5.1 AI change summaries —
   pipeline auto-fills a blank changesSummary from the v(n−1) snapshot vs the fresh insight,
   flagged `ai_summary=true` (skipped silently on no-key/DEGRADED). 5.2 timeline shows an "AI"

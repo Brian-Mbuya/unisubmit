@@ -30,6 +30,12 @@ public class CollaborationWeights {
     private double crossDepartmentBonus = 0.15;
     /** Flat bonus when the candidate looks like a mentor (completed/senior work). */
     private double mentorshipBonus = 0.1;
+    /**
+     * Flat bonus for a COMPLEMENT pair: same problem space, disjoint methods. Deliberately
+     * the largest bonus — "same problem, different toolkit" is what this engine exists to
+     * surface, and it must outrank same-method twins.
+     */
+    private double complement = 0.25;
 
     public double signalWeightTotal() {
         double total = semantic + technology + researchArea + problemDomain;

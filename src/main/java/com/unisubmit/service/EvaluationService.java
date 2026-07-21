@@ -90,6 +90,64 @@ public class EvaluationService {
                 accepted + declined + pending, accepted, declined, pending, rate);
     }
 
+    /** Acceptance rate split by WHY Stage-1 suggested the pair (B6c telemetry). */
+    public record ReasonStat(String reason, long accepted, long declined, double acceptanceRate) {}
+
+    /**
+     * Does the complementarity engine actually produce better suggestions than plain overlap?
+     * This is the measurement: acceptance rate per reason category. A reason with no decided
+     * requests yet is still listed (rate 0) so the row doesn't silently vanish.
+     */
+    @Transactional(readOnly = true)
+    public List<ReasonStat> acceptanceByReason() {
+        java.util.Map<com.unisubmit.domain.MatchReasonType, long[]> tally =
+                new java.util.EnumMap<>(com.unisubmit.domain.MatchReasonType.class);
+        for (com.unisubmit.domain.MatchReasonType t : com.unisubmit.domain.MatchReasonType.values()) {
+            tally.put(t, new long[]{0, 0}); // [accepted, declined]
+        }
+
+        List<com.unisubmit.domain.CollaborationRequest> decided = new ArrayList<>();
+        decided.addAll(requestRepository.findByStatus(CollaborationRequestStatus.ACCEPTED));
+        decided.addAll(requestRepository.findByStatus(CollaborationRequestStatus.DECLINED));
+
+        for (com.unisubmit.domain.CollaborationRequest r : decided) {
+            if (r.getSubmission() == null || r.getSender() == null) {
+                continue;
+            }
+            com.unisubmit.domain.MatchReasonType type = reasonTypeFor(r.getSubmission(), r.getSender());
+            if (type == null) {
+                continue; // request wasn't driven by a stored match (e.g. from the similar-work rail)
+            }
+            boolean accepted = r.getStatus() == CollaborationRequestStatus.ACCEPTED;
+            tally.get(type)[accepted ? 0 : 1]++;
+        }
+
+        List<ReasonStat> out = new ArrayList<>();
+        for (var e : tally.entrySet()) {
+            long accepted = e.getValue()[0];
+            long declined = e.getValue()[1];
+            long total = accepted + declined;
+            out.add(new ReasonStat(e.getKey().label(), accepted, declined,
+                    total == 0 ? 0.0 : (double) accepted / total));
+        }
+        return out;
+    }
+
+    /** The reason on the match linking this target submission to the requester's own work. */
+    private com.unisubmit.domain.MatchReasonType reasonTypeFor(
+            com.unisubmit.domain.Submission target, User sender) {
+        for (com.unisubmit.domain.CollaborationMatch m : matchRepository.findBySubmission(target)) {
+            com.unisubmit.domain.Submission other =
+                    m.getSubmissionA() != null && m.getSubmissionA().getId().equals(target.getId())
+                            ? m.getSubmissionB() : m.getSubmissionA();
+            if (other != null && other.getStudent() != null
+                    && other.getStudent().getId().equals(sender.getId())) {
+                return m.getReasonType();
+            }
+        }
+        return null;
+    }
+
     @Transactional(readOnly = true)
     public EvaluationReport evaluate() {
         // Ground truth: (requesting student, accepted target submission)

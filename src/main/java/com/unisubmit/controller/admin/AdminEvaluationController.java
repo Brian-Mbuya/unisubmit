@@ -25,6 +25,7 @@ public class AdminEvaluationController {
         EvaluationService.EvaluationReport report = evaluationService.evaluate();
         model.addAttribute("report", report);
         model.addAttribute("collab", evaluationService.collaborationStats());
+        model.addAttribute("reasonStats", evaluationService.acceptanceByReason());
         return "admin/evaluation";
     }
 }

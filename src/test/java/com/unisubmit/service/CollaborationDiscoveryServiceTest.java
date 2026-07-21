@@ -7,6 +7,7 @@ import com.unisubmit.domain.CollaborationMatch;
 import com.unisubmit.domain.Course;
 import com.unisubmit.domain.Curriculum;
 import com.unisubmit.domain.Department;
+import com.unisubmit.domain.MatchReasonType;
 import com.unisubmit.domain.Role;
 import com.unisubmit.domain.StudentProfile;
 import com.unisubmit.domain.Submission;
@@ -102,6 +103,57 @@ class CollaborationDiscoveryServiceTest {
                 SubmissionStatus.SUBMITTED, 3, true);
         assertEquals(CollaborationDiscoveryService.insightHash(s1),
                 CollaborationDiscoveryService.insightHash(s2));
+    }
+
+    // ── B6a: complementarity ─────────────────────────────────────────────────
+
+    @Test
+    void complementPairOutranksSameToolkitOverlapPair() {
+        // Same problem space, DIFFERENT toolkit → the pairing this engine exists to find.
+        Submission current = submission(1L, 100L, 10L, 1L, List.of("health"),
+                SubmissionStatus.SUBMITTED, 3, true);
+        withTech(current, "Python");
+
+        Submission complement = submission(2L, 200L, 20L, 2L, List.of("health"),
+                SubmissionStatus.SUBMITTED, 3, true);
+        withTech(complement, "Fieldwork Surveys");
+
+        // Same toolkit, NO shared problem space → a twin, not a complement.
+        Submission overlap = submission(3L, 300L, 30L, 2L, List.of(),
+                SubmissionStatus.SUBMITTED, 3, true);
+        withTech(overlap, "Python");
+
+        when(submissionRepository.findAll()).thenReturn(List.of(current, complement, overlap));
+
+        service.precomputeForSubmission(current);
+
+        List<CollaborationMatch> saved = captureSaves();
+        CollaborationMatch complementMatch = matchWithPartner(saved, 1L, 2L);
+        CollaborationMatch overlapMatch = matchWithPartner(saved, 1L, 3L);
+
+        assertTrue(complementMatch != null && overlapMatch != null, "both pairs should be shortlisted");
+        assertEquals(MatchReasonType.COMPLEMENT, complementMatch.getReasonType());
+        assertEquals(MatchReasonType.OVERLAP, overlapMatch.getReasonType());
+        assertTrue(complementMatch.getMechanicalScore() > overlapMatch.getMechanicalScore(),
+                "same-problem/different-toolkit must outrank a same-toolkit twin");
+
+        // The reason names both sides of the gap.
+        assertEquals("health", complementMatch.getReasonDomain());
+        assertTrue(complementMatch.getReasonAItem() != null && complementMatch.getReasonBItem() != null,
+                "complement reason must name what each side brings");
+    }
+
+    private static void withTech(Submission s, String... names) {
+        for (String n : names) {
+            com.unisubmit.domain.Technology t = new com.unisubmit.domain.Technology();
+            t.setName(n);
+            s.getTechnologies().add(t);
+        }
+    }
+
+    private static CollaborationMatch matchWithPartner(List<CollaborationMatch> saved,
+                                                       long selfId, long partnerId) {
+        return saved.stream().filter(m -> partnerId(m, selfId) == partnerId).findFirst().orElse(null);
     }
 
     // ── Exclusion rules ──────────────────────────────────────────────────────

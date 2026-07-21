@@ -5,6 +5,7 @@ import com.unisubmit.domain.AIInsight;
 import com.unisubmit.domain.AIInsightStatus;
 import com.unisubmit.domain.CollaborationMatch;
 import com.unisubmit.domain.CollaborationValue;
+import com.unisubmit.domain.MatchReasonType;
 import com.unisubmit.domain.ResearchArea;
 import com.unisubmit.domain.Submission;
 import com.unisubmit.domain.SubmissionStatus;
@@ -129,6 +130,10 @@ public class CollaborationDiscoveryService {
             String youGain = mineIsA ? m.getWhatAGains() : m.getWhatBGains();
             String theyGain = mineIsA ? m.getWhatBGains() : m.getWhatAGains();
 
+            // Reason parts are stored A/B; flip them for THIS viewer.
+            String yourItem = mineIsA ? m.getReasonAItem() : m.getReasonBItem();
+            String theirItem = mineIsA ? m.getReasonBItem() : m.getReasonAItem();
+
             out.add(new com.unisubmit.dto.CollaborationOpportunity(
                     m.getId(), yours, partner, m.getCollaborationValue(), m.getCollaborationType(),
                     youGain, theyGain, m.getPitch(), m.getComplementaryGaps(),
@@ -136,7 +141,9 @@ public class CollaborationDiscoveryService {
                     requestStatuses.containsKey(partner.getId()),
                     partner.getUnit() != null && partner.getUnit().getDepartment() != null
                             ? partner.getUnit().getDepartment().getName() : null,
-                    studentYear(partner)));
+                    studentYear(partner),
+                    buildReason(m.getReasonType(), m.getReasonDomain(), yourItem, theirItem),
+                    mentorLabel(yours, partner)));
         }
         return out;
     }
@@ -158,16 +165,20 @@ public class CollaborationDiscoveryService {
 
         List<Submission> corpus = submissionRepository.findAll();
 
-        record Scored(Submission candidate, double score) {}
+        record Scored(Submission candidate, PairScore result) {
+            double score() {
+                return result.score();
+            }
+        }
         List<Scored> scored = new ArrayList<>();
         for (Submission candidate : corpus) {
             if (!isValidPartner(current, candidate, curDeptId)) {
                 continue;
             }
-            double score = mechanicalScore(current, currentInsight, curTechs, curAreas, curDomains,
+            PairScore result = mechanicalScore(current, currentInsight, curTechs, curAreas, curDomains,
                     curDeptId, candidate);
-            if (score >= MIN_MECHANICAL_SCORE) {
-                scored.add(new Scored(candidate, score));
+            if (result.score() >= MIN_MECHANICAL_SCORE) {
+                scored.add(new Scored(candidate, result));
             }
         }
 
@@ -180,7 +191,7 @@ public class CollaborationDiscoveryService {
         String currentHash = insightHash(current);
         for (Scored s : shortlist) {
             keptPartnerIds.add(s.candidate().getId());
-            upsertPair(current, currentHash, s.candidate(), s.score());
+            upsertPair(current, currentHash, s.candidate(), s.result());
         }
 
         // Remove UNASSESSED rows for `current` whose partner dropped off the
@@ -194,6 +205,45 @@ public class CollaborationDiscoveryService {
                 matchRepository.delete(existing);
             }
         }
+    }
+
+    /**
+     * Writes the shortlist reason for one viewer. COMPLEMENT names both sides of the gap —
+     * that sentence IS the feature ("same problem, different toolkit"). Returns null rather
+     * than a vague filler when there's nothing concrete to say.
+     */
+    private static String buildReason(MatchReasonType type, String domain,
+                                      String yourItem, String theirItem) {
+        if (type == null) {
+            return null;
+        }
+        return switch (type) {
+            case COMPLEMENT -> {
+                if (domain == null || yourItem == null || theirItem == null) {
+                    yield domain != null ? "Same problem space (" + domain + "), different methods" : null;
+                }
+                yield "Same problem space (" + domain + "), different methods — you bring "
+                        + yourItem + ", they bring " + theirItem;
+            }
+            case MENTOR -> yourItem != null
+                    ? "They've taken similar work further — shared focus: " + yourItem
+                    : "They've taken similar work further";
+            case OVERLAP -> yourItem != null ? "Shared focus: " + yourItem : null;
+        };
+    }
+
+    /**
+     * B6d — mentorship runs one way. Computed at render (the stored A/B order can't carry
+     * direction) from the same maturity/seniority test Stage-1 scores with.
+     */
+    private String mentorLabel(Submission yours, Submission partner) {
+        if (looksLikeMentor(yours, partner)) {
+            return "Could mentor you";
+        }
+        if (looksLikeMentor(partner, yours)) {
+            return "You could mentor them";
+        }
+        return null;
     }
 
     // ── Eligibility & exclusions ─────────────────────────────────────────────
@@ -235,18 +285,37 @@ public class CollaborationDiscoveryService {
                 && current.getProjectGroup().getId().equals(candidate.getProjectGroup().getId())) {
             return false;
         }
+        // B6c cooldown: one of them already asked and was turned down — don't re-suggest it.
+        if (requestService.wasDeclinedBetween(current, candidate,
+                current.getStudent(), candidate.getStudent())) {
+            return false;
+        }
         return true;
     }
 
     // ── Scoring ──────────────────────────────────────────────────────────────
 
-    private double mechanicalScore(Submission current, AIInsight currentInsight,
-                                   Set<String> curTechs, Set<String> curAreas, Set<String> curDomains,
-                                   Long curDeptId, Submission candidate) {
+    /**
+     * Outcome of scoring one pair: the score plus WHY it scored, captured as reason parts
+     * (viewer-relative sentence is assembled at render time).
+     *
+     * @param currentItem what {@code current} distinctively brings
+     * @param candidateItem what {@code candidate} distinctively brings
+     */
+    record PairScore(double score, MatchReasonType reasonType, String sharedDomain,
+                     String currentItem, String candidateItem) {}
+
+    private PairScore mechanicalScore(Submission current, AIInsight currentInsight,
+                                      Set<String> curTechs, Set<String> curAreas, Set<String> curDomains,
+                                      Long curDeptId, Submission candidate) {
+        Set<String> candTechs = techNames(candidate);
+        Set<String> candAreas = areaNames(candidate);
+        Set<String> candDomains = domainNames(candidate.getAiInsight());
+
         double semantic = cosine(current.getEmbedding(), candidate.getEmbedding());
-        double tech = jaccard(curTechs, techNames(candidate));
-        double area = jaccard(curAreas, areaNames(candidate));
-        double domain = jaccard(curDomains, domainNames(candidate.getAiInsight()));
+        double tech = jaccard(curTechs, candTechs);
+        double area = jaccard(curAreas, candAreas);
+        double domain = jaccard(curDomains, candDomains);
 
         double weighted = semantic * weights.getSemantic()
                 + tech * weights.getTechnology()
@@ -254,16 +323,68 @@ public class CollaborationDiscoveryService {
                 + domain * weights.getProblemDomain();
         double base = weighted / weights.signalWeightTotal();
 
+        // ── B6a: complementarity — same problem space, different methods ─────
+        // The pair shares a real-world problem domain, but their toolkits (or research
+        // areas) don't intersect. That's the "you bring X, they bring Y" pairing.
+        Set<String> sharedDomains = intersect(curDomains, candDomains);
+        boolean disjointTech = disjointAndBothPresent(curTechs, candTechs);
+        boolean disjointAreas = disjointAndBothPresent(curAreas, candAreas);
+        boolean complement = !sharedDomains.isEmpty() && (disjointTech || disjointAreas);
+        if (complement) {
+            base += weights.getComplement();
+        }
+
         // Cross-department pairings are the whole point — reward them.
         Long candDeptId = departmentId(candidate);
         if (curDeptId != null && candDeptId != null && !curDeptId.equals(candDeptId)) {
             base += weights.getCrossDepartmentBonus();
         }
         // Mentorship shape: the candidate is more mature (finished / senior).
-        if (looksLikeMentor(current, candidate)) {
+        boolean mentor = looksLikeMentor(current, candidate);
+        if (mentor) {
             base += weights.getMentorshipBonus();
         }
-        return Math.min(base, 1.0);
+
+        // Reason priority: complement is the headline, then mentorship, else plain overlap.
+        MatchReasonType type = complement ? MatchReasonType.COMPLEMENT
+                : mentor ? MatchReasonType.MENTOR : MatchReasonType.OVERLAP;
+
+        String sharedDomain = firstOrNull(sharedDomains);
+        String currentItem;
+        String candidateItem;
+        if (complement) {
+            // Name the disjoint side that actually differs.
+            currentItem = disjointTech ? firstOrNull(curTechs) : firstOrNull(curAreas);
+            candidateItem = disjointTech ? firstOrNull(candTechs) : firstOrNull(candAreas);
+        } else {
+            // Overlap/mentor: name what they have in common instead.
+            String shared = firstOrNull(intersect(curTechs, candTechs));
+            if (shared == null) {
+                shared = firstOrNull(intersect(curAreas, candAreas));
+            }
+            currentItem = shared;
+            candidateItem = shared;
+        }
+
+        return new PairScore(Math.min(base, 1.0), type, sharedDomain, currentItem, candidateItem);
+    }
+
+    private static Set<String> intersect(Set<String> a, Set<String> b) {
+        if (a == null || b == null || a.isEmpty() || b.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> out = new HashSet<>(a);
+        out.retainAll(b);
+        return out;
+    }
+
+    /** True when both sides have entries and they share none — a real methodological gap. */
+    private static boolean disjointAndBothPresent(Set<String> a, Set<String> b) {
+        return a != null && b != null && !a.isEmpty() && !b.isEmpty() && intersect(a, b).isEmpty();
+    }
+
+    private static String firstOrNull(Set<String> values) {
+        return values == null || values.isEmpty() ? null : values.iterator().next();
     }
 
     /** Candidate reads as a mentor when its work is completed or its author is more senior. */
@@ -279,9 +400,10 @@ public class CollaborationDiscoveryService {
 
     // ── Persistence (canonical pair upsert) ──────────────────────────────────
 
-    private void upsertPair(Submission current, String currentHash, Submission partner, double score) {
-        Submission a = current.getId() < partner.getId() ? current : partner;
-        Submission b = current.getId() < partner.getId() ? partner : current;
+    private void upsertPair(Submission current, String currentHash, Submission partner, PairScore result) {
+        boolean currentIsA = current.getId() < partner.getId();
+        Submission a = currentIsA ? current : partner;
+        Submission b = currentIsA ? partner : current;
         String hashA = a.getId().equals(current.getId()) ? currentHash : insightHash(a);
         String hashB = b.getId().equals(current.getId()) ? currentHash : insightHash(b);
 
@@ -296,7 +418,14 @@ public class CollaborationDiscoveryService {
             match.setCollaborationValue(CollaborationValue.UNASSESSED);
             match.setComputedAt(null);
         }
-        match.setMechanicalScore(score);
+        match.setMechanicalScore(result.score());
+
+        // Store the reason in A/B orientation so the card can address either viewer.
+        match.setReasonType(result.reasonType());
+        match.setReasonDomain(result.sharedDomain());
+        match.setReasonAItem(currentIsA ? result.currentItem() : result.candidateItem());
+        match.setReasonBItem(currentIsA ? result.candidateItem() : result.currentItem());
+
         match.setHashA(hashA);
         match.setHashB(hashB);
         matchRepository.save(match);

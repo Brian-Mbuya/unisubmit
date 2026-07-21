@@ -20,7 +20,7 @@ bulk import. PWA (installable, offline shell, bottom nav) wrapped as an Android 
 - DB: **Supabase Postgres** (prod) / **H2 file** (local, `application-local.yml`, profile `local`).
 - Frontend: ONE stylesheet `static/css/base.css` (design system "Nocturne Laurel", numbered
   sections, tokens at top) + ONE vanilla `static/js/app.js` (510 lines, IIFE, no deps) +
-  `static/sw.js` (**VERSION `unisubmit-shell-v17`** — bump on any css/js/icon shape change!).
+  `static/sw.js` (**VERSION `unisubmit-shell-v18`** — bump on any css/js/icon shape change!).
 - Zero external runtime deps: fonts (Inter+Fraunces woff2), Chart.js vendored, icons local.
 - Build: `JAVA_HOME=C:\Users\mbuya\.jdks\jdk-17.0.19+10` then `.\mvnw.cmd -B -ntp -DskipTests package`.
 - Local run: `run-local.ps1 -Port 8090` → seeds `admin`/`L001`/`S001`, all `password123`.
@@ -107,9 +107,16 @@ endpoints EXCISED in Phase 3.) · `/api/users/search`(member picker) ·
   technology/researchArea; weights in yml), adaptive normalisation (unavailable signals leave
   the denominator), same-unit alone NEVER creates a match, SHA-256-identical files force 100%
   "Identical document". Persists SubmissionSimilarity with per-signal breakdown for the UI bars.
-- **CollaborationDiscoveryService** (432): Stage-1 whole-corpus cross-disciplinary shortlist
-  (excludes same unit; mentor detection); **CollaborationAssessmentService** (361): Stage-2 LLM
-  verdict/pitch on shortlisted pairs (no-op without key).
+- **CollaborationDiscoveryService**: Stage-1 whole-corpus cross-disciplinary shortlist
+  (excludes same unit; mentor detection). **B6a complementarity**: shared problemDomain +
+  disjoint technologies/researchAreas → `weights.complement` (0.25, the largest bonus) so
+  "same problem, different toolkit" outranks twins. **B6c cooldown**: a DECLINED request either
+  way removes the pair permanently (`requestService.wasDeclinedBetween`). Reason is stored as
+  PARTS on the match (reasonType/reasonDomain/reasonAItem/reasonBItem) because a row is
+  symmetric — the viewer-relative sentence + mentor direction are built in
+  `findOpportunitiesForStudent`. **CollaborationAssessmentService**: Stage-2 LLM judge —
+  verdict STRONG|POSSIBLE|NONE (parsed leniently onto HIGH/MEDIUM/NONE), what each side
+  BRINGS, a joint idea, pitch; consumes the partner's `helpWanted`; no-op without key.
 - **SubmissionService** (417): create/version (deadline guard now honours the lecturer's late
   window via injected AnnouncementService — past-deadline uploads allowed while open + flagged
   `version.late=true`; strict curriculum: a student WITH a programme must have a matching
@@ -169,7 +176,9 @@ insight snapshot, ai_summary = changesSummary was AI-written (timeline shows an 
 Submission(status PENDING|PROCESSING|COMPLETED|DEGRADED|FAILED — DEGRADED=heuristic fallback,
 `hasContent()`=COMPLETED||DEGRADED gates matching/search; summary, keywords, objectives,
 problemDomains, problemStatement, errorMessage). SubmissionSimilarity(A,B, score + per-signal
-scores + matched lists + reason + sameUnit). CollaborationMatch(Stage-1 row + Stage-2 verdict/
+scores + matched lists + reason + sameUnit). Submission also carries `help_wanted` (≤200 chars,
+student-authored "what would help you?"). CollaborationMatch(Stage-1 row + reasonType
+{COMPLEMENT|OVERLAP|MENTOR} + reason parts + Stage-2 verdict/
 pitch), CollaborationRequest(PENDING|ACCEPTED|DECLINED)→Collaboration. ProjectGroup(leader,
 members). Announcement(type ANNOUNCEMENT|ASSIGNMENT, unit, deadline, lateWindowOpen).
 AppNotification(type, message, submissionId, read). AuditLog(submission NOT NULL, action,

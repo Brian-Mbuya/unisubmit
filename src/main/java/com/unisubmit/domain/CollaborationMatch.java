@@ -74,6 +74,28 @@ public class CollaborationMatch {
     private String complementaryGaps;
 
     /** Insight fingerprints — Stage 2 skips re-assessment when both are unchanged. */
+    /**
+     * Why Stage-1 kept this pair. The reason is stored as PARTS rather than a finished
+     * sentence because a match row is symmetric (A/B ordered by id) but the card reads
+     * "you bring … they bring …" — the viewer-relative sentence is built at render time
+     * from these, so neither reader ever sees the pronouns flipped.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "reason_type", length = 20)
+    private MatchReasonType reasonType = MatchReasonType.OVERLAP;
+
+    /** Shared problem domain that bridges the pair (COMPLEMENT reasons). */
+    @Column(name = "reason_domain", length = 120)
+    private String reasonDomain;
+
+    /** What submissionA distinctively brings (first disjoint technology / research area). */
+    @Column(name = "reason_a_item", length = 120)
+    private String reasonAItem;
+
+    /** What submissionB distinctively brings. */
+    @Column(name = "reason_b_item", length = 120)
+    private String reasonBItem;
+
     @Column(name = "hash_a", length = 64)
     private String hashA;
 

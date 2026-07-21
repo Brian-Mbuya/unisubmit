@@ -116,6 +116,10 @@
                             <span class="label">Last updated</span>
                             <span th:text="${#temporals.format(submission.updatedAt, 'dd MMM yyyy, HH:mm')}">Date</span>
                         </div>
+                        <div class="info-row" th:if="${submission.helpWanted != null and !submission.helpWanted.isBlank()}">
+                            <span class="label">Looking for</span>
+                            <span class="text-muted" th:text="${submission.helpWanted}">help wanted</span>
+                        </div>
                     </section>
 
                     <section class="card-section">

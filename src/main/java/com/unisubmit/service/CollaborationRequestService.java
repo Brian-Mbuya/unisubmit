@@ -89,6 +89,20 @@ public class CollaborationRequestService {
      * Lightweight count for the header badge — a single COUNT query instead of
      * materialising the whole inbox view on every page load.
      */
+    /**
+     * True when either student already asked the other about this pair and was declined.
+     * Discover uses this as a cooldown so a rejected suggestion never resurfaces.
+     */
+    public boolean wasDeclinedBetween(Submission current, Submission candidate,
+                                      User currentStudent, User candidateStudent) {
+        if (current == null || candidate == null || currentStudent == null || candidateStudent == null) {
+            return false;
+        }
+        return collaborationRequestRepository.existsDeclinedBetween(current, candidate,
+                currentStudent, candidateStudent,
+                com.unisubmit.domain.CollaborationRequestStatus.DECLINED);
+    }
+
     public long countPendingIncoming(User user) {
         return collaborationRequestRepository.countByRecipientAndStatus(user, CollaborationRequestStatus.PENDING);
     }
