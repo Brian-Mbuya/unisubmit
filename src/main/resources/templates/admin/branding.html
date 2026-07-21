@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{admin/layout :: html(content=~{::div}, activeMenu='branding')}">
+<body>
+<div>
+    <div class="page-head">
+        <div>
+            <h1>University Branding</h1>
+            <p class="subtitle">Customize institutional brand and surface accents across UniSubmit using the Adaptive Theme Engine.</p>
+        </div>
+        <div class="head-actions">
+            <form th:action="@{/admin/branding/reset}" method="post" style="display:inline;">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-secondary" onclick="return confirm('Reset all custom branding to Nocturne Laurel defaults?')">
+                    Reset to Default
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div th:if="${successMessage}" class="alert alert-success" style="margin-bottom: var(--sp-4);" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-danger" style="margin-bottom: var(--sp-4);" th:text="${errorMessage}"></div>
+
+    <div class="page-grid rail-left">
+        <!-- ── Controls Rail ────────────────────────────────────────── -->
+        <aside class="page-rail" aria-label="Branding Theme Controls">
+            <div class="card">
+                <div class="card-head"><h2>Brand Accent Colors</h2></div>
+                <form id="brandingForm" th:action="@{/admin/branding}" method="post">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                    <input type="hidden" id="tokensJsonInput" name="tokensJson" value="" />
+
+                    <div class="form-group">
+                        <label class="form-label">Primary Brand Hue</label>
+                        <div style="display:flex; gap: 8px; align-items: center;">
+                            <input type="color" id="primaryColorPicker" value="#35a08c" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
+                            <input type="text" id="primaryHexInput" value="#35a08c" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Secondary / Brass Hue</label>
+                        <div style="display:flex; gap: 8px; align-items: center;">
+                            <input type="color" id="secondaryColorPicker" value="#cda660" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
+                            <input type="text" id="secondaryHexInput" value="#cda660" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Neutral Surface Base</label>
+                        <div style="display:flex; gap: 8px; align-items: center;">
+                            <input type="color" id="neutralColorPicker" value="#1a1d21" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
+                            <input type="text" id="neutralHexInput" value="#1a1d21" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: var(--sp-4);">
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Save Theme Configuration</button>
+                    </div>
+                </form>
+            </div>
+        </aside>
+
+        <!-- ── Main Workspace: Live Preview & Contrast Check ────────────── -->
+        <section class="page-main">
+            <div class="card" style="margin-bottom: var(--sp-4);">
+                <div class="card-head" style="display:flex; justify-content:space-between; align-items:center;">
+                    <h2>Live Theme Token Preview</h2>
+                    <span id="contrastBadge" class="badge badge-success">WCAG AA Compliant</span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted" style="margin-bottom: var(--sp-4);">
+                        Changes apply instantly in real-time below using the mapped UniSubmit CSS tokens.
+                    </p>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+                        <div style="padding: 12px; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">--brand</div>
+                            <div id="swatchBrand" style="height: 32px; background: var(--brand); border-radius: 4px; margin-top: 4px; border: 1px solid var(--border-strong);"></div>
+                        </div>
+                        <div style="padding: 12px; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">--primary (Accent Text)</div>
+                            <div id="swatchPrimary" style="font-weight: 600; color: var(--primary); font-size: 1.1rem; margin-top: 6px;">Sample Primary Text</div>
+                        </div>
+                        <div style="padding: 12px; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">--gold (Companion)</div>
+                            <div id="swatchGold" style="height: 32px; background: var(--gold); border-radius: 4px; margin-top: 4px;"></div>
+                        </div>
+                        <div style="padding: 12px; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">--canvas</div>
+                            <div id="swatchCanvas" style="height: 32px; background: var(--canvas); border-radius: 4px; margin-top: 4px; border: 1px solid var(--border);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Vendor Theme Engine Script -->
+    <script th:src="@{/js/vendor/theme-engine.iife.js}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var primaryPicker = document.getElementById('primaryColorPicker');
+            var primaryInput = document.getElementById('primaryHexInput');
+            var secondaryPicker = document.getElementById('secondaryColorPicker');
+            var secondaryInput = document.getElementById('secondaryHexInput');
+            var neutralPicker = document.getElementById('neutralColorPicker');
+            var neutralInput = document.getElementById('neutralHexInput');
+
+            var form = document.getElementById('brandingForm');
+            var tokensJsonInput = document.getElementById('tokensJsonInput');
+
+            var currentTokens = null;
+
+            function updateTheme() {
+                if (typeof ThemeEngine === 'undefined') return;
+
+                var pColor = ThemeEngine.ColorUtils.parseColor(primaryInput.value);
+                var sColor = ThemeEngine.ColorUtils.parseColor(secondaryInput.value);
+                var nColor = ThemeEngine.ColorUtils.parseColor(neutralInput.value);
+
+                var theme = ThemeEngine.ThemeGenerator.generateTheme(pColor, sColor, nColor, 'Complementary', true);
+                currentTokens = ThemeEngine.UniSubmitThemeMapper.mapTheme(theme);
+
+                // Apply live preview properties directly
+                ThemeEngine.UniSubmitThemeMapper.applyToDocument(currentTokens);
+
+                tokensJsonInput.value = JSON.stringify(currentTokens);
+            }
+
+            function syncInput(picker, input) {
+                picker.addEventListener('input', function() { input.value = picker.value; updateTheme(); });
+                input.addEventListener('input', function() {
+                    if (/^#[0-9A-Fa-f]{6}$/.test(input.value)) {
+                        picker.value = input.value;
+                        updateTheme();
+                    }
+                });
+            }
+
+            syncInput(primaryPicker, primaryInput);
+            syncInput(secondaryPicker, secondaryInput);
+            syncInput(neutralPicker, neutralInput);
+
+            form.addEventListener('submit', function(e) {
+                if (!currentTokens) {
+                    updateTheme();
+                }
+                tokensJsonInput.value = JSON.stringify(currentTokens);
+            });
+
+            updateTheme();
+        });
+    </script>
+</div>
+</body>
+</html>

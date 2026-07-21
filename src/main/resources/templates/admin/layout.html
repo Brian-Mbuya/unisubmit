@@ -8,10 +8,11 @@
     <meta name="_csrf" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:content="${_csrf.headerName}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
+    <style th:if="${themeCssBlock != null and !themeCssBlock.isEmpty()}" th:utext="${themeCssBlock}"></style>
     <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <!-- Installable app (PWA): manifest + theme + iOS icon. SW registered in app.js. -->
     <link rel="manifest" th:href="@{/manifest.webmanifest}">
-    <meta name="theme-color" content="#121417">
+    <meta name="theme-color" th:content="${themeCanvasColor != null ? themeCanvasColor : '#121417'}">
     <link rel="apple-touch-icon" th:href="@{/icons/apple-touch-icon.png}">
     <script th:src="@{/js/app.js}" defer></script>
     <!-- Prefetch-on-touch for safe GET routes (see main layout for the why) -->

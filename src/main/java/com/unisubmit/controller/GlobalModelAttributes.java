@@ -3,6 +3,7 @@ package com.unisubmit.controller;
 import com.unisubmit.security.CustomUserDetails;
 import com.unisubmit.service.CollaborationRequestService;
 import com.unisubmit.service.NotificationService;
+import com.unisubmit.service.BrandingService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -12,11 +13,24 @@ public class GlobalModelAttributes {
 
     private final CollaborationRequestService collaborationRequestService;
     private final NotificationService notificationService;
+    private final BrandingService brandingService;
 
     public GlobalModelAttributes(CollaborationRequestService collaborationRequestService,
-                                 NotificationService notificationService) {
+                                 NotificationService notificationService,
+                                 BrandingService brandingService) {
         this.collaborationRequestService = collaborationRequestService;
         this.notificationService = notificationService;
+        this.brandingService = brandingService;
+    }
+
+    @ModelAttribute("themeCssBlock")
+    public String themeCssBlock() {
+        return brandingService.getSanitizedCssBlock();
+    }
+
+    @ModelAttribute("themeCanvasColor")
+    public String themeCanvasColor() {
+        return brandingService.getCanvasColor();
     }
 
     @ModelAttribute("pendingCollaborationCount")

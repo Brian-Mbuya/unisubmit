@@ -53,7 +53,7 @@ src/main/resources/
                          forgot-password · error/{404,500,error} · ORPHANS: search.html AND
                          discover.html (GET /discover only redirects to /explore?tab=discover;
                          no controller returns "discover")
-  static/                css/base.css · js/app.js · js/vendor/chart.umd.min.js · fonts/ ·
+  static/                css/base.css · js/app.js · js/vendor/chart.umd.min.js · js/vendor/theme-engine.iife.js · fonts/ ·
                          icons/ · sw.js · manifest.webmanifest · offline.html · .well-known/
 Root: FABLE5-HANDOFF.md ROADMAP.md ROADMAP-ARCHIVE.md CODEBASE-MAP.md(this) Dockerfile docker-compose.yml(local
       PG convenience) deploy/(Caddy+systemd+Railway notes) specter-service/(python sidecar:
