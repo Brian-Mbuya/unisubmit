@@ -8,7 +8,7 @@
        CSRF-protected POSTs, and uploads behave exactly as before.
    Bump VERSION whenever the shell assets change shape.
    ============================================================================ */
-const VERSION = "unisubmit-shell-v16";
+const VERSION = "unisubmit-shell-v17";
 const OFFLINE_URL = "/offline.html";
 
 const SHELL = [

@@ -128,9 +128,16 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label" for="reviewMessage">Remarks</label>
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <label class="form-label" for="reviewMessage">Remarks</label>
+                                <button type="button" th:if="${aiAvailable}"
+                                        class="btn btn-secondary btn-sm"
+                                        data-draft-feedback
+                                        th:attr="data-submission-id=${submission.id}">Draft feedback</button>
+                            </div>
                             <textarea name="message" id="reviewMessage" class="form-control form-control-tall" rows="4"
                                       placeholder="Add feedback for the student."></textarea>
+                            <div class="field-hint" data-draft-feedback-status aria-live="polite"></div>
                         </div>
 
                         <div class="form-group">

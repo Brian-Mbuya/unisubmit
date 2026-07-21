@@ -72,6 +72,7 @@ public class AIInsightProcessingService {
     private final TransactionTemplate transactionTemplate;
     private final Path uploadRoot;
     private final com.unisubmit.service.ai.LlmClient llmClient;
+    private final com.unisubmit.repository.SubmissionVersionRepository versionRepository;
 
     /** Upper bound for one full pipeline run — GROBID + LLM regularly exceeds 30s. */
     @Value("${unisubmit.ai.timeout-seconds:120}")
@@ -90,6 +91,7 @@ public class AIInsightProcessingService {
                                       SubmissionRepository submissionRepository,
                                       PlatformTransactionManager transactionManager,
                                       com.unisubmit.service.ai.LlmClient llmClient,
+                                      com.unisubmit.repository.SubmissionVersionRepository versionRepository,
                                       @Value("${app.storage.upload-dir:uploads}") String uploadDir) {
         this.aiInsightRepository = aiInsightRepository;
         this.recommendationService = recommendationService;
@@ -104,6 +106,7 @@ public class AIInsightProcessingService {
         this.submissionRepository = submissionRepository;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.llmClient = llmClient;
+        this.versionRepository = versionRepository;
         this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
     }
 
@@ -158,6 +161,57 @@ public class AIInsightProcessingService {
             throw new RuntimeException("LLM returned no usable JSON for document analysis.");
         }
         return llmClient.mapper().treeToValue(json.get(), LlmResult.class);
+    }
+
+    /**
+     * 5.1 — writes a one-line "what changed" note on the newest version when the uploader left
+     * it blank AND the version carries a snapshot of the previous version's insight. Marks it
+     * {@code aiSummary=true} so the timeline can label it. Silent no-op without a key, without a
+     * snapshot (i.e. the first version), or when the student already wrote a note — the field
+     * simply stays blank, exactly as before.
+     */
+    private void generateChangeSummary(com.unisubmit.domain.Submission submission, LlmResult result) {
+        if (!llmClient.hasKey() || submission.getVersions() == null || submission.getVersions().isEmpty()) {
+            return;
+        }
+        com.unisubmit.domain.SubmissionVersion latest =
+                submission.getVersions().get(submission.getVersions().size() - 1);
+        boolean alreadyHasNote = latest.getChangesSummary() != null && !latest.getChangesSummary().isBlank();
+        if (latest.getInsightSummarySnapshot() == null || alreadyHasNote) {
+            return;
+        }
+
+        String userPrompt = """
+            A student uploaded a new version of their project document.
+            PREVIOUS version summary: %s
+            PREVIOUS keywords: %s
+            NEW version summary: %s
+            NEW keywords: %s
+            In ONE sentence (max 110 characters), state the most significant CHANGE between the
+            versions, factually ("Added evaluation chapter; references grew from 8 to 19").
+            If the versions look the same, return {"summary": "Minor revisions."}.
+            Return strict JSON: {"summary": "..."}
+            """.formatted(
+                latest.getInsightSummarySnapshot(),
+                latest.getInsightKeywordsSnapshot() == null ? "none" : latest.getInsightKeywordsSnapshot(),
+                result.summary == null ? "" : result.summary,
+                result.keywords == null ? "none" : String.join(", ", result.keywords));
+
+        java.util.Optional<com.fasterxml.jackson.databind.JsonNode> json =
+                llmClient.completeJson(com.unisubmit.service.ai.LlmClient.DEFAULT_SYSTEM_PROMPT,
+                        userPrompt, 200, 0.2);
+        if (json.isEmpty()) {
+            return;
+        }
+        com.fasterxml.jackson.databind.JsonNode summaryNode = json.get().get("summary");
+        String summary = summaryNode == null ? "" : summaryNode.asText("").trim();
+        if (summary.isBlank()) {
+            return;
+        }
+        // changesSummary is a 500-char column.
+        latest.setChangesSummary(summary.length() > 500 ? summary.substring(0, 500) : summary);
+        latest.setAiSummary(true);
+        versionRepository.save(latest);
     }
 
     /**
@@ -360,6 +414,13 @@ public class AIInsightProcessingService {
                                 }
                             } catch (Exception ex) {
                                 log.warn("Failed to generate or save embedding for submission {}: {}", txSubmission.getId(), ex.getMessage());
+                            }
+
+                            // 5.1 — auto-fill a blank "what changed" note for this version.
+                            try {
+                                generateChangeSummary(txSubmission, result);
+                            } catch (Exception ex) {
+                                log.warn("AI change summary failed for submission {}: {}", txSubmission.getId(), ex.getMessage());
                             }
                         }
 

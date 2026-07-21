@@ -333,6 +333,22 @@ public class RecommendationService {
         return (double) intersection.size() / union.size();
     }
 
+    /** Score at/above which two submissions are flagged as near-duplicates in the review queue. */
+    public static final double NEAR_DUPLICATE_THRESHOLD = 0.85;
+
+    /**
+     * Which of the given submissions have a near-duplicate partner (score >= 0.85). One query
+     * for the whole lecturer queue, so the dashboard stays N+1-free. Exception-labelling: the
+     * caller renders a chip only for ids in this set, nothing otherwise.
+     */
+    public java.util.Set<Long> findNearDuplicateFlagged(java.util.Collection<Long> submissionIds) {
+        if (submissionIds == null || submissionIds.isEmpty()) {
+            return java.util.Set.of();
+        }
+        return new java.util.HashSet<>(
+                similarityRepository.findFlaggedSubmissionIds(submissionIds, NEAR_DUPLICATE_THRESHOLD));
+    }
+
     private List<String> getKeywords(AIInsight insight) {
         if (insight == null || !insight.getStatus().hasContent()) return List.of();
         Set<String> kws = insight.getKeywords();

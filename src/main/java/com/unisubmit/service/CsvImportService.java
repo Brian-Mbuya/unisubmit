@@ -54,15 +54,21 @@ public class CsvImportService {
     private final StudentProfileRepository studentProfileRepository;
     private final CourseRepository courseRepository;
     private final UserService userService;
+    private final com.unisubmit.repository.LecturerProfileRepository lecturerProfileRepository;
+    private final com.unisubmit.repository.DepartmentRepository departmentRepository;
 
     public CsvImportService(UserRepository userRepository,
                             StudentProfileRepository studentProfileRepository,
                             CourseRepository courseRepository,
-                            UserService userService) {
+                            UserService userService,
+                            com.unisubmit.repository.LecturerProfileRepository lecturerProfileRepository,
+                            com.unisubmit.repository.DepartmentRepository departmentRepository) {
         this.userRepository = userRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.courseRepository = courseRepository;
         this.userService = userService;
+        this.lecturerProfileRepository = lecturerProfileRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     // ── Data carriers (Serializable so they survive in the HTTP session) ────────
@@ -276,6 +282,202 @@ public class CsvImportService {
         log.info("CSV student import: {} rows processed, {} created",
                 validRows.size(), results.stream().filter(c -> "created".equals(c.status())).count());
         return results;
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // Lecturer import — mirrors the student flow (preview → apply → one-shot creds)
+    // ════════════════════════════════════════════════════════════════════════════
+
+    public record LecturerRow(int line, String name, String email, String staffId,
+                              String departmentCode, Long departmentId,
+                              boolean valid, String error) implements Serializable {}
+
+    public record LecturerPreview(List<LecturerRow> rows, int validCount, int invalidCount,
+                                  String fatalError) implements Serializable {}
+
+    /** Single entry point — dispatches by extension, exactly like the student importer. */
+    public LecturerPreview parseLecturers(MultipartFile file) {
+        String fn = file.getOriginalFilename();
+        String lower = fn == null ? "" : fn.toLowerCase();
+        if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
+            return parseLecturersWorkbook(file);
+        }
+        return parseLecturersCsv(file);
+    }
+
+    private LecturerPreview parseLecturersCsv(MultipartFile file) {
+        List<LecturerRow> rows = new ArrayList<>();
+        Set<String> seenEmails = new HashSet<>();
+        Set<String> seenIds = new HashSet<>();
+
+        CSVFormat format = CSVFormat.DEFAULT.builder()
+                .setHeader().setSkipHeaderRecord(true)
+                .setIgnoreHeaderCase(true).setTrim(true).setIgnoreEmptyLines(true).build();
+
+        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
+             CSVParser parser = format.parse(reader)) {
+
+            var headers = parser.getHeaderMap().keySet();
+            for (String required : List.of("name", "email", "staffid")) {
+                boolean present = headers.stream().anyMatch(h -> h.equalsIgnoreCase(required));
+                if (!present) {
+                    return new LecturerPreview(List.of(), 0, 0,
+                            "Missing required column '" + required + "'. Expected header: "
+                                    + "name, email, staffId, departmentCode");
+                }
+            }
+
+            for (CSVRecord rec : parser) {
+                if (rows.size() >= MAX_ROWS) {
+                    return new LecturerPreview(rows, countLecturers(rows, true), countLecturers(rows, false),
+                            "File has more than " + MAX_ROWS + " rows — split it and import in batches.");
+                }
+                int line = (int) rec.getRecordNumber() + 1;
+                validateAndAddLecturer(rows, seenEmails, seenIds, line,
+                        get(rec, "name"), get(rec, "email"), get(rec, "staffId"),
+                        get(rec, "departmentCode"));
+            }
+        } catch (IOException ex) {
+            return new LecturerPreview(List.of(), 0, 0, "Could not read the file: " + ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            return new LecturerPreview(List.of(), 0, 0, "That doesn't look like a valid CSV file.");
+        }
+
+        return new LecturerPreview(rows, countLecturers(rows, true), countLecturers(rows, false), null);
+    }
+
+    private LecturerPreview parseLecturersWorkbook(MultipartFile file) {
+        List<LecturerRow> rows = new ArrayList<>();
+        Set<String> seenEmails = new HashSet<>();
+        Set<String> seenIds = new HashSet<>();
+
+        try (java.io.InputStream in = file.getInputStream()) {
+            byte[] magic = new byte[4];
+            int read = in.read(magic);
+            boolean xlsx = read >= 4 && magic[0] == 0x50 && magic[1] == 0x4B
+                    && magic[2] == 0x03 && magic[3] == 0x04;
+            boolean xls = read >= 4 && (magic[0] & 0xFF) == 0xD0 && (magic[1] & 0xFF) == 0xCF
+                    && (magic[2] & 0xFF) == 0x11 && (magic[3] & 0xFF) == 0xE0;
+            if (!xlsx && !xls) {
+                return new LecturerPreview(List.of(), 0, 0,
+                        "That doesn't look like a valid .xlsx or .xls file.");
+            }
+        } catch (IOException ex) {
+            return new LecturerPreview(List.of(), 0, 0, "Could not read the file: " + ex.getMessage());
+        }
+
+        try (Workbook wb = org.apache.poi.ss.usermodel.WorkbookFactory.create(file.getInputStream())) {
+            Sheet sheet = wb.getSheetAt(0);
+            if (sheet == null) return new LecturerPreview(List.of(), 0, 0, "The spreadsheet has no sheets.");
+
+            Row header = sheet.getRow(sheet.getFirstRowNum());
+            if (header == null) return new LecturerPreview(List.of(), 0, 0,
+                    "The first row must be a header: name, email, staffId, departmentCode");
+
+            Map<String, Integer> col = new HashMap<>();
+            for (Cell cell : header) col.put(cellString(cell).toLowerCase(), cell.getColumnIndex());
+
+            for (String required : List.of("name", "email", "staffid")) {
+                if (!col.containsKey(required)) {
+                    return new LecturerPreview(List.of(), 0, 0,
+                            "Missing required column '" + required + "'. Expected header: "
+                                    + "name, email, staffId, departmentCode");
+                }
+            }
+
+            int last = sheet.getLastRowNum();
+            for (int r = header.getRowNum() + 1; r <= last; r++) {
+                if (rows.size() >= MAX_ROWS) {
+                    return new LecturerPreview(rows, countLecturers(rows, true), countLecturers(rows, false),
+                            "File has more than " + MAX_ROWS + " rows — split it and import in batches.");
+                }
+                Row row = sheet.getRow(r);
+                if (row == null) continue;
+                String name = colVal(row, col, "name");
+                String email = colVal(row, col, "email");
+                String staffId = colVal(row, col, "staffid");
+                if (name.isBlank() && email.isBlank() && staffId.isBlank()) continue;
+                validateAndAddLecturer(rows, seenEmails, seenIds, r + 1, name, email, staffId,
+                        colVal(row, col, "departmentcode"));
+            }
+        } catch (Exception ex) {
+            log.warn("Lecturer spreadsheet import parse failed: {}", ex.getMessage());
+            return new LecturerPreview(List.of(), 0, 0, "That doesn't look like a valid .xlsx or .xls file.");
+        }
+
+        return new LecturerPreview(rows, countLecturers(rows, true), countLecturers(rows, false), null);
+    }
+
+    private void validateAndAddLecturer(List<LecturerRow> rows, Set<String> seenEmails, Set<String> seenIds,
+                                        int line, String name, String email, String staffId,
+                                        String departmentCode) {
+        name = name == null ? "" : name.trim();
+        email = email == null ? "" : email.trim().toLowerCase();
+        staffId = staffId == null ? "" : staffId.trim();
+        departmentCode = departmentCode == null ? "" : departmentCode.trim();
+
+        String error = null;
+        Long departmentId = null;
+
+        if (name.isBlank()) error = "Name is required";
+        else if (email.isBlank() || !EMAIL.matcher(email).matches()) error = "Invalid or missing email";
+        else if (staffId.isBlank()) error = "Staff ID is required";
+        else if (!seenEmails.add(email)) error = "Duplicate email in this file";
+        else if (!seenIds.add(staffId.toLowerCase())) error = "Duplicate Staff ID in this file";
+        else if (userRepository.findByUsername(email).isPresent()) error = "Email already registered";
+        else if (lecturerProfileRepository.findByStaffNumberIgnoreCase(staffId).isPresent())
+            error = "Staff ID already registered";
+
+        if (error == null && !departmentCode.isBlank()) {
+            com.unisubmit.domain.Department d =
+                    departmentRepository.findByCodeIgnoreCase(departmentCode).orElse(null);
+            if (d == null) error = "Unknown department code '" + departmentCode + "'";
+            else departmentId = d.getId();
+        }
+
+        rows.add(new LecturerRow(line, name, email, staffId, departmentCode, departmentId,
+                error == null, error));
+    }
+
+    public List<CreatedCredential> applyLecturers(List<LecturerRow> validRows) {
+        List<CreatedCredential> results = new ArrayList<>();
+        for (LecturerRow r : validRows) {
+            if (!r.valid()) continue;
+            String password = generatePassword();
+            try {
+                // username = email; lecturers can also sign in with their staff ID.
+                userService.createUser(r.email(), password, r.name(), Role.LECTURER,
+                        null, r.staffId(), r.departmentId(), null, null, null);
+                results.add(new CreatedCredential(r.name(), r.staffId(), r.email(), password, "created"));
+            } catch (Exception ex) {
+                log.warn("Lecturer import: row {} ({}) failed: {}", r.line(), r.email(), ex.getMessage());
+                results.add(new CreatedCredential(r.name(), r.staffId(), r.email(), "—",
+                        "failed: " + ex.getMessage()));
+            }
+        }
+        log.info("Lecturer import: {} rows processed, {} created",
+                validRows.size(), results.stream().filter(c -> "created".equals(c.status())).count());
+        return results;
+    }
+
+    public String lecturerTemplateCsv() {
+        return "name,email,staffId,departmentCode\n"
+                + "Dr Achieng Odhiambo,achieng.odhiambo@university.edu,STAFF-001,YOUR-DEPT-CODE\n"
+                + "Prof Kamau Njoroge,kamau.njoroge@university.edu,STAFF-002,YOUR-DEPT-CODE\n";
+    }
+
+    public String lecturerCredentialsCsv(List<CreatedCredential> creds) {
+        StringBuilder sb = new StringBuilder("name,staffId,email,password,status\n");
+        for (CreatedCredential c : creds) {
+            sb.append(csv(c.name())).append(',').append(csv(c.studentId())).append(',')
+              .append(csv(c.email())).append(',').append(csv(c.password())).append(',')
+              .append(csv(c.status())).append('\n');
+        }
+        return sb.toString();
+    }
+
+    private static int countLecturers(List<LecturerRow> rows, boolean valid) {
+        return (int) rows.stream().filter(r -> r.valid() == valid).count();
     }
 
     // ── CSV output helpers ──────────────────────────────────────────────────────

@@ -238,11 +238,14 @@
             return;
           }
           if (data.suggestions && data.suggestions.length > 0) {
-            // Auto-populate the first suggestion directly into the input field
+            // Auto-populate the first suggestion ONLY when the student hasn't typed a title.
+            // A student-written title must never be replaced without an explicit click.
             const firstSuggestion = data.suggestions[0];
-            titleInput.value = firstSuggestion;
-            titleInput.style.borderColor = "var(--primary)";
-            setTimeout(() => { titleInput.style.borderColor = ""; }, 1500);
+            if (!titleInput.value.trim()) {
+              titleInput.value = firstSuggestion;
+              titleInput.style.borderColor = "var(--primary)";
+              setTimeout(() => { titleInput.style.borderColor = ""; }, 1500);
+            }
 
             statusText.textContent = "Suggested titles";
             data.suggestions.forEach((title) => {
@@ -486,6 +489,72 @@
     });
   }
 
+  /**
+   * Lecturer "Draft feedback": fetches an AI draft and puts it in the remarks textarea.
+   * The lecturer always edits and submits through the existing review form — nothing is
+   * ever auto-sent, and an existing draft is never replaced without confirmation.
+   */
+  function initDraftFeedback() {
+    const button = document.querySelector("[data-draft-feedback]");
+    if (!button) return;
+    const textarea = document.getElementById("reviewMessage");
+    const status = document.querySelector("[data-draft-feedback-status]");
+    if (!textarea) return;
+
+    const say = function (msg) {
+      if (status) status.textContent = msg || "";
+    };
+
+    button.addEventListener("click", function () {
+      const submissionId = button.getAttribute("data-submission-id");
+      if (!submissionId) return;
+
+      if (textarea.value.trim() &&
+          !window.confirm("Replace what you've already written with an AI draft?")) {
+        return;
+      }
+
+      const statusInput = document.querySelector("[data-review-status]");
+      const decision = statusInput ? statusInput.value : "";
+
+      button.disabled = true;
+      say("Drafting…");
+
+      const token = csrf.token();
+      const header = csrf.header();
+      const body = new URLSearchParams();
+      if (decision) body.append("status", decision);
+
+      fetch("/api/ai/draft-feedback/" + encodeURIComponent(submissionId), {
+        method: "POST",
+        headers: Object.assign(
+          { "Content-Type": "application/x-www-form-urlencoded" },
+          token && header ? { [header]: token } : {}
+        ),
+        body: body.toString(),
+      })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          button.disabled = false;
+          if (data.error) {
+            say(data.error);
+            return;
+          }
+          if (data.draft) {
+            textarea.value = data.draft;
+            textarea.focus();
+            say("Draft inserted — edit it before you submit.");
+          } else {
+            say("No draft returned — please try again.");
+          }
+        })
+        .catch(function () {
+          button.disabled = false;
+          say("Couldn't reach the AI service — please try again.");
+        });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     markActiveNav();
     initMobileNav();
@@ -497,6 +566,7 @@
     initSubmissionFilters();
     initAiTabs();
     initDraftTitleSuggestions();
+    initDraftFeedback();
     initLoadingSubmit();
     initNavProgress();
     initServiceWorker();

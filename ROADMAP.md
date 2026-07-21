@@ -457,7 +457,7 @@ lecturers get a one-click editable feedback draft that never auto-sends; the rev
 flags near-duplicates; admins can bulk-import lecturers with the same preview→apply→
 credentials flow as students. Every surface degrades per the house rule.
 
-- [ ] **5.1 B1 — AI changes summary.** In the pipeline, after a successful (COMPLETED) run
+- [x] **5.1 B1 — AI changes summary.** In the pipeline, after a successful (COMPLETED) run
   for a version whose `changesSummary` is blank AND whose `insightSummarySnapshot` is
   non-null: LlmClient.completeJson with the default system prompt and user prompt:
   ```
@@ -473,12 +473,12 @@ credentials flow as students. Every surface degrades per the house rule.
   ```
   Store into `changesSummary` + new boolean column `aiSummary=true` on SubmissionVersion.
   No-key/DEGRADED → skip silently (field stays blank, exactly as today).
-- [ ] **5.2 B3 — narrative timeline.** AUDITED: `changesSummary` ALREADY renders under each
+- [x] **5.2 B3 — narrative timeline.** AUDITED: `changesSummary` ALREADY renders under each
   version row (components.html:63-64, quoted muted line) — so 5.2 is ONLY: add a small "AI"
   chip (`chip chip-gold`, text "AI") before the quote when `version.aiSummary` is true.
   One `th:if` span; nothing else. With 5.1 auto-filling blanks, the timeline reads v1→v2→v3
   as a story. (GitHub can't do this for prose — say nothing, just ship it.)
-- [ ] **5.3 B2 — Draft feedback for lecturers.** `lecturer/review-split.html`: button
+- [x] **5.3 B2 — Draft feedback for lecturers.** `lecturer/review-split.html`: button
   "Draft feedback" (btn-secondary btn-sm, next to the feedback textarea, only when a real
   key is configured — model attr `aiAvailable` from controller reading LlmClient.hasKey()).
   Click → `POST /api/ai/draft-feedback/{submissionId}` (new, lecturer-role, limiter bucket
@@ -499,20 +499,20 @@ credentials flow as students. Every surface degrades per the house rule.
   empty else confirm-replace, focus textarea. Failure → inline muted error line.
   Done-when: draft appears in textarea, lecturer edits/submits through the EXISTING form
   (§6 hooks untouched); no-key → button absent.
-- [ ] **5.4 B5 — near-duplicate chip.** Lecturer dashboard queue rows: batch-fetch max
+- [x] **5.4 B5 — near-duplicate chip.** Lecturer dashboard queue rows: batch-fetch max
   similarity per listed submission (one repository query: similarities where submissionA/B
   in :ids and score >= 0.85), render chip `badge-rejected`-styled "Similar work flagged"
   (identical-hash keeps its existing 100% treatment on the detail page) linking to the
   review page's similar-work panel. Exception-labeling: chip only when flagged, nothing
   otherwise. One `th:if` + one service method; no new page.
-- [ ] **5.5 Housekeeping.** Confirm every new AI surface honors AiRateLimitService buckets +
+- [x] **5.5 Housekeeping.** Confirm every new AI surface honors AiRateLimitService buckets +
   the no-key rule; add DRAFT_FEEDBACK tests (limiter refuses at cap) to the test floor.
   Plus two audited a11y/UX fixes in the EXISTING draft-title flow (app.js
   initDraftTitleSuggestions): (a) add `aria-live="polite"` to `#suggestions-status-text` in
   new-submission.html (status changes are currently silent to screen readers); (b) stop the
   silent overwrite — auto-fill the first suggestion into `#title` ONLY when the field is
   empty (a student-typed title must never be replaced without a click).
-- [ ] **5.6 V2.0d — Lecturer CSV importer (owner-approved IN).** Mirror the students flow:
+- [x] **5.6 V2.0d — Lecturer CSV importer (owner-approved IN).** Mirror the students flow:
   `CsvImportService.parseLecturers` (columns `name,email,staffId,departmentCode`; per-row
   validation: email format+unique, staffId unique, department by code exists — AUDITED:
   `Department.code` exists (Department.java:26) but `DepartmentRepository.findByCodeIgnoreCase`
@@ -525,7 +525,7 @@ credentials flow as students. Every surface degrades per the house rule.
   fragment; separate SESSION keys; same one-shot credentials CSV + template download +
   5MB/magic-byte gates from 3.5. Done-when: 3-row lecturer CSV imports locally end-to-end;
   bad department code → red row with reason.
-- [ ] **5.7 Ship check.** SW → v17. Build + tests green. Map updated (routes + services).
+- [x] **5.7 Ship check.** SW → v17. Build + tests green. Map updated (routes + services).
   Commit `"assist: AI change summaries + narrative timeline, lecturer draft feedback, near-dup flags, lecturer importer (SW v17)"`.
 
 ## Phase 6 · PARTNER — collaboration that finds complements, not twins (SW → v18)
@@ -608,6 +608,17 @@ deliverable). Measured by: request-acceptance rate per reason-type in admin/eval
 ## Log (one line per session)
 - 2026-07-17 Fable: V3 authored (planner). Verified-gap sweep 2026-07-17 is fully folded in;
   Registry superseded per owner; visual = Phase 1 per owner. Opus·high executes top-down.
+- 2026-07-19 Opus: Phase 5 ASSIST done (SW v17, 70 tests green). 5.1 AI change summaries —
+  pipeline auto-fills a blank changesSummary from the v(n−1) snapshot vs the fresh insight,
+  flagged `ai_summary=true` (skipped silently on no-key/DEGRADED). 5.2 timeline shows an "AI"
+  chip on those notes. 5.3 lecturer Draft feedback: new `service/ai/DraftFeedbackService` +
+  `POST /api/ai/draft-feedback/{id}` (LECTURER-only, DRAFT_FEEDBACK bucket, extractCapped,
+  friendly 200-error for a missing file) + app.js `initDraftFeedback()` filling #reviewMessage
+  (confirm before replacing, never auto-sends); button only renders when `aiAvailable`.
+  5.4 near-duplicate chip on the lecturer queue via ONE batched query (>=0.85). 5.5 limiter
+  tests + a11y: aria-live on the suggestions status, and draft-titles no longer overwrite a
+  student-typed title. 5.6 lecturer CSV/XLSX/XLS importer mirroring students (own session keys,
+  one-shot creds, DepartmentRepository.findByCodeIgnoreCase). Not pushed. Next: Phase 6 (PARTNER).
 - 2026-07-19 Opus: Phase 4 PLATFORM done (SW v16, 68 tests green). DEGRADED status added to
   AIInsightStatus (+`hasContent()`); pipeline LLM-failure now lands DEGRADED (heuristic summary,
   no prefix, errorMessage=reason); 5 read-gates (Recommendation.getKeywords, Search BM25+snippet,

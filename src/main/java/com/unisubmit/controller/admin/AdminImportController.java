@@ -29,6 +29,8 @@ public class AdminImportController {
 
     private static final String SESSION_ROWS = "importStudentRows";
     private static final String SESSION_CREDS = "importStudentCreds";
+    private static final String SESSION_LECTURER_ROWS = "importLecturerRows";
+    private static final String SESSION_LECTURER_CREDS = "importLecturerCreds";
 
     private final CsvImportService csvImportService;
 
@@ -116,6 +118,81 @@ public class AdminImportController {
     @GetMapping("/template/students.csv")
     public ResponseEntity<String> templateStudents() {
         return csvDownload(csvImportService.studentTemplateCsv(), "students-template.csv");
+    }
+
+    // ── Lecturers — same preview → apply → one-shot credentials flow ────────────
+
+    @GetMapping("/lecturers/preview")
+    public String lecturerPreviewGet() {
+        return "redirect:/admin/import";
+    }
+
+    @PostMapping("/lecturers/preview")
+    public String previewLecturers(@RequestParam("file") MultipartFile file,
+                                   HttpSession session, Model model, RedirectAttributes ra) {
+        if (file == null || file.isEmpty()) {
+            ra.addFlashAttribute("errorMessage", "Choose a CSV file first.");
+            return "redirect:/admin/import";
+        }
+        if (file.getSize() > 5L * 1024 * 1024) {
+            ra.addFlashAttribute("errorMessage", "File too large — max 5 MB; split it and import in batches.");
+            return "redirect:/admin/import";
+        }
+        CsvImportService.LecturerPreview preview = csvImportService.parseLecturers(file);
+        if (preview.fatalError() != null) {
+            session.removeAttribute(SESSION_LECTURER_ROWS);
+        } else {
+            session.setAttribute(SESSION_LECTURER_ROWS,
+                    preview.rows().stream().filter(CsvImportService.LecturerRow::valid).toList());
+        }
+        model.addAttribute("activeMenu", "import");
+        model.addAttribute("lecturerPreview", preview);
+        return "admin/import";
+    }
+
+    @PostMapping("/lecturers/apply")
+    public String applyLecturers(HttpSession session, RedirectAttributes ra) {
+        @SuppressWarnings("unchecked")
+        List<CsvImportService.LecturerRow> rows =
+                (List<CsvImportService.LecturerRow>) session.getAttribute(SESSION_LECTURER_ROWS);
+        if (rows == null || rows.isEmpty()) {
+            ra.addFlashAttribute("errorMessage", "Nothing to import — upload and preview a file first.");
+            return "redirect:/admin/import";
+        }
+        List<CreatedCredential> creds = csvImportService.applyLecturers(rows);
+        session.removeAttribute(SESSION_LECTURER_ROWS);
+        session.setAttribute(SESSION_LECTURER_CREDS, creds);
+        long created = creds.stream().filter(c -> "created".equals(c.status())).count();
+        ra.addFlashAttribute("successMessage", created + " lecturer account(s) created. "
+                + "Download the passwords below — they are shown only once.");
+        return "redirect:/admin/import/lecturers/results";
+    }
+
+    @GetMapping("/lecturers/results")
+    public String lecturerResults(HttpSession session, Model model) {
+        @SuppressWarnings("unchecked")
+        List<CreatedCredential> creds =
+                (List<CreatedCredential>) session.getAttribute(SESSION_LECTURER_CREDS);
+        model.addAttribute("activeMenu", "import");
+        model.addAttribute("lecturerCreds", creds);
+        return "admin/import";
+    }
+
+    @GetMapping("/lecturers/results.csv")
+    public ResponseEntity<String> lecturerResultsCsv(HttpSession session) {
+        @SuppressWarnings("unchecked")
+        List<CreatedCredential> creds =
+                (List<CreatedCredential>) session.getAttribute(SESSION_LECTURER_CREDS);
+        if (creds == null || creds.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        session.removeAttribute(SESSION_LECTURER_CREDS);
+        return csvDownload(csvImportService.lecturerCredentialsCsv(creds), "unisubmit-lecturer-credentials.csv");
+    }
+
+    @GetMapping("/template/lecturers.csv")
+    public ResponseEntity<String> templateLecturers() {
+        return csvDownload(csvImportService.lecturerTemplateCsv(), "lecturers-template.csv");
     }
 
     private ResponseEntity<String> csvDownload(String body, String filename) {

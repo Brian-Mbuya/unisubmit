@@ -155,7 +155,10 @@
                               th:text="'Uploaded by ' + (${maskUploaders} ? 'Anonymous student' : ${version.uploadedBy.name})">Uploader</span>
                     </div>
                     <div th:if="${version.changesSummary != null and !version.changesSummary.isBlank()}"
-                         class="text-sm text-muted mt-1" th:text="'“' + ${version.changesSummary} + '”'">Change note</div>
+                         class="text-sm text-muted mt-1">
+                        <span th:if="${version.aiSummary}" class="chip chip-gold">AI</span>
+                        <span th:text="'“' + ${version.changesSummary} + '”'">Change note</span>
+                    </div>
                 </div>
 
                 <!-- Feedback on this version -->

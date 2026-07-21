@@ -20,7 +20,7 @@ bulk import. PWA (installable, offline shell, bottom nav) wrapped as an Android 
 - DB: **Supabase Postgres** (prod) / **H2 file** (local, `application-local.yml`, profile `local`).
 - Frontend: ONE stylesheet `static/css/base.css` (design system "Nocturne Laurel", numbered
   sections, tokens at top) + ONE vanilla `static/js/app.js` (510 lines, IIFE, no deps) +
-  `static/sw.js` (**VERSION `unisubmit-shell-v16`** — bump on any css/js/icon shape change!).
+  `static/sw.js` (**VERSION `unisubmit-shell-v17`** — bump on any css/js/icon shape change!).
 - Zero external runtime deps: fonts (Inter+Fraunces woff2), Chart.js vendored, icons local.
 - Build: `JAVA_HOME=C:\Users\mbuya\.jdks\jdk-17.0.19+10` then `.\mvnw.cmd -B -ntp -DskipTests package`.
 - Local run: `run-local.ps1 -Port 8090` → seeds `admin`/`L001`/`S001`, all `password123`.
@@ -76,7 +76,8 @@ unit) · announcements(GET/POST, `{id}/delete`, `{id}/toggle-late-window`) · `s
 **Admin** (`controller/admin/*`, ROLE_ADMIN): dashboard · accounts(create/edit/suspend/delete/
 reset-pw) · faculties/departments/programmes/units/curricula/assignments(CRUD) · tags ·
 evaluation(match-weight what-if harness → EvaluationService) · landscape(=AnalyticsService
-PCA scatter of corpus) · import(CSV/XLSX students: page/preview/apply/results.csv/template).
+PCA scatter of corpus) · import(**students AND lecturers**, .csv/.xlsx/.xls:
+page/preview/apply/results.csv/template each, separate session keys).
 **Shared authenticated**: `/explore`(ExploreController: tabs archive|search|matches; Discover
 tab now STUDENT-only via sec:authorize) · `/discover`(cross-dept opportunities) ·
 `/notifications`(+`/mark-read`, +`/open/{submissionId}` → role-aware redirect to the right
@@ -87,8 +88,10 @@ viaCollaboration hint) · `/files/{path}`(FileController, access-checked
 download; 404 msg explains storage-fix history).
 **APIs**: `/api/ai-insights/{id}`(GET status poll) `/api/ai-insights/{id}/retry`(POST) ·
 `/api/ai/analyze-draft-file`(POST multipart → 3 title suggestions; the ONLY live suggest path;
-rate-limited DRAFT_TITLES bucket). (suggest-title/rename/assistant endpoints EXCISED in Phase
-3.) · `/api/users/search`(member picker) ·
+rate-limited DRAFT_TITLES bucket) · `/api/ai/draft-feedback/{submissionId}`(POST, LECTURER only,
+DRAFT_FEEDBACK bucket → {"draft"} or 200 {"error"}; app.js initDraftFeedback fills #reviewMessage,
+never auto-sends) · `POST /admin/ai/backfill-embeddings`. (suggest-title/rename/assistant
+endpoints EXCISED in Phase 3.) · `/api/users/search`(member picker) ·
 `/api/academic/*`(anon; register-form cascading selects).
 
 ## 5 · Services (one line each — read the file only if your task touches it)
@@ -126,8 +129,12 @@ rate-limited DRAFT_TITLES bucket). (suggest-title/rename/assistant endpoints EXC
 - **AnalyticsService** (358): PCA (power iteration) over one-hot keyword+tag vectors → admin
   landscape scatter. **EvaluationService** (176): precision@K + collab-health metrics for the
   admin evaluation page.
-- **CsvImportService** (302): students CSV/XLSX import — parse+validate (no writes) → session-
-  stash → per-row apply (SecureRandom passwords) → one-time credentials CSV.
+- **CsvImportService**: students AND lecturers, .csv/.xlsx/.xls (WorkbookFactory auto-detects) —
+  parse+validate (no writes) → session-stash → per-row apply (SecureRandom passwords) → one-shot
+  credentials CSV. Hardened: 5MB pre-parse gate, magic-byte check, fatal-error previews never
+  stash rows. Lecturer rows resolve `departmentCode` via DepartmentRepository.findByCodeIgnoreCase.
+- **service/ai/DraftFeedbackService**: lecturer "Draft feedback" — extractCapped(latest file) +
+  LlmClient → {"draft"}; friendly error string when no key/file/provider. Never auto-sends.
 - **AnnouncementService** (300): per-unit notices/assignments (deadline sets unit deadline,
   late-window toggle); recipients = enrollments ∪ programme-mapped students.
 - **UserService** (185): create/update accounts + profiles (bcrypt), suspend/restore, admin
@@ -158,7 +165,7 @@ embedding float[] via VectorConverter (pgvector `vector(1536)` on prod — see �
 technologies/researchAreas [+4 dead tag sets]; supervisors mapping EXCISED (join table remains))
 1–N SubmissionVersion(filePath, originalName, size, contentHash SHA-256, uploadedBy,
 changesSummary, is_late, insightSummarySnapshot/insightKeywordsSnapshot = prior-version
-insight snapshot for Phase 5) 1–N Feedback(lecturer, message, grade 0-100). AIInsight 1–1
+insight snapshot, ai_summary = changesSummary was AI-written (timeline shows an "AI" chip)) 1–N Feedback(lecturer, message, grade 0-100). AIInsight 1–1
 Submission(status PENDING|PROCESSING|COMPLETED|DEGRADED|FAILED — DEGRADED=heuristic fallback,
 `hasContent()`=COMPLETED||DEGRADED gates matching/search; summary, keywords, objectives,
 problemDomains, problemStatement, errorMessage). SubmissionSimilarity(A,B, score + per-signal

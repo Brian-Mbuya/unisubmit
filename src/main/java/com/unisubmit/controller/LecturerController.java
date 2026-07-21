@@ -26,6 +26,7 @@ public class LecturerController {
     private final com.unisubmit.service.AnnouncementService announcementService;
     private final TeachingAssignmentRepository teachingAssignmentRepository;
     private final com.unisubmit.service.RecommendationService recommendationService;
+    private final com.unisubmit.service.ai.LlmClient llmClient;
 
     /** Phase 7 — blind review: hide student identity until a grade is given. */
     @org.springframework.beans.factory.annotation.Value("${unisubmit.review.blind-mode:false}")
@@ -34,11 +35,13 @@ public class LecturerController {
     public LecturerController(SubmissionService submissionService,
                               com.unisubmit.service.AnnouncementService announcementService,
                               TeachingAssignmentRepository teachingAssignmentRepository,
-                              com.unisubmit.service.RecommendationService recommendationService) {
+                              com.unisubmit.service.RecommendationService recommendationService,
+                              com.unisubmit.service.ai.LlmClient llmClient) {
         this.submissionService = submissionService;
         this.announcementService = announcementService;
         this.teachingAssignmentRepository = teachingAssignmentRepository;
         this.recommendationService = recommendationService;
+        this.llmClient = llmClient;
     }
 
     @GetMapping("/announcements")
@@ -120,6 +123,10 @@ public class LecturerController {
                         || s.getStatus() == SubmissionStatus.REJECTED)
                 .count();
 
+        // Near-duplicate flags for the whole queue in ONE query (5.4).
+        model.addAttribute("nearDuplicateIds", recommendationService.findNearDuplicateFlagged(
+                filtered.stream().map(Submission::getId).toList()));
+
         model.addAttribute("submissions", filtered);
         model.addAttribute("submissionsByUnit", submissionsByUnit);
         model.addAttribute("pendingReviews", pendingReviews);
@@ -144,6 +151,8 @@ public class LecturerController {
                 .flatMap(v -> v.getFeedbacks().stream())
                 .anyMatch(f -> f.getGrade() != null);
         model.addAttribute("blindReview", blindReviewMode && !graded);
+        // Draft-feedback button only renders when a real AI key is configured (no dead buttons).
+        model.addAttribute("aiAvailable", llmClient.hasKey());
         return "lecturer/review-split";
     }
 

@@ -83,6 +83,11 @@
                                         <a th:href="@{'/lecturer/submission/' + ${sub.id}}"
                                            class="list-row-title text-sm"
                                            th:text="${sub.title}">Submission title</a>
+                                        <!-- Exception-labeling: chip only when a near-duplicate exists. -->
+                                        <a th:if="${nearDuplicateIds != null and nearDuplicateIds.contains(sub.id)}"
+                                           th:href="@{'/lecturer/submission/' + ${sub.id}}"
+                                           class="badge badge-rejected mt-1"
+                                           title="Another submission is a very close match — check the similar-work panel.">Similar work flagged</a>
                                     </td>
                                     <td class="text-sm" th:text="${sub.student.name}">Student</td>
                                     <td>

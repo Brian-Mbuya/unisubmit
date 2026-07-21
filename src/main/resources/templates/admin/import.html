@@ -6,7 +6,7 @@
     <div class="page-head">
         <div>
             <h1>Bulk import</h1>
-            <p class="subtitle">Create student accounts from a CSV — no hand-typing.</p>
+            <p class="subtitle">Create student or lecturer accounts from a spreadsheet — no hand-typing.</p>
         </div>
         <a th:href="@{/admin/accounts}" class="btn btn-secondary">Back to accounts</a>
     </div>
@@ -37,6 +37,77 @@
             </table>
         </div>
         <div class="mt-4"><a th:href="@{/admin/import}">Import another file</a></div>
+    </div>
+
+    <!-- ── LECTURER RESULTS: accounts created, passwords shown once ────────── -->
+    <div th:if="${lecturerCreds != null}" class="card">
+        <div class="card-head">
+            <h2>Lecturer import complete</h2>
+            <a th:href="@{/admin/import/lecturers/results.csv}" class="btn">Download passwords (CSV)</a>
+        </div>
+        <p class="field-hint mb-4">Download now — this list disappears after the CSV is downloaded. Passwords are shown once and can't be retrieved later.</p>
+        <div class="table-wrap table-stack">
+            <table class="table">
+                <thead>
+                    <tr><th>Name</th><th>Staff ID</th><th>Email</th><th>Password</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    <tr th:each="c : ${lecturerCreds}">
+                        <td class="stack-full fw-600" th:text="${c.name}">Name</td>
+                        <td th:text="${c.studentId}">ID</td>
+                        <td class="text-muted" th:text="${c.email}">email</td>
+                        <td class="mono" th:text="${c.password}">pw</td>
+                        <td><span th:class="${c.status == 'created' ? 'badge badge-completed' : 'badge badge-rejected'}" th:text="${c.status}">created</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4"><a th:href="@{/admin/import}">Import another file</a></div>
+    </div>
+
+    <!-- ── LECTURER PREVIEW: validated rows, nothing written yet ───────────── -->
+    <div th:if="${lecturerCreds == null and lecturerPreview != null}" class="card">
+        <div th:if="${lecturerPreview.fatalError != null}" class="alert alert-danger" th:text="${lecturerPreview.fatalError}">error</div>
+
+        <div th:unless="${lecturerPreview.fatalError != null}">
+            <div class="card-head">
+                <h2>Lecturer preview</h2>
+                <span class="text-sm">
+                    <span class="text-subtle" th:text="${#lists.size(lecturerPreview.rows)} + ' rows in file · '">0 rows · </span>
+                    <span class="text-success fw-600" th:text="${lecturerPreview.validCount} + ' ready'">0 ready</span>
+                    <span th:if="${lecturerPreview.invalidCount > 0}" class="text-danger fw-600" th:text="' · ' + ${lecturerPreview.invalidCount} + ' with problems'"></span>
+                </span>
+            </div>
+            <div class="table-wrap table-stack">
+                <table class="table">
+                    <thead>
+                        <tr><th>#</th><th>Name</th><th>Email</th><th>Staff ID</th><th>Department</th><th>Result</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="r : ${lecturerPreview.rows}">
+                            <td class="text-subtle" th:text="${r.line}">1</td>
+                            <td class="stack-full fw-600" th:text="${r.name}">Name</td>
+                            <td class="text-muted" th:text="${r.email}">email</td>
+                            <td th:text="${r.staffId}">ID</td>
+                            <td class="text-muted" th:text="${r.departmentCode != '' ? r.departmentCode : '—'}">—</td>
+                            <td>
+                                <span th:if="${r.valid}" class="badge badge-completed">OK</span>
+                                <span th:unless="${r.valid}" class="badge badge-rejected" th:text="${r.error}">error</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="flex items-center gap-2 mt-4" th:if="${lecturerPreview.validCount > 0}">
+                <form th:action="@{/admin/import/lecturers/apply}" method="post" data-loading-submit="Creating accounts…">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="btn" th:text="'Create ' + ${lecturerPreview.validCount} + ' lecturer account(s)'">Create accounts</button>
+                </form>
+                <a th:href="@{/admin/import}" class="btn btn-secondary">Cancel</a>
+            </div>
+            <p th:if="${lecturerPreview.validCount == 0}" class="field-hint mt-4">No valid rows. Fix the problems above and upload again.</p>
+        </div>
     </div>
 
     <!-- ── PREVIEW: validated rows, nothing written yet ───────────────────── -->
@@ -87,7 +158,8 @@
     </div>
 
     <!-- ── UPLOAD: default state ──────────────────────────────────────────── -->
-    <div th:if="${creds == null and preview == null}" class="card">
+    <div th:if="${creds == null and preview == null and lecturerCreds == null and lecturerPreview == null}" class="card">
+        <div class="card-head"><h2>Students</h2></div>
         <form th:action="@{/admin/import/students/preview}" method="post" enctype="multipart/form-data" data-loading-submit="Reading…">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
             <div class="form-group">
@@ -101,6 +173,28 @@
                     Other formats (e.g. .ods, Google Sheets) — use <strong>File → Save As → .xlsx or .csv</strong> first.
                     For <span class="mono">programmeCode</span>, use YOUR programme codes
                     (see <strong>Admin → Programmes</strong>), not the template's samples.
+                </div>
+            </div>
+            <button type="submit" class="btn">Preview</button>
+        </form>
+    </div>
+
+    <!-- ── UPLOAD: lecturers ──────────────────────────────────────────────── -->
+    <div th:if="${creds == null and preview == null and lecturerCreds == null and lecturerPreview == null}" class="card mt-6">
+        <div class="card-head"><h2>Lecturers</h2></div>
+        <form th:action="@{/admin/import/lecturers/preview}" method="post" enctype="multipart/form-data" data-loading-submit="Reading…">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+            <div class="form-group">
+                <label class="form-label" for="lecturerFile">Lecturers CSV</label>
+                <input type="file" id="lecturerFile" name="file" class="form-control"
+                       accept=".csv,.xlsx,.xls" required>
+                <div class="field-hint">
+                    Columns: <span class="mono">name, email, staffId, departmentCode</span>.
+                    <a th:href="@{/admin/import/template/lecturers.csv}">Download template</a>.
+                    <strong>.csv</strong>, <strong>.xlsx</strong> and <strong>.xls</strong> files are accepted (max 5 MB).
+                    For <span class="mono">departmentCode</span>, use YOUR department codes
+                    (see <strong>Admin → Departments</strong>). Leave it blank to create the
+                    lecturer without a department.
                 </div>
             </div>
             <button type="submit" class="btn">Preview</button>

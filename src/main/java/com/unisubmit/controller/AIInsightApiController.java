@@ -31,17 +31,54 @@ public class AIInsightApiController {
     private final AIInsightProcessingService aiProcessingService;
     private final SubmissionAccessService accessService;
     private final AiRateLimitService rateLimitService;
+    private final com.unisubmit.service.SubmissionService submissionService;
+    private final com.unisubmit.service.ai.DraftFeedbackService draftFeedbackService;
 
     public AIInsightApiController(AIInsightRepository aiInsightRepository,
                                   AIInsightService aiInsightService,
                                   AIInsightProcessingService aiProcessingService,
                                   SubmissionAccessService accessService,
-                                  AiRateLimitService rateLimitService) {
+                                  AiRateLimitService rateLimitService,
+                                  com.unisubmit.service.SubmissionService submissionService,
+                                  com.unisubmit.service.ai.DraftFeedbackService draftFeedbackService) {
         this.aiInsightRepository = aiInsightRepository;
         this.aiInsightService = aiInsightService;
         this.aiProcessingService = aiProcessingService;
         this.accessService = accessService;
         this.rateLimitService = rateLimitService;
+        this.submissionService = submissionService;
+        this.draftFeedbackService = draftFeedbackService;
+    }
+
+    /**
+     * Drafts review feedback for a lecturer from the submission's own document. Returns 200 with
+     * an {@code error} string for user-facing problems (missing file, provider down) so the UI can
+     * show a muted line; never auto-sends anything — the lecturer edits and submits the real form.
+     */
+    @PostMapping("/api/ai/draft-feedback/{submissionId}")
+    public ResponseEntity<Map<String, Object>> draftFeedback(
+            @PathVariable Long submissionId,
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (userDetails == null
+                || userDetails.getUser().getRole() != com.unisubmit.domain.Role.LECTURER) {
+            return ResponseEntity.status(403).body(Map.of("error", "Lecturers only."));
+        }
+        if (!rateLimitService.tryConsume(userDetails.getUser().getId(),
+                AiRateLimitService.Bucket.DRAFT_FEEDBACK)) {
+            return ResponseEntity.status(429).body(Map.of(
+                    "error", "You've drafted feedback several times — please wait a little and try again."));
+        }
+        // Throws (handled globally) if this lecturer isn't assigned to the submission's unit.
+        com.unisubmit.domain.Submission submission =
+                submissionService.getSubmissionForLecturer(submissionId, userDetails.getUser());
+
+        com.unisubmit.service.ai.DraftFeedbackService.DraftResult result =
+                draftFeedbackService.draftFor(submission, status);
+        if (result.error() != null) {
+            return ResponseEntity.ok(Map.of("error", result.error()));
+        }
+        return ResponseEntity.ok(Map.of("draft", result.draft()));
     }
 
     @GetMapping("/api/ai-insights/{id}")

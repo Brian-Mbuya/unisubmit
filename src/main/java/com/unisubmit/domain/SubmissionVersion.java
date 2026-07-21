@@ -63,6 +63,10 @@ public class SubmissionVersion {
     @Column(length = 1000)
     private String insightKeywordsSnapshot;
 
+    /** True when {@code changesSummary} was written by the AI rather than typed by the uploader. */
+    @Column(name = "ai_summary", columnDefinition = "boolean default false")
+    private boolean aiSummary = false;
+
     @ManyToOne(optional = true)
     @JoinColumn(name = "uploaded_by_id")
     private User uploadedBy;
