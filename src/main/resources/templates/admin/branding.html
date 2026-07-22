@@ -6,7 +6,7 @@
     <div class="page-head">
         <div>
             <h1>University Branding</h1>
-            <p class="subtitle">Customize institutional brand and surface accents across UniSubmit using the Adaptive Theme Engine.</p>
+            <p class="subtitle">Upload a university logo to automatically extract brand colors or fine-tune theme tokens live.</p>
         </div>
         <div class="head-actions">
             <form th:action="@{/admin/branding/reset}" method="post" style="display:inline;">
@@ -22,10 +22,30 @@
     <div th:if="${errorMessage}" class="alert alert-danger" style="margin-bottom: var(--sp-4);" th:text="${errorMessage}"></div>
 
     <div class="page-grid rail-left">
-        <!-- ── Controls Rail ────────────────────────────────────────── -->
+        <!-- ── Controls Rail: Logo Upload & Color Pickers ────────── -->
         <aside class="page-rail" aria-label="Branding Theme Controls">
+            <!-- 1. Logo Extraction Card -->
+            <div class="card" style="margin-bottom: var(--sp-4);">
+                <div class="card-head"><h2>Upload Logo (Auto-Extract)</h2></div>
+                <div class="card-body">
+                    <p class="text-muted" style="font-size: 0.85rem; margin-bottom: var(--sp-3);">
+                        Drop your institutional logo (PNG, JPG, SVG). The Theme Engine extracts brand colors via Oklab K-Means++.
+                    </p>
+                    <div id="dropzone" style="border: 2px dashed var(--border-strong); padding: 20px; text-align: center; border-radius: var(--radius); cursor: pointer; background: var(--surface-muted); transition: border-color 0.2s;">
+                        <input type="file" id="logoFileInput" accept="image/*,.svg" style="display: none;" />
+                        <svg viewBox="0 0 24 24" width="32" height="32" stroke="currentColor" fill="none" stroke-width="2" style="color: var(--primary); margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                        <div style="font-weight: 600; font-size: 0.9rem;">Click or drop logo image</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">PNG, JPG, WEBP, SVG (max 10MB)</div>
+                    </div>
+                    <div id="extractionStatus" style="font-size: 0.8rem; color: var(--primary); margin-top: 8px; display: none;">
+                        Extracting palette...
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Manual Color Overrides -->
             <div class="card">
-                <div class="card-head"><h2>Brand Accent Colors</h2></div>
+                <div class="card-head"><h2>Palette Overrides</h2></div>
                 <form id="brandingForm" th:action="@{/admin/branding}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <input type="hidden" id="tokensJsonInput" name="tokensJson" value="" />
@@ -61,26 +81,27 @@
             </div>
         </aside>
 
-        <!-- ── Main Workspace: Live Preview & Contrast Check ────────────── -->
+        <!-- ── Main Workspace: Live Preview & Sample UI Components ──────── -->
         <section class="page-main">
+            <!-- 1. Live Preview Panel -->
             <div class="card" style="margin-bottom: var(--sp-4);">
                 <div class="card-head" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h2>Live Theme Token Preview</h2>
+                    <h2>Live Theme Preview</h2>
                     <span id="contrastBadge" class="badge badge-success">WCAG AA Compliant</span>
                 </div>
                 <div class="card-body">
                     <p class="text-muted" style="margin-bottom: var(--sp-4);">
-                        Changes apply instantly in real-time below using the mapped UniSubmit CSS tokens.
+                        Uploaded logo colors immediately re-theme the live interface below via CSS variables on <code>:root</code>.
                     </p>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: var(--sp-6);">
                         <div style="padding: 12px; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
                             <div style="font-size: 0.75rem; color: var(--text-muted);">--brand</div>
                             <div id="swatchBrand" style="height: 32px; background: var(--brand); border-radius: 4px; margin-top: 4px; border: 1px solid var(--border-strong);"></div>
                         </div>
                         <div style="padding: 12px; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
                             <div style="font-size: 0.75rem; color: var(--text-muted);">--primary (Accent Text)</div>
-                            <div id="swatchPrimary" style="font-weight: 600; color: var(--primary); font-size: 1.1rem; margin-top: 6px;">Sample Primary Text</div>
+                            <div id="swatchPrimary" style="font-weight: 600; color: var(--primary); font-size: 1.1rem; margin-top: 6px;">Sample Accent Text</div>
                         </div>
                         <div style="padding: 12px; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
                             <div style="font-size: 0.75rem; color: var(--text-muted);">--gold (Companion)</div>
@@ -89,6 +110,21 @@
                         <div style="padding: 12px; background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border);">
                             <div style="font-size: 0.75rem; color: var(--text-muted);">--canvas</div>
                             <div id="swatchCanvas" style="height: 32px; background: var(--canvas); border-radius: 4px; margin-top: 4px; border: 1px solid var(--border);"></div>
+                        </div>
+                    </div>
+
+                    <!-- In Situ Sample Component Preview -->
+                    <div style="padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Sample UI Card</div>
+                            <button type="button" class="btn btn-primary btn-sm">Brand Action</button>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px;">
+                            This sample component reflects your active institutional brand tokens live in real-time.
+                        </p>
+                        <div style="display: flex; gap: 8px;">
+                            <span class="badge" style="background: var(--tint-blue-bg); color: var(--tint-blue-fg); border: 1px solid var(--tint-blue-bd);">Blue Tint</span>
+                            <span class="badge" style="background: var(--surface-2); color: var(--gold); border: 1px solid var(--border);">Gold Badge</span>
                         </div>
                     </div>
                 </div>
@@ -100,6 +136,10 @@
     <script th:src="@{/js/vendor/theme-engine.iife.js}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            var dropzone = document.getElementById('dropzone');
+            var logoInput = document.getElementById('logoFileInput');
+            var statusDiv = document.getElementById('extractionStatus');
+
             var primaryPicker = document.getElementById('primaryColorPicker');
             var primaryInput = document.getElementById('primaryHexInput');
             var secondaryPicker = document.getElementById('secondaryColorPicker');
@@ -141,6 +181,109 @@
             syncInput(primaryPicker, primaryInput);
             syncInput(secondaryPicker, secondaryInput);
             syncInput(neutralPicker, neutralInput);
+
+            // ── Logo Upload & Extraction Handler ───────────────────────
+            dropzone.addEventListener('click', function() { logoInput.click(); });
+
+            ['dragenter', 'dragover'].forEach(function(evt) {
+                dropzone.addEventListener(evt, function(e) {
+                    e.preventDefault();
+                    dropzone.style.borderColor = 'var(--primary)';
+                });
+            });
+            ['dragleave', 'drop'].forEach(function(evt) {
+                dropzone.addEventListener(evt, function(e) {
+                    e.preventDefault();
+                    dropzone.style.borderColor = 'var(--border-strong)';
+                });
+            });
+
+            dropzone.addEventListener('drop', function(e) {
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            logoInput.addEventListener('change', function() {
+                if (logoInput.files && logoInput.files[0]) {
+                    handleFile(logoInput.files[0]);
+                }
+            });
+
+            function handleFile(file) {
+                // Size cap guard: 10MB
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('Image file size exceeds 10MB cap.');
+                    return;
+                }
+
+                statusDiv.style.display = 'block';
+                statusDiv.textContent = 'Extracting brand colors...';
+
+                // Direct SVG Parsing (Recommendation 1.1)
+                if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var content = e.target.result;
+                        var parser = new DOMParser();
+                        var doc = parser.parseFromString(content, 'image/svg+xml');
+                        var elements = doc.querySelectorAll('*');
+                        var colorCounts = {};
+
+                        elements.forEach(function(el) {
+                            ['fill', 'stroke', 'stop-color'].forEach(function(attr) {
+                                var val = el.getAttribute(attr);
+                                if (val && /^#[0-9A-Fa-f]{6}$/i.test(val.trim())) {
+                                    var hex = val.trim().toUpperCase();
+                                    colorCounts[hex] = (colorCounts[hex] || 0) + 1;
+                                }
+                            });
+                        });
+
+                        var sorted = Object.keys(colorCounts).sort(function(a, b) { return colorCounts[b] - colorCounts[a]; });
+                        if (sorted.length > 0) {
+                            primaryInput.value = sorted[0];
+                            primaryPicker.value = sorted[0];
+                            if (sorted.length > 1) {
+                                secondaryInput.value = sorted[1];
+                                secondaryPicker.value = sorted[1];
+                            }
+                            updateTheme();
+                            statusDiv.textContent = 'Extracted SVG brand colors!';
+                        } else {
+                            statusDiv.textContent = 'Could not find color attributes in SVG.';
+                        }
+                    };
+                    reader.readAsText(file);
+                    return;
+                }
+
+                // Image Extraction via Theme Engine ColorExtractor (Recommendation 1.2, 1.3, 1.5)
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var imageSrc = e.target.result;
+                    if (typeof ThemeEngine !== 'undefined' && ThemeEngine.ColorExtractor) {
+                        var extractor = new ThemeEngine.ColorExtractor();
+                        extractor.extractColors(imageSrc).then(function(result) {
+                            primaryInput.value = result.primary.hex;
+                            primaryPicker.value = result.primary.hex;
+
+                            secondaryInput.value = result.secondary.hex;
+                            secondaryPicker.value = result.secondary.hex;
+
+                            neutralInput.value = result.neutral.hex;
+                            neutralPicker.value = result.neutral.hex;
+
+                            updateTheme();
+                            statusDiv.textContent = 'Extracted palette via Oklab K-Means++!';
+                        }).catch(function(err) {
+                            console.error(err);
+                            statusDiv.textContent = 'Failed to extract colors from image.';
+                        });
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
 
             form.addEventListener('submit', function(e) {
                 if (!currentTokens) {
