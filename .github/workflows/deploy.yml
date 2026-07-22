@@ -34,7 +34,7 @@ jobs:
         run: cp target/unisubmit-*.jar unisubmit.jar.new
 
       - name: Copy jar to server
-        uses: appleboy/scp-action@v0.1.7
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.OCI_HOST }}
           username: ${{ secrets.OCI_USER }}
