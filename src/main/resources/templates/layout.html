@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:fragment="html(content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniSubmit</title>
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <link rel="stylesheet" th:href="@{/css/base.css}">
+    <style th:if="${themeCssBlock != null and !themeCssBlock.isEmpty()}" th:utext="${themeCssBlock}"></style>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <!-- Installable app (PWA): manifest + theme + iOS icon. SW registered in app.js. -->
+    <link rel="manifest" th:href="@{/manifest.webmanifest}">
+    <meta name="theme-color" th:content="${themeCanvasColor != null ? themeCanvasColor : '#121417'}">
+    <link rel="apple-touch-icon" th:href="@{/icons/apple-touch-icon.png}">
+    <script th:src="@{/js/app.js}" defer></script>
+    <!-- Near-instant taps: Chrome prefetches these routes on hover/first touch.
+         Allowlist ONLY safe GETs — never logout, notifications (marks read),
+         files, or heavy admin tables. -->
+    <script type="speculationrules">
+        {"prefetch":[{"source":"document","where":{"href_matches":["/student/*","/lecturer/*","/explore*","/groups*","/discover*"]},"eagerness":"moderate"}]}
+    </script>
+</head>
+<body>
+    <a class="skip-link" href="#mainContent">Skip to content</a>
+
+    <header th:replace="~{fragments/navbar :: navbar}"></header>
+
+    <main id="mainContent" class="container" th:insert="${content}">
+        <!-- Page content injected here -->
+    </main>
+
+    <footer class="app-footer">
+        <span>UniSubmit — academic submission &amp; collaboration platform</span>
+        <span class="flex items-center gap-4">
+            <a sec:authorize="isAuthenticated()" th:href="@{/explore}">Explore the archive</a>
+            <a sec:authorize="isAuthenticated()" th:href="@{/notifications}">Notifications</a>
+        </span>
+    </footer>
+
+    <nav th:replace="~{fragments/navbar :: bottomNav}"></nav>
+</body>
+</html>

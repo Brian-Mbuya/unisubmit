@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <!-- Academic location -->
+        <nav class="breadcrumb" aria-label="Academic location"
+             th:if="${submission.unit.department != null}">
+            <span th:if="${submission.unit.department.faculty != null}">
+                <span th:text="${submission.unit.department.faculty.name}">Faculty</span>
+            </span>
+            <span class="breadcrumb-sep" th:if="${submission.unit.department.faculty != null}">›</span>
+            <span th:text="${submission.unit.department.name}">Department</span>
+            <span class="breadcrumb-sep">›</span>
+            <span class="breadcrumb-current" th:text="${submission.unit.unitName}">Unit</span>
+        </nav>
+
+        <div class="page-head">
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 th:text="${submission.title}">Title</h1>
+                    <div th:replace="~{fragments/components :: statusBadge(${submission.status.name()})}"></div>
+                </div>
+                <p class="subtitle" th:text="${submission.unit.unitName + ' · ' + submission.unit.department.name}">Unit</p>
+            </div>
+            <div class="page-head-actions flex items-center gap-2">
+                <button type="button" class="btn btn-secondary btn-share" th:attr="data-share-title=${submission.title}" hidden>
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5z"/></svg>
+                    <span class="btn-share-label">Share</span>
+                </button>
+                <a th:href="@{/student/dashboard}" class="btn btn-secondary">Back</a>
+            </div>
+        </div>
+
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+        <div class="page-grid">
+            <!-- ── Main column: one surface, three quiet sections ──────── -->
+            <div class="page-main">
+                <div class="card card-stack">
+
+                    <!-- Primary action: move the work forward -->
+                    <section class="card-section" th:if="${submission.status.name() != 'APPROVED'}">
+                        <div class="card-head"><h2>Upload a new version</h2></div>
+                        <form th:action="@{'/student/submission/' + ${submission.id} + '/version'}" method="post" enctype="multipart/form-data"
+                              data-loading-submit="Uploading…">
+                            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <div class="form-group">
+                                <input type="text" name="changesSummary" class="form-control" maxlength="500"
+                                       placeholder="What changed? (optional)">
+                            </div>
+                            <div class="flex gap-2 items-center flex-wrap">
+                                <input type="file" name="file" class="form-control upload-input"
+                                       required accept=".pdf,.doc,.docx,.txt,.odt">
+                                <button type="submit" class="btn">Upload version</button>
+                            </div>
+                            <div class="field-hint">PDF, DOC, DOCX, TXT or ODT · max 25 MB</div>
+                        </form>
+                    </section>
+
+                    <section class="card-section accent-green" th:if="${submission.status.name() == 'APPROVED'}">
+                        <strong class="text-sm">Approved — uploads closed.</strong>
+                    </section>
+
+                    <!-- Document intelligence -->
+                    <section class="card-section">
+                        <div class="card-head">
+                            <h2>AI insights</h2>
+                            <span th:if="${submission.aiInsight != null}"
+                                  th:class="'badge badge-' + ${#strings.toLowerCase(submission.aiInsight.status.name())}"
+                                  th:text="${submission.aiInsight.status.name()}">STATUS</span>
+                        </div>
+                        <div th:replace="~{fragments/components :: aiInsightPanel(${submission.aiInsight})}"></div>
+
+                        <div th:if="${submission.aiInsight != null and (submission.aiInsight.status.name() == 'COMPLETED' or submission.aiInsight.status.name() == 'DEGRADED')}"
+                             class="flex justify-end mt-4 ai-rerun-row">
+                            <form th:action="@{'/student/submission/' + ${submission.id} + '/retry-analysis'}" method="post">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <button type="submit" class="btn btn-secondary btn-sm">Re-run AI analysis</button>
+                            </form>
+                        </div>
+                    </section>
+
+                    <!-- Six-signal recommendations, where the work happens -->
+                    <section class="card-section">
+                        <div class="card-head">
+                            <h2>Related work</h2>
+                        </div>
+                        <div th:replace="~{fragments/components :: similarProjectsPanel(${similarSubmissions}, ${requestStatusesBySubmissionId}, false)}"></div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- ── Rail: facts, history, reviewers — one quiet surface ─── -->
+            <aside class="page-rail" aria-label="Submission metadata">
+                <div class="card card-stack">
+
+                    <section class="card-section">
+                        <div class="card-head"><h2>Details</h2></div>
+                        <div class="info-row">
+                            <span class="label">Department</span>
+                            <span th:text="${submission.unit.department.name + ' — ' + (submission.curriculum != null and submission.curriculum.programme != null ? submission.curriculum.programme.name : '—')}">Dept</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Lecturer</span>
+                            <span>
+                                <span th:if="${not #lists.isEmpty(submission.unit.lecturers)}"
+                                      th:text="${submission.unit.lecturers[0].name}">Lecturer</span>
+                                <span th:if="${#lists.isEmpty(submission.unit.lecturers)}" class="text-warning">Not yet assigned</span>
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Created</span>
+                            <span th:text="${#temporals.format(submission.createdAt, 'dd MMM yyyy, HH:mm')}">Date</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Last updated</span>
+                            <span th:text="${#temporals.format(submission.updatedAt, 'dd MMM yyyy, HH:mm')}">Date</span>
+                        </div>
+                        <div class="info-row" th:if="${submission.helpWanted != null and !submission.helpWanted.isBlank()}">
+                            <span class="label">Looking for</span>
+                            <span class="text-muted" th:text="${submission.helpWanted}">help wanted</span>
+                        </div>
+                    </section>
+
+                    <section class="card-section">
+                        <details class="rail-collapse" open>
+                            <summary>
+                                <div class="card-head">
+                                    <h2>Version history</h2>
+                                    <span class="text-xs text-subtle"
+                                          th:text="${#lists.size(submission.versions)} + ' total'">0 total</span>
+                                </div>
+                            </summary>
+                            <div th:replace="~{fragments/components :: feedbackTimeline(${submission.versions}, false)}"></div>
+                        </details>
+                    </section>
+
+                    <section class="card-section">
+                        <details class="rail-collapse" open>
+                            <summary><div class="card-head"><h2>Suggested reviewers</h2></div></summary>
+                            <div th:replace="~{fragments/components :: lecturerMatchesPanel(${lecturerMatches})}"></div>
+                        </details>
+                    </section>
+                </div>
+            </aside>
+        </div>
+    </div>
+</body>
+</html>

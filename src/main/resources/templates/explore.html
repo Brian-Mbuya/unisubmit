@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+<div>
+    <!-- Hero -->
+    <div class="explore-hero aurora">
+        <h1>Explore</h1>
+
+        <form th:action="@{/explore}" method="get" class="search-page-form" role="search">
+            <input type="hidden" name="tab" value="search">
+            <div class="search-field">
+                <svg class="search-glyph" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                </svg>
+                <input type="text" name="q" th:value="${query}" class="form-control search-page-input"
+                       placeholder="Search projects&#x2026;"
+                       autofocus autocomplete="off">
+            </div>
+            <button type="submit" class="btn">Search</button>
+        </form>
+
+        <!-- Tabs -->
+        <div class="explore-tabs">
+            <a th:href="@{/explore(tab='search')}"
+               th:classappend="${activeTab == 'search'} ? ' explore-tab-active' : ''"
+               class="explore-tab" id="tab-search-link">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                </svg>
+                Search
+            </a>
+            <a sec:authorize="hasRole('STUDENT')"
+               th:href="@{/explore(tab='discover')}"
+               th:classappend="${activeTab == 'discover'} ? ' explore-tab-active' : ''"
+               class="explore-tab" id="tab-discover-link">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0zm.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
+                </svg>
+                Discover
+                <span class="tab-count" th:if="${totalCount > 0}" th:text="${totalCount}">0</span>
+            </a>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+    <!-- SEARCH TAB (no sidebar) -->
+    <div th:if="${activeTab == 'search'}">
+        <div th:if="${query.isEmpty()}" class="empty-state">
+            <div th:replace="~{fragments/components :: emptyGlyph('compass')}"></div>
+            <p>Search the archive.</p>
+        </div>
+
+        <div th:if="${!query.isEmpty() and #lists.isEmpty(hits)}" class="empty-state">
+            <div th:replace="~{fragments/components :: emptyGlyph('compass')}"></div>
+            <p>No matches — try broader terms.</p>
+        </div>
+
+        <div th:if="${not #lists.isEmpty(hits)}" class="card card-pad-0">
+            <div class="card-head">
+                <h2 th:text="${#lists.size(hits)} + (${#lists.size(hits) == 1} ? ' result' : ' results') + ' for &quot;' + ${query} + '&quot;'">Results</h2>
+            </div>
+            <div class="row-list">
+                <div th:each="hit : ${hits}" class="list-row">
+                    <div class="list-row-main">
+                        <a class="list-row-title" th:href="@{'/projects/' + ${hit.submission.id}}"
+                           th:text="${hit.submission.title}">Title</a>
+                        <div class="meta-line">
+                            <span class="meta-item" th:if="${hit.submission.unit != null}"
+                                  th:text="${hit.submission.unit.unitName}">Unit</span>
+                            <span class="meta-item text-subtle"
+                                  th:text="${hit.submission.student.name}">Student</span>
+                            <span th:if="${hit.semanticMatch}" class="chip chip-gold">semantic</span>
+                        </div>
+                        <p class="text-sm text-muted mt-2 recommendation-summary" th:text="${hit.snippet}">Snippet</p>
+                    </div>
+                    <div class="list-row-side">
+                        <div th:replace="~{fragments/components :: statusBadge(${hit.submission.status.name()})}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DISCOVER TAB (students only — panel + opt-in rail gated together) -->
+    <div sec:authorize="hasRole('STUDENT')" th:if="${activeTab == 'discover'}" class="page-grid">
+        <div class="page-main">
+
+            <div th:if="${!discoverable}" class="empty-state">
+                <div th:replace="~{fragments/components :: emptyGlyph('compass')}"></div>
+                <p>Discovery is off — opt in to see matches.</p>
+            </div>
+
+            <div th:if="${discoverable and totalCount == 0}" class="empty-state">
+                <div th:replace="~{fragments/components :: emptyGlyph('compass')}"></div>
+                <p>No matches yet.</p>
+            </div>
+
+            <div th:if="${discoverable and totalCount > 0}">
+                <p class="text-sm text-muted mb-4" th:text="${totalCount} + ' match' + (${totalCount == 1} ? '' : 'es')">n matches</p>
+
+                <div th:each="group : ${grouped}" class="mb-6">
+                    <div class="section-divider">
+                        <h2 th:text="${group.key}">Type</h2>
+                    </div>
+
+                    <div class="recommendation-list">
+                        <div th:each="o : ${group.value}" class="recommendation-card collab-card">
+                            <div class="recommendation-head">
+                                <div class="list-row-main">
+                                    <a class="list-row-title" th:href="@{'/projects/' + ${o.partner.id}}"
+                                       th:text="${o.partner.title}">Partner project</a>
+                                    <div class="text-xs text-muted mt-1">
+                                        <span th:text="${o.partner.student.name}">Student</span>
+                                        <span th:if="${o.partnerDepartment != null}"
+                                              th:text="' &middot; ' + ${o.partnerDepartment}"> &middot; Dept</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-2">
+                                    <span class="match-pill"
+                                          th:classappend="${o.value.name() == 'HIGH' ? 'match-pill-strong' : (o.value.name() == 'MEDIUM' ? 'match-pill-related' : 'match-pill-weak')}"
+                                          th:text="${o.value.name() == 'HIGH' ? 'High-value' : (o.value.name() == 'MEDIUM' ? 'Good match' : 'Shortlisted')}">
+                                        value</span>
+                                    <span th:if="${o.crossDepartment()}" class="chip chip-gold">Cross-dept</span>
+                                    <!-- B6d: mentorship runs one way — say which way. -->
+                                    <span th:if="${o.mentorLabel != null}" class="chip chip-gold"
+                                          th:text="${o.mentorLabel}">Mentor</span>
+                                </div>
+                            </div>
+
+                            <!-- B6a: why this pair surfaced, in the viewer's own terms -->
+                            <div th:if="${o.reason != null}" class="match-reason mt-2">
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                    <path d="M8 1.5a5.5 5.5 0 0 0-3.09 10.05c.34.24.59.62.59 1.05v.4h5v-.4c0-.43.25-.81.59-1.05A5.5 5.5 0 0 0 8 1.5zM6 14.5A1.5 1.5 0 0 0 7.5 16h1a1.5 1.5 0 0 0 1.5-1.5v-.5h-4v.5z"/>
+                                </svg>
+                                <span th:text="${o.reason}">Reason</span>
+                            </div>
+
+                            <!-- What the partner says they're looking for -->
+                            <div th:if="${o.partner.helpWanted != null and !o.partner.helpWanted.isBlank()}"
+                                 class="text-xs text-muted mt-2"
+                                 th:text="'Looking for: ' + ${o.partner.helpWanted}">Looking for</div>
+
+                            <!-- AI pitch -->
+                            <div th:if="${o.pitch != null}" class="assistant-callout mt-4">
+                                <p class="assistant-callout-text" th:text="${o.pitch}">Pitch</p>
+                            </div>
+
+                            <!-- What each side brings -->
+                            <div th:if="${o.youGain != null or o.theyGain != null}" class="collab-gains mt-4">
+                                <div th:if="${o.youGain != null}" class="collab-gain">
+                                    <span class="collab-gain-label">You bring</span>
+                                    <span th:text="${o.youGain}">brings</span>
+                                </div>
+                                <div th:if="${o.theyGain != null}" class="collab-gain">
+                                    <span class="collab-gain-label" th:text="${o.partner.student.name} + ' brings'">They bring</span>
+                                    <span th:text="${o.theyGain}">brings</span>
+                                </div>
+                            </div>
+
+                            <!-- B6b: the concrete thing they could build together -->
+                            <div th:if="${o.complementaryGaps != null}" class="text-sm text-muted mt-2"
+                                 th:text="'Together: ' + ${o.complementaryGaps}">Joint idea</div>
+
+                            <!-- Actions -->
+                            <div class="flex flex-wrap gap-2 items-center mt-4">
+                                <a th:href="@{'/projects/' + ${o.partner.id}}" class="btn btn-secondary btn-sm">View project</a>
+
+                                <form th:if="${!o.requestAlreadySent}" th:action="@{/student/collaboration-requests}"
+                                      method="post" class="inline-form">
+                                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="submissionId" th:value="${o.partner.id}">
+                                    <input type="hidden" name="message"
+                                           th:value="${o.pitch != null
+                                                     ? ('Hi ' + o.partner.student.name + ' — UniSubmit suggested we connect. ' + o.pitch)
+                                                     : ('Hi ' + o.partner.student.name + ', I found your project through UniSubmit and think we could collaborate.')}">
+                                    <button type="submit" class="btn btn-accent btn-sm">Connect</button>
+                                </form>
+                                <span th:if="${o.requestAlreadySent}" class="badge badge-review">Sent</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="page-rail" aria-label="Discovery settings">
+            <div class="card discover-visibility">
+                <div class="card-head">
+                    <h2>Discoverable</h2>
+                    <span class="badge" th:classappend="${discoverable} ? 'badge-approved' : 'badge-archived'"
+                          th:text="${discoverable} ? 'On' : 'Off'">On</span>
+                </div>
+                <form th:action="@{/discover/visibility}" method="post" class="inline-form">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <input type="hidden" name="discoverable" th:value="${discoverable} ? 'false' : 'true'">
+                    <button type="submit"
+                            th:classappend="${discoverable} ? 'btn-secondary' : 'btn-accent'"
+                            class="btn btn-sm"
+                            th:text="${discoverable} ? 'Opt out' : 'Opt in'">Toggle</button>
+                </form>
+            </div>
+        </aside>
+    </div>
+</div>
+</body>
+</html>

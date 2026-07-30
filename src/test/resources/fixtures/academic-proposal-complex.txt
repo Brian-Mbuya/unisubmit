@@ -1,0 +1,39 @@
+TITLE OF THE PROJECT PROPOSAL: INTELLIGENT URBAN MOBILITY: A SPATIO-TEMPORAL DEEP LEARNING FRAMEWORK FOR DYNAMIC ROAD TRAFFIC FORECASTING AND ROUTING OPTIMIZATION
+SUBMITTED BY: JANE SMITH (STUDENT ID: S002)
+DEPARTMENT OF COMPUTER SCIENCE, SCHOOL OF COMPUTING AND INFORMATICS
+UNIVERSITY OF TECHNOLOGY AND ADVANCED STUDIES
+IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR THE DEGREE OF BACHELOR OF SCIENCE IN COMPUTER SCIENCE
+DATE: JUNE 30, 2026
+
+DECLARATION
+I hereby declare that this project proposal represents my own work and has been composed in accordance with the academic regulations of the University.
+Signed: Jane Smith
+
+DEDICATION
+Dedicated to my family and mentors who have supported me in all academic endeavors.
+
+ACKNOWLEDGEMENT
+I would like to express my deep gratitude to my supervisor, Dr. Elizabeth Vance, and the department faculty for their continuous guidance, technical feedback, and support throughout this research.
+
+In the contemporary landscape of smart cities, transportation networks serve as the critical circulatory system of urban environments. As metropolitan areas expand, the complexity of managing vehicular flow grows exponentially. Traditional traffic analytics rely heavily on inductive loop detectors and static forecasting, which struggle to scale and fail to capture multi-layered spatial and temporal dependencies.
+
+This work addresses the intersection of deep learning, internet of things (IoT) edge sensors, and graph theory. By modeling the physical road network as a dynamic graph, we can capture not only time-series trends but also spatial relationships between adjacent intersections.
+
+--- CORE PROJECT DESCRIPTION (START OF ANALYZED CONTENT) ---
+ABSTRACT
+The accelerating pace of urbanization has exacerbated traffic congestion, leading to massive delays, increased carbon emissions, and severe economic inefficiencies. This project proposes an advanced IoT-enabled spatio-temporal deep learning framework to predict short-term traffic flow and optimize routing decisions dynamically in real time. We utilize street-level IoT sensor arrays to gather high-fidelity speed, occupancy, and vehicle count metrics, supplemented by geospatial network topologies. The core predictive engine leverages a hybrid Spatio-Temporal Graph Convolutional Network (ST-GCN) coupled with attention-based Recurrent Neural Networks (LSTMs/Transformers) to capture both spatial dependencies and temporal dynamics.
+
+PROBLEM STATEMENT
+Modern urban traffic management systems are constrained by static scheduling models, localized historical data, and a failure to dynamically respond to sudden bottlenecks or cascading congestion. Existing solutions lack the decentralized, low-latency framework required to forecast traffic state transitions before they propagate through the road network, preventing optimal real-time alternative routing for commuter navigation.
+
+OBJECTIVES
+1. Develop and deploy a distributed sensor telemetry ingestion pipeline using MQTT and Apache Kafka.
+2. Design and train a hybrid Spatio-Temporal Graph Convolutional Network (ST-GCN) and LSTM model to forecast traffic volume, speed, and congestion indexes.
+3. Formulate a predictive route-planning service using an optimized A* and Dijkstra search algorithm dynamically weighted by neural network congestion predictions.
+4. Implement a responsive, map-centric web dashboard for real-time commuter alerts and traffic authority visualization using Next.js, React, TailwindCSS, and Mapbox GL.
+
+TECHNOLOGIES
+The system will be implemented using Python for data engineering and deep learning modeling (TensorFlow, PyTorch, PyTorch Geometric, and Keras). The backend microservices will be built on Spring Boot, Java, and Hibernate, communicating with PostgreSQL (with TimescaleDB for time-series metrics). Message queue telemetry will be managed using Apache Kafka and Eclipse Mosquitto (MQTT). The frontend visualization system will be built with React, Next.js, and TailwindCSS, utilizing Mapbox GL for interactive geospatial rendering.
+
+RESEARCH AREAS
+The research falls under the domains of Smart Cities, Deep Learning, Graph Neural Networks, and Intelligent Transportation Systems (ITS).

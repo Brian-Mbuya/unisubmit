@@ -1,0 +1,39 @@
+TITLE OF THE PROJECT PROPOSAL: IOT-BASED DEEP LEARNING SYSTEM FOR ROAD TRAFFIC FORECASTING
+SUBMITTED BY: JOHN DOE (STUDENT ID: S001)
+DEPARTMENT OF COMPUTER SCIENCE, SCHOOL OF COMPUTING AND INFORMATICS
+UNIVERSITY OF TECHNOLOGY AND ADVANCED STUDIES
+IN PARTIAL FULFILLMENT OF THE REQUIREMENTS FOR THE DEGREE OF BACHELOR OF SCIENCE IN COMPUTER SCIENCE
+DATE: JUNE 29, 2026
+
+DECLARATION
+I hereby declare that this project proposal is my original work and has not been submitted elsewhere for any academic qualification.
+Signed: John Doe
+
+DEDICATION
+This work is dedicated to my parents and teachers for their endless support and guidance throughout my academic journey.
+
+ACKNOWLEDGEMENT
+I would like to express my gratitude to my supervisor, Dr. Smith, for his invaluable guidance, critiques, and encouragement.
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris. Integer in mauris eu nibh euismod gravida. Duis ac tellus. Donec feugiat Aliquam erat volutpat. Mauris vel turpis. Aliquam convallis sollicitudin purus. Praesent eget sem vel leo ultrices bibendum. Aenean faucibus. Morbi dolor nulla, malesuada non, elementum non, condimentum vel, sapien. Curabitur lacing.
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+--- CORE PROJECT DESCRIPTION (START OF ANALYZED CONTENT) ---
+ABSTRACT
+The rapid growth of urban populations has led to significant traffic congestion in major cities. This project proposes an IoT-based deep learning system designed to predict traffic volume and optimize routing decisions in real time. We utilize street-level IoT sensor arrays to gather speed, occupancy, and vehicle count data.
+
+PROBLEM STATEMENT
+Traditional traffic management systems rely on static timer models and historical data, which fail to adapt to dynamic road conditions, leading to excessive delays, greenhouse gas emissions, and economic losses. There is a critical lack of decentralized, real-time prediction frameworks that can forecast congestion before it occurs and dynamically suggest alternative pathways.
+
+OBJECTIVES
+1. Deploy real-time street sensor simulation streams using MQTT.
+2. Develop a Long Short-Term Memory (LSTM) recurrent neural network model to predict congestion.
+3. Construct a dynamic routing API using Dijkstra's algorithm optimized with prediction scores.
+4. Implement a responsive web interface for commuter alerts and traffic authority visualization.
+
+TECHNOLOGIES
+The system will be implemented using Python for data preprocessing and LSTM model training, utilizing TensorFlow and Keras. The backend infrastructure will be built on Spring Boot and Java, communicating with H2 Database for local relational storage. MQTT broker (Eclipse Mosquitto) will handle sensor streams, and the frontend will use React with TailwindCSS.
+
+RESEARCH AREAS
+The research falls under the domains of Smart Cities, Distributed Systems, and Deep Learning.

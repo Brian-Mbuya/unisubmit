@@ -1,0 +1,21 @@
+[Unit]
+Description=UniSubmit (Spring Boot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=unisubmit
+Group=unisubmit
+WorkingDirectory=/opt/unisubmit
+EnvironmentFile=/etc/unisubmit.env
+# JAVA_OPTS comes from the env file (heap size etc.); sh -c lets it expand.
+ExecStart=/bin/sh -c '/usr/bin/java $JAVA_OPTS -jar /opt/unisubmit/unisubmit.jar'
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=5
+# Spring Boot + Tika can be slow to start on a small VM.
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

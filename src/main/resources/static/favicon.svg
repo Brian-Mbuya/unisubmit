@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- UniSubmit mark — "the completed U".
+       A single ivory U whose right stem stops short; one brass node finishes it.
+       The gap is the point of connection — the platform completes the match.
+       Jade #2e8f7f · ivory #f2efe6 · brass #e0be7e -->
+  <rect width="100" height="100" rx="22" fill="#2e8f7f"/>
+  <path d="M34 30v26c0 12.5 32 12.5 32 0V45" fill="none" stroke="#f2efe6" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="66" cy="30" r="6" fill="#e0be7e"/>
+</svg>

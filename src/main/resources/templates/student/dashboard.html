@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div th:with="approved=${submissions.?[status.name() == 'APPROVED']},
+                  changes=${submissions.?[status.name() == 'REJECTED']},
+                  active=${submissions.?[status.name() == 'SUBMITTED' or status.name() == 'UNDER_REVIEW']}">
+
+        <!-- Newest unit notice greets the student on login (dismiss per session) -->
+        <th:block th:replace="~{fragments/components :: announcementPopup(${latestNotice})}"></th:block>
+
+        <div class="page-head page-head--greeting">
+            <div>
+                <h1 th:text="${greeting} + ', ' + ${currentFirstName}">Good morning</h1>
+            </div>
+            <div class="page-head-actions">
+                <a th:href="@{/student/submission/new}" class="btn" id="newSubmissionBtn">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M7.25 7.25V1.75a.75.75 0 0 1 1.5 0v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5h-5.5a.75.75 0 0 1 0-1.5z"/></svg>
+                    New submission
+                </a>
+            </div>
+        </div>
+
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+        <!-- Success moment: shown once, right after a new submission lands -->
+        <div th:if="${submissionReceived}" class="success-moment" role="status">
+            <svg class="success-check" width="34" height="34" viewBox="0 0 34 34" fill="none" aria-hidden="true">
+                <circle class="success-check-ring" cx="17" cy="17" r="15" stroke-width="2"/>
+                <path class="success-check-path" d="M10.5 17.5l4.5 4.5 8.5-9.5" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>
+                <strong class="success-moment-title">Submission received.</strong>
+                <p class="success-moment-text">
+                    <span th:text="'&quot;' + ${submissionReceived} + '&quot;'">"Your project"</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- First-run empty state -->
+        <div th:if="${#lists.isEmpty(submissions)}" class="empty-state">
+            <div th:replace="~{fragments/components :: emptyGlyph('folder')}"></div>
+            <h3>No projects yet</h3>
+            <a th:href="@{/student/submission/new}" class="btn mt-4">New submission</a>
+        </div>
+
+        <div th:if="${not #lists.isEmpty(submissions)}" class="page-grid">
+
+            <!-- ── Main column: the work queue ─────────────────────────── -->
+            <div class="page-main">
+
+                <div class="subnav subnav-flush">
+                    <div class="subnav-group filter-bar">
+                        <button class="filter-btn active" data-submission-filter="all">All</button>
+                        <button class="filter-btn" data-submission-filter="draft">Draft</button>
+                        <button class="filter-btn" data-submission-filter="proposal">Proposal</button>
+                        <button class="filter-btn" data-submission-filter="submitted">Submitted</button>
+                        <button class="filter-btn" data-submission-filter="under_review">Under review</button>
+                        <button class="filter-btn" data-submission-filter="approved">Approved</button>
+                        <button class="filter-btn" data-submission-filter="final">Final</button>
+                        <button class="filter-btn" data-submission-filter="rejected">Changes requested</button>
+                        <button class="filter-btn" data-submission-filter="archived">Archived</button>
+                    </div>
+                </div>
+
+                <div class="card card-pad-0">
+                    <div id="submissionsList" class="row-list">
+                        <div th:each="sub : ${submissions}" class="list-row submission-card"
+                             th:attr="data-status=${#strings.toLowerCase(sub.status.name())}">
+                            <div class="list-row-main">
+                                <a class="list-row-title" th:href="@{'/student/submission/' + ${sub.id}}" th:text="${sub.title}">Title</a>
+                                <span class="badge badge-draft ml-2"
+                                      th:if="${sub.projectGroup != null}"
+                                      th:text="${sub.projectGroup.name}">Group</span>
+                                <div class="meta-line">
+                                    <span class="meta-item">
+                                        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.75 2.5h3.586c.464 0 .909.184 1.237.513l.914.914c.14.141.331.22.53.22h6.233c.966 0 1.75.784 1.75 1.75v6.353a1.75 1.75 0 0 1-1.75 1.75H1.75A1.75 1.75 0 0 1 0 12.25v-8C0 3.284.784 2.5 1.75 2.5z"/></svg>
+                                        <span th:text="${sub.unit.unitName}">Unit</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <span th:if="${not #lists.isEmpty(sub.unit.lecturers)}" th:text="${sub.unit.lecturers[0].name}">Lecturer</span>
+                                        <span th:if="${#lists.isEmpty(sub.unit.lecturers)}" class="text-warning">No lecturer assigned</span>
+                                    </span>
+                                    <span class="meta-item" th:if="${sub.aiInsight != null and sub.aiInsight.status.name() != 'COMPLETED'}">
+                                        <span class="inline-flex items-center gap-1">
+                                            <span class="dot" th:classappend="'dot-' + ${#strings.toLowerCase(sub.aiInsight.status.name())}"></span>
+                                            <span th:text="${sub.aiInsight.status.name() == 'FAILED' ? 'AI failed' : (sub.aiInsight.status.name() == 'DEGRADED' ? 'Basic summary' : 'AI analysing')}">AI</span>
+                                        </span>
+                                    </span>
+                                    <span th:if="${sub.unit != null and sub.unit.daysToDeadline != null}"
+                                          th:with="daysLeft=${sub.unit.daysToDeadline}"
+                                          class="deadline-tag"
+                                          th:classappend="${daysLeft < 0 ? 'overdue' : ''}"
+                                          th:text="${daysLeft < 0 ? 'OVERDUE' : (daysLeft == 0 ? 'Due today' : 'Due in ' + daysLeft + 'd')}">Deadline</span>
+                                </div>
+                            </div>
+                            <div class="list-row-side">
+                                <div th:replace="~{fragments/components :: statusBadge(${sub.status.name()})}"></div>
+                                <span class="text-xs text-subtle" th:text="'Updated ' + ${#temporals.format(sub.updatedAt, 'dd MMM yyyy')}">Date</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter empty state (app.js toggles) -->
+                    <div id="filterEmptyState" class="empty-state" hidden>
+                        <p>Nothing matches this filter.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Rail: status, attention, shortcuts ──────────────────── -->
+            <aside class="page-rail" aria-label="Project overview">
+
+                <div class="card accent-danger" th:if="${changes.size() > 0}">
+                    <p class="text-sm no-margin">
+                        <strong th:text="${changes.size()}">1</strong>
+                        <span th:text="${changes.size() == 1 ? ' project needs changes.' : ' projects need changes.'}"> project needs changes.</span>
+                    </p>
+                </div>
+
+                <div class="bento" aria-label="At a glance">
+                    <div class="bento-tile">
+                        <span class="bento-num" th:text="${#lists.size(submissions)}">0</span>
+                        <span class="bento-label">Total projects</span>
+                    </div>
+                    <div class="bento-tile">
+                        <span class="bento-num is-amber" th:text="${active.size()}">0</span>
+                        <span class="bento-label">In review</span>
+                    </div>
+                    <div class="bento-tile">
+                        <span class="bento-num is-green" th:text="${approved.size()}">0</span>
+                        <span class="bento-label">Approved</span>
+                    </div>
+                    <div class="bento-tile">
+                        <span class="bento-num is-red" th:text="${changes.size()}">0</span>
+                        <span class="bento-label">Changes</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+</body>
+</html>

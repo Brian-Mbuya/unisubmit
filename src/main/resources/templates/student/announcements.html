@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html th:replace="~{layout :: html(content=~{::div})}">
+<body>
+    <div>
+        <div class="page-head">
+            <div>
+                <h1>Assignments &amp; notices</h1>
+            </div>
+        </div>
+
+        <div th:replace="~{fragments/alerts :: alerts}"></div>
+
+        <div class="page-grid">
+            <!-- ── Main: assignments (things with deadlines) ───────────── -->
+            <div class="page-main">
+                <div class="card card-pad-0">
+                    <div class="card-head">
+                        <h2>Assignments</h2>
+                        <span class="badge badge-submitted"
+                              th:with="open=${assignments.?[deadline == null or #temporals.createNow().isBefore(deadline) or lateWindowOpen]}"
+                              th:text="${#lists.size(open)} + ' open'">0 open</span>
+                    </div>
+
+                    <div class="table-wrap table-stack">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Unit</th>
+                                    <th>Assignment</th>
+                                    <th>Lecturer</th>
+                                    <th>Deadline</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="ann : ${assignments}">
+                                    <td>
+                                        <strong class="text-accent text-sm" th:text="${ann.unit.unitCode}">CS101</strong>
+                                        <span class="text-muted text-xs block" th:text="${ann.unit.unitName}">Unit Name</span>
+                                    </td>
+                                    <td class="stack-full">
+                                        <div class="fw-600 text-sm" th:text="${ann.title}">Assignment Title</div>
+                                        <div class="text-muted text-xs mt-1 message-box" style="max-width: 420px;"
+                                             th:text="${ann.message}">Description</div>
+                                    </td>
+                                    <td th:text="${ann.lecturer.name}">Dr. Jane Doe</td>
+                                    <td>
+                                        <div th:if="${ann.deadline != null}"
+                                             class="deadline-tag"
+                                             th:classappend="${#temporals.createNow().isAfter(ann.deadline) ? 'overdue' : ''}">
+                                            <span th:text="${#temporals.format(ann.deadline, 'dd MMM yyyy, HH:mm')}">Date</span>
+                                        </div>
+                                        <div th:if="${ann.deadline != null and #temporals.createNow().isAfter(ann.deadline) and ann.lateWindowOpen}"
+                                             class="text-xs mt-1 text-accent fw-600">
+                                            Late window open
+                                        </div>
+                                        <span th:if="${ann.deadline == null}" class="text-muted text-xs italic">No deadline set</span>
+                                    </td>
+                                    <td class="text-right">
+                                        <span th:if="${ann.deadline != null and #temporals.createNow().isAfter(ann.deadline) and !ann.lateWindowOpen}"
+                                              class="text-danger text-xs fw-600">Submissions closed</span>
+                                        <a th:if="${ann.deadline == null || not #temporals.createNow().isAfter(ann.deadline)}"
+                                           th:href="@{/student/submission/new(unitId=${ann.unit.id})}"
+                                           class="btn btn-sm">
+                                            Submit work
+                                        </a>
+                                        <a th:if="${ann.deadline != null and #temporals.createNow().isAfter(ann.deadline) and ann.lateWindowOpen}"
+                                           th:href="@{/student/submission/new(unitId=${ann.unit.id})}"
+                                           class="btn btn-sm btn-secondary">
+                                            Submit late
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr th:if="${assignments.empty}">
+                                    <td colspan="5">
+                                        <div class="empty-state">
+                                            <h3>No pending assignments</h3>
+                                            <p>Any assignments posted by your unit lecturers will appear here.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Rail: general notices feed ──────────────────────────── -->
+            <aside class="page-rail" aria-label="General notices">
+                <div class="card">
+                    <div class="card-head">
+                        <h2>General notices</h2>
+                        <span class="badge badge-draft" th:text="${#lists.size(generalAnnouncements)}">0</span>
+                    </div>
+
+                    <div th:if="${generalAnnouncements.empty}" class="empty-state empty-state-compact text-sm">
+                        Information bulletins posted by your lecturers will appear here.
+                    </div>
+
+                    <div class="flex flex-col gap-4" th:if="${not generalAnnouncements.empty}">
+                        <div th:each="ann : ${generalAnnouncements}" class="muted-panel">
+                            <div class="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                                <strong class="text-accent text-sm" th:text="${ann.unit.unitCode}">CS101</strong>
+                                <span class="text-xs text-subtle" th:text="${#temporals.format(ann.createdAt, 'dd MMM yyyy')}">Date</span>
+                            </div>
+                            <div class="fw-600 text-sm" th:text="${ann.title}">Title</div>
+                            <p class="text-muted text-xs mt-1 message-box" th:text="${ann.message}">Message body</p>
+                            <div class="text-xs text-subtle mt-2" th:text="'Posted by ' + ${ann.lecturer.name}">Lecturer</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+    </div>
+</body>
+</html>

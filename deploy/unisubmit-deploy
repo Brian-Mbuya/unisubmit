@@ -1,0 +1,31 @@
+#!/bin/bash
+# Installed to /usr/local/bin/unisubmit-deploy (root-owned, 0755).
+# Run by CI as: sudo /usr/local/bin/unisubmit-deploy
+# Moves the JAR that CI staged into place, restarts the service, waits for health.
+set -euo pipefail
+
+STAGE=/home/ubuntu/unisubmit.jar.new
+DEST=/opt/unisubmit/unisubmit.jar
+
+if [[ ! -f "$STAGE" ]]; then
+  echo "ERROR: no staged jar at $STAGE" >&2
+  exit 1
+fi
+
+install -o unisubmit -g unisubmit -m 644 "$STAGE" "$DEST"
+rm -f "$STAGE"
+
+systemctl restart unisubmit
+
+# Wait up to ~60s for the app to report healthy.
+for _ in $(seq 1 30); do
+  if curl -fsS http://127.0.0.1:8080/health >/dev/null 2>&1; then
+    echo "OK: unisubmit is healthy"
+    exit 0
+  fi
+  sleep 2
+done
+
+echo "ERROR: health check did not pass within 60s. Recent logs:" >&2
+journalctl -u unisubmit --no-pager -n 40 >&2 || true
+exit 1

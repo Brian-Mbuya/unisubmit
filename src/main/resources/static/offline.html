@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You're offline — UniSubmit</title>
+    <meta name="theme-color" content="#121417">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <!-- Fully self-contained: this page is precached and must render with no
+         network and no external stylesheet. -->
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; }
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            background: #121417;
+            color: #eae7e0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+        }
+        .mark { border-radius: 13px; box-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 3px 14px rgba(0,0,0,0.22); margin-bottom: 1.75rem; }
+        .code {
+            font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em;
+            text-transform: uppercase; color: #cda660; margin-bottom: 0.8rem;
+        }
+        h1 {
+            font-family: Georgia, 'Times New Roman', serif;
+            font-size: clamp(1.6rem, 5vw, 2.1rem);
+            line-height: 1.2; font-weight: 600; margin-bottom: 0.75rem;
+        }
+        p.lead { color: #a8a399; max-width: 44ch; font-size: 0.95rem; margin: 0 auto 1.75rem; }
+        button {
+            display: inline-flex; align-items: center; justify-content: center;
+            min-height: 44px; padding: 0.6rem 1.3rem;
+            border: 1px solid transparent; border-radius: 4px;
+            background: #2e8f7f; color: #fff;
+            font: inherit; font-size: 0.875rem; font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover { background: #26786b; }
+        .foot { margin-top: 2.75rem; font-size: 0.76rem; color: #7d7973; }
+    </style>
+</head>
+<body>
+    <svg class="mark" viewBox="0 0 100 100" aria-hidden="true" width="52" height="52">
+        <!-- The "completed U" mark — kept in sync with fragments/components.html :: brandMark -->
+        <rect width="100" height="100" rx="22" fill="#2e8f7f"/>
+        <path d="M34 30v26c0 12.5 32 12.5 32 0V45" fill="none" stroke="#f2efe6" stroke-width="12" stroke-linecap="round"/>
+        <circle cx="66" cy="30" r="6" fill="#e0be7e"/>
+    </svg>
+
+    <p class="code">Offline</p>
+    <h1>No connection right now.</h1>
+    <p class="lead">
+        Your work is safe on the server — nothing was lost.
+        Reconnect when you can and pick up exactly where you left off.
+    </p>
+    <button type="button" onclick="location.reload()">Try again</button>
+    <p class="foot">UniSubmit — academic submission &amp; collaboration platform</p>
+</body>
+</html>

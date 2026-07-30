@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS announcements (
+  id BIGSERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  lecturer_id BIGINT NOT NULL REFERENCES users(id),
+  unit_id BIGINT NOT NULL REFERENCES units(id),
+  created_at TIMESTAMP DEFAULT NOW()
+);

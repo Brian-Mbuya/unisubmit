@@ -1,0 +1,70 @@
+HELP.md
+target/
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.claude/
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+.env
+.env.*
+!.env.example
+.db-password
+
+uploads/*
+!uploads/.gitkeep
+uploads-local/
+unisubmit-db*
+*.db
+
+# Android packaging artifacts + signing secrets (never commit)
+*.apk
+*.aab
+signing.keystore
+signing-key-info.txt
+assetlinks.json
+!src/main/resources/static/.well-known/assetlinks.json
+boot-*.log
+Readme.html
+
+# Test / scratch data files (never commit)
+sample-students.csv
+sample-*.csv
+
+# Runtime artifacts
+uploads/
+*.log
+target/
+.env
+.env.local
+
+# Local tooling
+run-local.ps1.user
+*.h2.db

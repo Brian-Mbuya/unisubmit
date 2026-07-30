@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+    <header class="topbar" th:fragment="navbar">
+        <div class="topbar-left">
+            <div class="logo">
+                <a th:href="@{/}" aria-label="UniSubmit home">
+                    <svg th:replace="~{fragments/components :: brandMark('logo-mark')}"></svg>
+                    <span>UniSubmit</span>
+                </a>
+            </div>
+
+            <!-- Role-aware primary navigation (app.js marks the active link) -->
+            <nav class="nav" id="primaryNav" sec:authorize="isAuthenticated()" aria-label="Primary">
+                <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/student/dashboard}">Projects</a>
+                <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/student/announcements}">Announcements</a>
+                <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/groups}">Groups</a>
+                <a sec:authorize="hasRole('STUDENT')"  class="nav-link" th:href="@{/student/inbox}">Collaboration</a>
+                <a sec:authorize="hasRole('LECTURER')" class="nav-link" th:href="@{/lecturer/dashboard}">Review queue</a>
+                <a sec:authorize="hasRole('LECTURER')" class="nav-link" th:href="@{/lecturer/announcements}">Announcements</a>
+                <a sec:authorize="hasRole('ADMIN')"    class="nav-link" th:href="@{/admin/dashboard}">Administration</a>
+                <a class="nav-link" th:href="@{/explore}">Explore</a>
+
+                <!-- Mobile-only sign out: shown ≤520px inside the collapsed menu,
+                     where the top-bar button no longer fits (see base.css §25) -->
+                <form th:action="@{/logout}" method="post" class="nav-signout">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                    <button type="submit" class="nav-link nav-link-button">Sign out</button>
+                </form>
+            </nav>
+        </div>
+
+        <!-- Global hybrid search — BM25 + semantic, available on every page -->
+        <div class="global-search" sec:authorize="isAuthenticated()">
+            <form th:action="@{/explore}" method="get" role="search" aria-label="Search the project archive">
+                <input type="hidden" name="tab" value="search">
+                <svg class="search-glyph" width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                </svg>
+                <input type="search" name="q" placeholder="Search projects, topics, keywords…"
+                       autocomplete="off" aria-label="Search query">
+            </form>
+        </div>
+
+        <div class="topbar-right" sec:authorize="isAuthenticated()">
+            <!-- Phone-only quick actions (desktop has the full search bar):
+                 search is one tap; students create from anywhere. -->
+            <a class="header-link header-search-link" th:href="@{/explore(tab='search')}" aria-label="Search">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+                </svg>
+            </a>
+            <a sec:authorize="hasRole('STUDENT')" class="header-link header-new-link"
+               th:href="@{/student/submission/new}" aria-label="New submission">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M7.25 1.75a.75.75 0 0 1 1.5 0v5.5h5.5a.75.75 0 0 1 0 1.5h-5.5v5.5a.75.75 0 0 1-1.5 0v-5.5h-5.5a.75.75 0 0 1 0-1.5h5.5v-5.5z"/>
+                </svg>
+            </a>
+            <a th:href="@{/notifications}" class="header-link" aria-label="Notifications" id="notificationBell">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/>
+                </svg>
+                <span th:if="${unreadNotificationCount > 0}" class="header-count" th:text="${unreadNotificationCount}">0</span>
+            </a>
+
+            <a sec:authorize="hasRole('STUDENT')" th:href="@{/student/inbox}" class="header-link" aria-label="Collaboration inbox">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2zm.5 2.06v8.19h11.5V4.06L8 8.6 2.25 4.06z"/>
+                </svg>
+                <span th:if="${pendingCollaborationCount > 0}" class="header-count" th:text="${pendingCollaborationCount}">0</span>
+            </a>
+
+            <span class="user-chip">
+                <span class="avatar" th:text="${#strings.substring(#authentication.name, 0, 1)}">U</span>
+                <span class="user-chip-name" sec:authentication="name">User</span>
+            </span>
+
+            <form th:action="@{/logout}" method="post" class="inline topbar-signout">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn btn-secondary btn-sm">Sign out</button>
+            </form>
+
+            <button class="menu-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false">
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                    <path d="M1 3.75A.75.75 0 0 1 1.75 3h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 3.75zm0 4A.75.75 0 0 1 1.75 7h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 7.75zm.75 3.25a.75.75 0 0 0 0 1.5h12.5a.75.75 0 0 0 0-1.5H1.75z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile app shell: bottom tab bar, shown ≤860px (see base.css §26).
+         Kept in this file so both navigations live together; app.js marks the
+         active link (.bottom-nav__link shares markActiveNav's logic). -->
+    <nav class="bottom-nav" th:fragment="bottomNav" sec:authorize="isAuthenticated()" aria-label="Primary">
+        <a sec:authorize="hasRole('STUDENT')" class="bottom-nav__link" th:href="@{/student/dashboard}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.75 2.5h3.586c.464 0 .909.184 1.237.513l.914.914c.14.141.331.22.53.22h6.233c.966 0 1.75.784 1.75 1.75v6.353a1.75 1.75 0 0 1-1.75 1.75H1.75A1.75 1.75 0 0 1 0 12.25v-8C0 3.284.784 2.5 1.75 2.5z"/></svg>
+            <span>Projects</span>
+        </a>
+        <a sec:authorize="hasRole('STUDENT')" class="bottom-nav__link" th:href="@{/student/announcements}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.25 1.06a.75.75 0 0 1 1 .708v10.464a.75.75 0 0 1-1 .708L7.37 10.75H6.49l.966 3.097A.75.75 0 0 1 6.74 14.5H5.72a.75.75 0 0 1-.7-.475L3.59 10.75h-.84A1.75 1.75 0 0 1 1 9V5.5c0-.966.784-1.75 1.75-1.75h4.62l5.88-2.69z"/></svg>
+            <span>Announcements</span>
+        </a>
+        <a sec:authorize="hasRole('STUDENT')" class="bottom-nav__link" th:href="@{/student/inbox}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25v-8.5C0 2.784.784 2 1.75 2zm.5 2.06v8.19h11.5V4.06L8 8.6 2.25 4.06z"/></svg>
+            <span>Inbox</span>
+        </a>
+        <a sec:authorize="hasRole('LECTURER')" class="bottom-nav__link" th:href="@{/lecturer/dashboard}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/></svg>
+            <span>Review</span>
+        </a>
+        <a sec:authorize="hasRole('LECTURER')" class="bottom-nav__link" th:href="@{/lecturer/announcements}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.25 1.06a.75.75 0 0 1 1 .708v10.464a.75.75 0 0 1-1 .708L7.37 10.75H6.49l.966 3.097A.75.75 0 0 1 6.74 14.5H5.72a.75.75 0 0 1-.7-.475L3.59 10.75h-.84A1.75 1.75 0 0 1 1 9V5.5c0-.966.784-1.75 1.75-1.75h4.62l5.88-2.69z"/></svg>
+            <span>Announcements</span>
+        </a>
+        <a sec:authorize="hasRole('ADMIN')" class="bottom-nav__link" th:href="@{/admin/dashboard}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 .5 14 2.5v4.62c0 3.86-2.55 7.02-6 8.38-3.45-1.36-6-4.52-6-8.38V2.5L8 .5z"/></svg>
+            <span>Admin</span>
+        </a>
+        <a sec:authorize="hasRole('ADMIN')" class="bottom-nav__link" th:href="@{/notifications}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2zM8 1.918l-.797.161A4.002 4.002 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4.002 4.002 0 0 0-3.203-3.92L8 1.917zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5.002 5.002 0 0 1 13 6c0 .88.32 4.2 1.22 6z"/></svg>
+            <span>Alerts</span>
+        </a>
+        <a class="bottom-nav__link" th:href="@{/explore}">
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm0 14.5A6.5 6.5 0 1 1 8 1.5a6.5 6.5 0 0 1 0 13zM11 5l-1.8 4.2L5 11l1.8-4.2L11 5z"/></svg>
+            <span>Explore</span>
+        </a>
+    </nav>
+</body>
+</html>

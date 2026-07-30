@@ -1,0 +1,135 @@
+spring:
+  application:
+    name: unisubmit
+  datasource:
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:unisubmit}}
+    username: ${PGUSER:unisubmit}
+    password: ${PGPASSWORD:unisubmit}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_MAX_POOL_SIZE:5}
+      minimum-idle: ${DB_MIN_IDLE:1}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:30000}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      # 'update' runs AFTER Flyway and is self-healing: it creates any @Entity
+      # table/column the migrations didn't (courses, curriculum, lecturer_profiles,
+      # join tables, …) and never fails the boot on minor drift. Flyway (below)
+      # still owns the ordered core→academic schema build and data seeds; this is
+      # the safety net that keeps the two in sync.
+      ddl-auto: update
+    show-sql: false
+  flyway:
+    # DISABLED — this database's schema is owned by Hibernate `ddl-auto=update`
+    # (it built all the tables; there is no Flyway history here). Flyway was
+    # crash-looping the app on boot: against a non-empty, Hibernate-built schema
+    # with no history, baseline-on-migrate replayed V2→V19, and the non-idempotent
+    # ALTERs (e.g. V13/V17 add columns that already exist) failed and killed startup.
+    # Hibernate `update` is idempotent and self-healing, so it keeps the schema in
+    # sync on its own. To adopt Flyway later on a known DB, re-enable with
+    # baseline-on-migrate=true and baseline-version=19 (baseline the current schema
+    # instead of replaying migrations onto it).
+    enabled: false
+    locations: classpath:db/migration
+  # Long cache for static assets. Safe with the service worker: the SW precaches
+  # with {cache:'reload'} and revalidates with {cache:'no-cache'}, so it never
+  # gets stuck on a stale file (see sw.js).
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          max-age: 7d
+          cache-public: true
+  servlet:
+    multipart:
+      # Slightly above the 25MB service-level limit so oversize uploads fail fast
+      # with FileStorageService's clear message instead of a generic 500.
+      max-file-size: 26MB
+      max-request-size: 27MB
+  ai:
+    openai:
+      base-url: ${OPENAI_BASE_URL:https://openrouter.ai/api/v1}
+      # Default NO_KEY so the app boots without an LLM key (lean launch). The
+      # services check for NO_KEY and fall back to local heuristics. Set a real
+      # OPENAI_API_KEY in the server env to enable AI insights.
+      api-key: ${OPENAI_API_KEY:NO_KEY}
+      chat:
+        options:
+          model: ${OPENAI_MODEL:openai/gpt-4o-mini}
+
+server:
+  port: ${PORT:8080}
+  # Behind Caddy (TLS terminated at the proxy): honour X-Forwarded-* so login
+  # redirects use https and session cookies are marked Secure correctly.
+  forward-headers-strategy: ${SERVER_FORWARD_HEADERS_STRATEGY:framework}
+
+app:
+  storage:
+    upload-dir: ${APP_UPLOAD_DIR:uploads}
+  api:
+    # JWT settings for the /api/v1/** chain used by the Flutter client ONLY. The browser
+    # app is untouched and still authenticates with the session cookie + formLogin.
+    jwt:
+      # HMAC-SHA256 signing key — MUST be 32+ characters. Leave unset and the app
+      # generates a random key at boot with a WARN: everything still works, but mobile
+      # clients are logged out on every redeploy (same behaviour the in-memory HTTP
+      # sessions already have). Set API_JWT_SECRET in Railway to make tokens survive.
+      # Never commit a real value here.
+      secret: ${API_JWT_SECRET:}
+      # ISO-8601 duration. 12h is a deliberate phone-friendly default: campus wifi drops
+      # constantly and there is no refresh-token flow yet, so a short TTL means repeated
+      # logins. Read JwtSuspensionFilter.shouldRevoke first — this value and the
+      # revocation policy together decide how long a suspended account keeps API access.
+      access-ttl: ${API_JWT_ACCESS_TTL:PT12H}
+
+unisubmit:
+  demo:
+    # OFF by default in production (no fake "Amara Okoye / DEMO-CS" data on a real
+    # pilot). Flip it on for a pitch/demo without a code change by setting the
+    # Railway env var DEMO_SEED_COLLABORATION=true. Local dev keeps it on
+    # (application-local.yml). Disabling only stops RE-seeding — any demo rows
+    # already in the DB remain until cleaned.
+    seed-collaboration: ${DEMO_SEED_COLLABORATION:false}
+    # Rich demo data ("Prof. Ada Demo" assignments/announcements/groups/reviews). OFF by
+    # default in prod — flip on with DEMO_SEED_RICH=true. Local dev keeps it on.
+    seed-rich-test-data: ${DEMO_SEED_RICH:false}
+  ai:
+    # Upper bound (seconds) for one full analysis run — GROBID + LLM can be slow.
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:120}
+  grobid:
+    enabled: ${GROBID_ENABLED:false}
+    url: ${GROBID_URL:http://localhost:8070}
+  specter:
+    enabled: ${SPECTER_ENABLED:false}
+    url: ${SPECTER_URL:http://localhost:5001}
+  ocr:
+    # OCR fallback for scanned PDFs — needs the sidecar's /ocr route
+    # (pytesseract + pdf2image installed in specter-service).
+    enabled: ${OCR_ENABLED:false}
+    url: ${OCR_URL:http://localhost:5001}
+  embeddings:
+    # Embeddings need a SEPARATE key — OpenRouter has no embeddings endpoint. Default is
+    # OpenAI text-embedding-3-small (1536-dim). Without a key the whole semantic channel is
+    # off (hasEmbeddingsKey() gates it) — keyword search still works everywhere.
+    api-key: ${EMBEDDINGS_API_KEY:NO_KEY}
+    url: ${EMBEDDINGS_URL:https://api.openai.com/v1/embeddings}
+    model: ${EMBEDDINGS_MODEL:text-embedding-3-small}
+  search:
+    # pgvector semantic channel of /search — PostgreSQL-only; keyword BM25
+    # works everywhere regardless of this flag. Needs BOTH this flag AND an embeddings key.
+    semantic-enabled: ${SEARCH_SEMANTIC_ENABLED:false}
+  review:
+    # Blind review: lecturers see "Anonymous student" until a grade is given.
+    blind-mode: ${BLIND_REVIEW:false}
+  recommendation:
+    # Scoring weights are relative — the final score is normalised by their sum,
+    # so you can tune each signal independently for the report/viva demos.
+    weight:
+      keyword: 0.5        # free-text keyword overlap (AI insight keywords)
+      title: 0.3          # Jaccard word overlap between titles
+      unit: 0.05          # faint tiebreaker only — being classmates is NOT a
+                          # collaboration signal (see RecommendationService retention)
+      semantic: 0.3       # SPECTER2 embedding cosine similarity (when available)
+      technology: 0.35    # structured Technology tag overlap (knowledge model)
+      research-area: 0.25 # structured ResearchArea tag overlap (knowledge model)
