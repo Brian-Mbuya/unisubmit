@@ -47,6 +47,24 @@ spring:
       # with FileStorageService's clear message instead of a generic 500.
       max-file-size: 26MB
       max-request-size: 27MB
+  # Password-reset codes for lecturers/admins (see EmailService). `host` is always set
+  # so Spring Boot creates the JavaMailSender bean; EmailService itself checks whether
+  # `username` is non-blank to decide whether to actually dial out. Leaving MAIL_USERNAME
+  # unset keeps the app in log-only mode — the code is logged, not emailed — which is
+  # exactly what happens in tests and untouched local dev.
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+        transport:
+          protocol: smtp
   ai:
     openai:
       base-url: ${OPENAI_BASE_URL:https://openrouter.ai/api/v1}
@@ -67,6 +85,11 @@ server:
 app:
   storage:
     upload-dir: ${APP_UPLOAD_DIR:uploads}
+  mail:
+    # Envelope From for password-reset emails. Defaults to the SMTP login itself —
+    # most providers (Gmail included) reject a From that doesn't match the
+    # authenticated account, so a distinct default here would just bounce.
+    from: ${MAIL_FROM:${spring.mail.username:no-reply@unisubmit.local}}
   api:
     # JWT settings for the /api/v1/** chain used by the Flutter client ONLY. The browser
     # app is untouched and still authenticates with the session cookie + formLogin.

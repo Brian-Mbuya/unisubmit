@@ -48,6 +48,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
+		<!--
+		  Password-reset codes for lecturers/admins (their username IS their email —
+		  students have no email, see UserService.createStudent). Free over SMTP; no
+		  third-party transactional-email account needed. See EmailService.
+		-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>

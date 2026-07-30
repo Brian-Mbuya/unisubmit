@@ -15,3 +15,11 @@ spring:
   h2:
     console:
       enabled: false
+  # This file fully replaces src/main/resources/application.yml on the test classpath
+  # (same relative path, so nothing from it merges in) — spring.mail.host has to be
+  # repeated here too, or Spring Boot never creates the JavaMailSender bean that
+  # EmailService requires and every @SpringBootTest fails to start. username stays
+  # unset, so EmailService still runs in log-only mode — no real SMTP is ever touched.
+  mail:
+    host: smtp.gmail.com
+    port: 587
