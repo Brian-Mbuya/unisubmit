@@ -24,4 +24,19 @@ public interface FeedbackRepository extends JpaRepository<Feedback, Long> {
            JOIN FETCH v.submission
            """)
     List<Feedback> findAllWithReviewedSubmissions();
+
+    /**
+     * Every feedback entry across ALL versions of one submission, lecturer fetched.
+     * Feedback hangs off {@code SubmissionVersion}, not {@code Submission}, so a student
+     * viewing their project needs this join to see the full review history rather than
+     * only the comments on the latest upload.
+     */
+    @Query("""
+           SELECT f FROM Feedback f
+           JOIN FETCH f.lecturer
+           WHERE f.submissionVersion.submission.id = :submissionId
+           ORDER BY f.timestamp
+           """)
+    List<Feedback> findBySubmissionIdWithLecturer(
+            @org.springframework.data.repository.query.Param("submissionId") Long submissionId);
 }
