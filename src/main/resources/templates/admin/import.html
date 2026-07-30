@@ -23,13 +23,13 @@
         <div class="table-wrap table-stack">
             <table class="table">
                 <thead>
-                    <tr><th>Name</th><th>Student ID</th><th>Email</th><th>Password</th><th>Status</th></tr>
+                    <tr><th>Name</th><th>Admission no.</th><th>Phone</th><th>Password</th><th>Status</th></tr>
                 </thead>
                 <tbody>
                     <tr th:each="c : ${creds}">
                         <td class="stack-full fw-600" th:text="${c.name}">Name</td>
                         <td th:text="${c.studentId}">ID</td>
-                        <td class="text-muted" th:text="${c.email}">email</td>
+                        <td class="text-muted" th:text="${c.contact}">phone</td>
                         <td class="mono" th:text="${c.password}">pw</td>
                         <td><span th:class="${c.status == 'created' ? 'badge badge-completed' : 'badge badge-rejected'}" th:text="${c.status}">created</span></td>
                     </tr>
@@ -55,7 +55,7 @@
                     <tr th:each="c : ${lecturerCreds}">
                         <td class="stack-full fw-600" th:text="${c.name}">Name</td>
                         <td th:text="${c.studentId}">ID</td>
-                        <td class="text-muted" th:text="${c.email}">email</td>
+                        <td class="text-muted" th:text="${c.contact}">email</td>
                         <td class="mono" th:text="${c.password}">pw</td>
                         <td><span th:class="${c.status == 'created' ? 'badge badge-completed' : 'badge badge-rejected'}" th:text="${c.status}">created</span></td>
                     </tr>
@@ -128,13 +128,13 @@
             <div class="table-wrap table-stack">
                 <table class="table">
                     <thead>
-                        <tr><th>#</th><th>Name</th><th>Email</th><th>Student ID</th><th>Programme</th><th>Result</th></tr>
+                        <tr><th>#</th><th>Name</th><th>Phone</th><th>Admission no.</th><th>Programme</th><th>Result</th></tr>
                     </thead>
                     <tbody>
                         <tr th:each="r : ${preview.rows}">
                             <td class="text-subtle" th:text="${r.line}">1</td>
                             <td class="stack-full fw-600" th:text="${r.name}">Name</td>
-                            <td class="text-muted" th:text="${r.email}">email</td>
+                            <td class="text-muted" th:text="${r.phone}">phone</td>
                             <td th:text="${r.studentId}">ID</td>
                             <td class="text-muted" th:text="${r.programmeCode != '' ? r.programmeCode : '—'}">—</td>
                             <td>
@@ -158,7 +158,7 @@
     </div>
 
     <!-- ── UPLOAD: default state ──────────────────────────────────────────── -->
-    <div th:if="${creds == null and preview == null and lecturerCreds == null and lecturerPreview == null}" class="card">
+    <div th:if="${creds == null and preview == null and lecturerCreds == null and lecturerPreview == null and academicPreview == null}" class="card">
         <div class="card-head"><h2>Students</h2></div>
         <form th:action="@{/admin/import/students/preview}" method="post" enctype="multipart/form-data" data-loading-submit="Reading…">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -167,7 +167,7 @@
                 <input type="file" id="file" name="file" class="form-control"
                        accept=".csv,.xlsx,.xls" required>
                 <div class="field-hint">
-                    Columns: <span class="mono">name, email, studentId, programmeCode, year</span>.
+                    Columns: <span class="mono">name, phone, studentId, programmeCode, year</span>.
                     <a th:href="@{/admin/import/template/students.csv}">Download template</a>.
                     <strong>.csv</strong>, <strong>.xlsx</strong> and <strong>.xls</strong> files are accepted (max 5 MB).
                     Other formats (e.g. .ods, Google Sheets) — use <strong>File → Save As → .xlsx or .csv</strong> first.
@@ -180,7 +180,7 @@
     </div>
 
     <!-- ── UPLOAD: lecturers ──────────────────────────────────────────────── -->
-    <div th:if="${creds == null and preview == null and lecturerCreds == null and lecturerPreview == null}" class="card mt-6">
+    <div th:if="${creds == null and preview == null and lecturerCreds == null and lecturerPreview == null and academicPreview == null}" class="card mt-6">
         <div class="card-head"><h2>Lecturers</h2></div>
         <form th:action="@{/admin/import/lecturers/preview}" method="post" enctype="multipart/form-data" data-loading-submit="Reading…">
             <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -199,6 +199,87 @@
             </div>
             <button type="submit" class="btn">Preview</button>
         </form>
+    </div>
+
+    <!-- ── UPLOAD: academic structure (one card per Kind, driven by the enum) ── -->
+    <div th:if="${creds == null and preview == null and lecturerCreds == null and lecturerPreview == null and academicPreview == null}"
+         class="card mt-6">
+        <div class="card-head"><h2>Academic structure</h2></div>
+        <p class="field-hint mb-4">
+            Import the whole academic tree from spreadsheets. Import them in this order —
+            each level references the one above it by code. Re-importing the same file is
+            safe: rows that already exist are skipped, not duplicated.
+        </p>
+
+        <div th:each="k : ${academicKinds}" class="mb-6">
+            <form th:action="@{'/admin/import/academic/' + ${k.name()} + '/preview'}" method="post"
+                  enctype="multipart/form-data" data-loading-submit="Reading…">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="form-group">
+                    <label class="form-label" th:for="'academicFile-' + ${k.name()}"
+                           th:text="${k.label}">Faculties</label>
+                    <input type="file" th:id="'academicFile-' + ${k.name()}" name="file"
+                           class="form-control" accept=".csv,.xlsx,.xls" required>
+                    <div class="field-hint">
+                        Columns: <span class="mono" th:text="${k.header()}">code, name</span>.
+                        <a th:href="@{'/admin/import/template/academic/' + ${k.name()} + '.csv'}">Download template</a>.
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-secondary">Preview</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ── PREVIEW: academic structure ────────────────────────────────────────── -->
+    <div th:if="${academicPreview != null}" class="card">
+        <div class="card-head">
+            <h2 th:text="${academicKind.label} + ' — preview'">Preview</h2>
+        </div>
+
+        <div th:if="${academicPreview.fatalError != null}" class="alert alert-error"
+             th:text="${academicPreview.fatalError}">error</div>
+
+        <div th:if="${academicPreview.fatalError == null}">
+            <p class="mb-4">
+                <span class="badge badge-completed" th:text="${academicPreview.validCount} + ' ready'">0 ready</span>
+                <span th:if="${academicPreview.invalidCount > 0}" class="badge badge-rejected"
+                      th:text="${academicPreview.invalidCount} + ' skipped'">0 skipped</span>
+            </p>
+            <div class="table-wrap table-stack">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th th:each="c : ${academicKind.columns}" th:text="${c}">col</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="r : ${academicPreview.rows}">
+                            <td class="text-subtle" th:text="${r.line}">1</td>
+                            <td th:each="c : ${academicKind.columns}"
+                                th:text="${r.values.get(c)}">value</td>
+                            <td>
+                                <span th:if="${r.valid}" class="badge badge-completed">OK</span>
+                                <span th:unless="${r.valid}" class="badge badge-rejected"
+                                      th:text="${r.error}">error</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <form th:if="${academicPreview.validCount > 0}" th:action="@{/admin/import/academic/apply}"
+                  method="post" class="mt-4" data-loading-submit="Importing…">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <button type="submit" class="btn"
+                        th:text="'Import ' + ${academicPreview.validCount} + ' row(s)'">Import</button>
+                <a class="btn btn-secondary" th:href="@{/admin/import}">Cancel</a>
+            </form>
+            <div th:unless="${academicPreview.validCount > 0}" class="mt-4">
+                <a class="btn btn-secondary" th:href="@{/admin/import}">Back</a>
+            </div>
+        </div>
     </div>
 </div>
 </body>

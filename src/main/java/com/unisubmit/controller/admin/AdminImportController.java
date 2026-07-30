@@ -1,5 +1,6 @@
 package com.unisubmit.controller.admin;
 
+import com.unisubmit.service.AcademicImportService;
 import com.unisubmit.service.CsvImportService;
 import com.unisubmit.service.CsvImportService.CreatedCredential;
 import com.unisubmit.service.CsvImportService.StudentPreview;
@@ -33,14 +34,18 @@ public class AdminImportController {
     private static final String SESSION_LECTURER_CREDS = "importLecturerCreds";
 
     private final CsvImportService csvImportService;
+    private final AcademicImportService academicImportService;
 
-    public AdminImportController(CsvImportService csvImportService) {
+    public AdminImportController(CsvImportService csvImportService,
+                                 AcademicImportService academicImportService) {
         this.csvImportService = csvImportService;
+        this.academicImportService = academicImportService;
     }
 
     @GetMapping
     public String page(Model model) {
         model.addAttribute("activeMenu", "import");
+        model.addAttribute("academicKinds", AcademicImportService.Kind.values());
         return "admin/import";
     }
 
@@ -113,6 +118,85 @@ public class AdminImportController {
         // One-shot: the plaintext passwords are handed out exactly once, then dropped.
         session.removeAttribute(SESSION_CREDS);
         return csvDownload(csvImportService.credentialsCsv(creds), "unisubmit-credentials.csv");
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // Academic structure — faculties, departments, programmes, units, curriculum,
+    // teaching assignments, enrolments. One set of handlers for all seven kinds;
+    // the {kind} path variable selects the columns and the applier.
+    // ════════════════════════════════════════════════════════════════════════════
+
+    private static final String SESSION_ACADEMIC_ROWS = "importAcademicRows";
+    private static final String SESSION_ACADEMIC_KIND = "importAcademicKind";
+
+    @GetMapping("/academic/{kind}/preview")
+    public String academicPreviewGet() {
+        return "redirect:/admin/import";
+    }
+
+    @PostMapping("/academic/{kind}/preview")
+    public String previewAcademic(@PathVariable AcademicImportService.Kind kind,
+                                  @RequestParam("file") MultipartFile file,
+                                  HttpSession session, Model model, RedirectAttributes ra) {
+        if (file == null || file.isEmpty()) {
+            ra.addFlashAttribute("errorMessage", "Choose a file first.");
+            return "redirect:/admin/import";
+        }
+        if (file.getSize() > 5L * 1024 * 1024) {
+            ra.addFlashAttribute("errorMessage", "File too large — max 5 MB; split it and import in batches.");
+            return "redirect:/admin/import";
+        }
+
+        AcademicImportService.AcademicPreview preview = academicImportService.parse(kind, file);
+        // Same rule as the student importer: a fatal preview must never leave applicable
+        // rows in the session, or a direct POST to apply could import a truncated batch.
+        if (preview.fatalError() != null) {
+            session.removeAttribute(SESSION_ACADEMIC_ROWS);
+            session.removeAttribute(SESSION_ACADEMIC_KIND);
+        } else {
+            session.setAttribute(SESSION_ACADEMIC_ROWS,
+                    preview.rows().stream().filter(AcademicImportService.AcademicRow::valid).toList());
+            session.setAttribute(SESSION_ACADEMIC_KIND, kind);
+        }
+        model.addAttribute("activeMenu", "import");
+        model.addAttribute("academicPreview", preview);
+        model.addAttribute("academicKind", kind);
+        model.addAttribute("academicKinds", AcademicImportService.Kind.values());
+        return "admin/import";
+    }
+
+    @PostMapping("/academic/apply")
+    public String applyAcademic(HttpSession session, RedirectAttributes ra) {
+        @SuppressWarnings("unchecked")
+        List<AcademicImportService.AcademicRow> rows =
+                (List<AcademicImportService.AcademicRow>) session.getAttribute(SESSION_ACADEMIC_ROWS);
+        AcademicImportService.Kind kind =
+                (AcademicImportService.Kind) session.getAttribute(SESSION_ACADEMIC_KIND);
+
+        if (rows == null || rows.isEmpty() || kind == null) {
+            ra.addFlashAttribute("errorMessage", "Nothing to import — upload and preview a file first.");
+            return "redirect:/admin/import";
+        }
+
+        AcademicImportService.ApplyResult result = academicImportService.apply(kind, rows);
+        session.removeAttribute(SESSION_ACADEMIC_ROWS);
+        session.removeAttribute(SESSION_ACADEMIC_KIND);
+
+        String summary = result.created() + " created, " + result.skipped()
+                + " already existed" + (result.failed() > 0 ? ", " + result.failed() + " failed" : "") + ".";
+        if (result.failed() > 0) {
+            ra.addFlashAttribute("errorMessage", kind.getLabel() + ": " + summary + " "
+                    + String.join(" · ", result.messages()));
+        } else {
+            ra.addFlashAttribute("successMessage", kind.getLabel() + ": " + summary);
+        }
+        return "redirect:/admin/import";
+    }
+
+    @GetMapping("/template/academic/{kind}.csv")
+    public ResponseEntity<String> templateAcademic(@PathVariable AcademicImportService.Kind kind) {
+        return csvDownload(kind.templateCsv(),
+                "unisubmit-" + kind.name().toLowerCase() + "-template.csv");
     }
 
     @GetMapping("/template/students.csv")

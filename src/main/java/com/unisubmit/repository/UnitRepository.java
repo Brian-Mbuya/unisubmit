@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface UnitRepository extends JpaRepository<Unit, Long> {
     List<Unit> findByDepartmentId(Long departmentId);
+    java.util.Optional<Unit> findByUnitCodeIgnoreCase(String unitCode);
 }
