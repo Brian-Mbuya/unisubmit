@@ -24,6 +24,26 @@ public class StudentProfile {
     @Column(name = "admission_number", unique = true, nullable = false)
     private String admissionNumber;
 
+    /**
+     * The only contact channel a student has — there is deliberately no student email
+     * anywhere in the system. Nullable in the DB because accounts created before this
+     * change have none; {@code UserService.createStudent} requires it for new accounts.
+     */
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    /**
+     * Class representative. Not a {@link Role} — reps ARE students and must keep every
+     * student capability, so a 4th role would have forced every existing
+     * {@code hasRole('STUDENT')} check to become a two-branch check. Instead
+     * {@code CustomUserDetails} grants a separate {@code CLASS_REP} authority alongside
+     * {@code ROLE_STUDENT}, so rep powers are additive and revoking the flag instantly
+     * removes them. Their "class" is derived from programme + currentYear +
+     * currentSemester — no extra FK.
+     */
+    @Column(name = "class_rep", nullable = false, columnDefinition = "boolean default false")
+    private boolean classRep = false;
+
     @ManyToOne
     @JoinColumn(name = "programme_id")
     private Course programme;

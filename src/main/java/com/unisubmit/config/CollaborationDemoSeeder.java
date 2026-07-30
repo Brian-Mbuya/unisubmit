@@ -314,10 +314,11 @@ public class CollaborationDemoSeeder implements CommandLineRunner {
                         List.of("Machine Learning")));
 
         for (DemoProject p : projects) {
-            User student = userService.createUser(
-                    p.admission().toLowerCase() + "@demo.unisubmit", "password123", p.studentName(),
-                    Role.STUDENT, p.admission(), null,
-                    depts[p.dept()].getId(), programmes[p.dept()].getId(), p.year(), 1);
+            // Admission number is the username; demo phones are sequential placeholders.
+            User student = userService.createStudent(
+                    p.admission(), "07000000" + String.format("%02d", projects.indexOf(p) % 100),
+                    "password123", p.studentName(),
+                    programmes[p.dept()].getId(), p.year(), 1);
 
             // Enrol the student in their curriculum so announcements/review reach them.
             StudentProfile profile = student.getStudentProfile();

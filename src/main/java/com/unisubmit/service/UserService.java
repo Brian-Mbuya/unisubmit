@@ -109,6 +109,87 @@ public class UserService {
         return createUser(username, password, name, role, studentId, staffId, null, null, null, null);
     }
 
+    /**
+     * Accepts the local formats students actually type: 0712345678, 254712345678,
+     * +254 712 345 678. Stored as entered (minus spaces) — this is a contact string for
+     * a human to dial, not a key, so it is not normalised into a canonical form.
+     */
+    private static final java.util.regex.Pattern PHONE =
+            java.util.regex.Pattern.compile("^\\+?[0-9]{9,15}$");
+
+    /** Strips spaces, dashes and brackets before validating. */
+    public static String normalisePhone(String raw) {
+        return raw == null ? "" : raw.replaceAll("[\\s()\\-]", "");
+    }
+
+    public static boolean isValidPhone(String raw) {
+        return PHONE.matcher(normalisePhone(raw)).matches();
+    }
+
+    /**
+     * The ONLY way a student account is created. Students are identified by admission
+     * number and phone — there is no student email anywhere in the system, so the
+     * admission number IS the username.
+     * <p>
+     * Kept separate from {@link #createUser} rather than adding an 11th parameter to it:
+     * that signature is already at ten and every student call site passed a string of
+     * nulls. Lecturers and admins still go through {@code createUser} with their email.
+     */
+    @Transactional
+    public User createStudent(String admissionNumber, String phone, String password, String name,
+                              Long courseId, Integer yearOfStudy, Integer semesterNumber) {
+        String admission = admissionNumber == null ? "" : admissionNumber.trim();
+        if (admission.isBlank()) {
+            throw new IllegalArgumentException("Admission number is required.");
+        }
+        String cleanPhone = normalisePhone(phone);
+        if (!isValidPhone(cleanPhone)) {
+            throw new IllegalArgumentException(
+                    "Enter a valid phone number (9–15 digits, e.g. 0712345678).");
+        }
+        if (userRepository.findByUsername(admission).isPresent()
+                || studentProfileRepository.findByAdmissionNumberIgnoreCase(admission).isPresent()) {
+            throw new com.unisubmit.exception.DuplicateEntityException(
+                    "Admission number already registered.");
+        }
+
+        User user = new User();
+        user.setUsername(admission);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setName(name == null ? admission : name.trim());
+        user.setRole(Role.STUDENT);
+        user = userRepository.save(user);
+
+        StudentProfile profile = new StudentProfile();
+        profile.setUser(user);
+        profile.setAdmissionNumber(admission);
+        profile.setPhone(cleanPhone);
+        if (courseId != null) {
+            profile.setProgramme(courseRepository.findById(courseId).orElse(null));
+        }
+        profile.setCurrentYear(yearOfStudy);
+        profile.setCurrentSemester(semesterNumber);
+        studentProfileRepository.save(profile);
+        user.setStudentProfile(profile);
+        return user;
+    }
+
+    /**
+     * Promotes or demotes a class representative. Admin-only — a rep can never appoint
+     * a successor, which would let the role escape admin control entirely.
+     */
+    @Transactional
+    public void setClassRep(Long userId, boolean isRep) {
+        StudentProfile profile = studentProfileRepository.findByUser_Id(userId)
+                .orElseThrow(() -> new com.unisubmit.exception.SubmissionNotFoundException(
+                        "No student profile for user " + userId));
+        profile.setClassRep(isRep);
+        studentProfileRepository.save(profile);
+        notificationService.createNotification(profile.getUser(), NotificationType.SYSTEM_NOTICE,
+                isRep ? "You have been made class representative."
+                      : "You are no longer class representative.", null);
+    }
+
     public Optional<User> findByUsername(String username) { return userRepository.findByUsername(username); }
     public Optional<User> findById(Long id) { return userRepository.findById(id); }
 

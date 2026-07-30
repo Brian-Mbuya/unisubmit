@@ -72,6 +72,9 @@
                                 <span class="text-muted text-sm" th:text="' · ' + ${u.studentProfile.programme != null ? u.studentProfile.programme.name : 'No Programme'}">Programme</span>
                                 <span class="text-muted text-sm" th:text="' · Year ' + ${u.studentProfile.currentYear != null ? u.studentProfile.currentYear : '-'} + ' Sem ' + ${u.studentProfile.currentSemester != null ? u.studentProfile.currentSemester : '-'}">Year / Sem</span>
                                 <span class="status-badge" th:classappend="${u.studentProfile.academicStatus == 'ACTIVE' ? 'status-active' : 'status-inactive'}" th:text="${u.studentProfile.academicStatus ?: 'ACTIVE'}">ACTIVE</span>
+                                <span th:if="${u.studentProfile.phone != null}" class="text-muted text-sm"
+                                      th:text="' · ' + ${u.studentProfile.phone}">Phone</span>
+                                <span th:if="${u.studentProfile.classRep}" class="badge badge-completed">Class rep</span>
                             </div>
 
                             <!-- Lecturer details -->
@@ -91,6 +94,17 @@
 
                             <button type="button" class="btn btn-sm btn-secondary reset-pw-btn"
                                     th:data-user-id="${u.id}" th:data-user-name="${u.name}">Reset password</button>
+
+                            <!-- Class rep toggle. Admin-only by design: a rep can never
+                                 appoint a successor, or the role would escape admin control. -->
+                            <form th:if="${u.role.name() == 'STUDENT' && u.studentProfile != null}"
+                                  th:action="@{/admin/accounts/{id}/class-rep(id=${u.id})}" method="post"
+                                  class="inline-form">
+                                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                <input type="hidden" name="isRep" th:value="${!u.studentProfile.classRep}">
+                                <button type="submit" class="btn btn-sm btn-secondary"
+                                        th:text="${u.studentProfile.classRep} ? 'Remove rep' : 'Make class rep'">Make class rep</button>
+                            </form>
 
                             <form th:action="@{/admin/accounts/{id}/delete(id=${u.id})}" method="post"
                                   class="inline-form"
@@ -125,9 +139,12 @@
                         <label class="form-label">Full name <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" required placeholder="e.g. John Doe">
                     </div>
-                    <div class="form-group">
+                    <!-- Students have no email — admission number is their username, so
+                         app.js clears `required` on this field when role is STUDENT. -->
+                    <div class="form-group" id="createEmailField">
                         <label class="form-label">Email <span class="text-danger">*</span></label>
-                        <input type="email" name="email" class="form-control" required placeholder="e.g. user@univ.edu">
+                        <input id="createEmail" type="email" name="email" class="form-control" required
+                               placeholder="e.g. user@univ.edu">
                     </div>
                 </div>
                 <div class="form-row">
@@ -150,9 +167,16 @@
                     <hr class="my-4">
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Student ID / Adm No. <span class="text-danger">*</span></label>
-                            <input id="createStudentId" type="text" name="studentId" class="form-control" placeholder="e.g. S12345">
+                            <label class="form-label">Admission number <span class="text-danger">*</span></label>
+                            <input id="createStudentId" type="text" name="studentId" class="form-control" placeholder="e.g. SCT-001">
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone <span class="text-danger">*</span></label>
+                            <input id="createStudentPhone" type="tel" name="phone" class="form-control"
+                                   inputmode="tel" placeholder="e.g. 0712345678">
+                        </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-group">
                             <label class="form-label">Programme <span class="text-danger">*</span></label>
                             <!-- name must be courseId — the controller binds @RequestParam Long courseId;
@@ -350,8 +374,20 @@
             const lecturerFields = document.getElementById('createLecturerFields');
             const studentIdInput = document.getElementById('createStudentId');
             const staffIdInput = document.getElementById('createStaffId');
+            const phoneInput = document.getElementById('createStudentPhone');
+            const emailField = document.getElementById('createEmailField');
+            const emailInput = document.getElementById('createEmail');
 
-            if (role === 'STUDENT') {
+            const isStudent = role === 'STUDENT';
+
+            // Students have no email. The field must be hidden AND have `required`
+            // cleared — a hidden input that is still required makes the browser block
+            // submit with an un-focusable validation bubble, which reads as a dead button.
+            emailField.style.display = isStudent ? 'none' : 'block';
+            emailInput.required = !isStudent;
+            phoneInput.required = isStudent;
+
+            if (isStudent) {
                 studentFields.style.display = 'block';
                 lecturerFields.style.display = 'none';
                 studentIdInput.required = true;

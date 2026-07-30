@@ -76,6 +76,13 @@ public class CustomUserDetailsService implements UserDetailsService {
             throw new LockedException("Your account has been suspended: " + reason);
         }
 
-        return new CustomUserDetails(user);
+        // Resolve the class-rep flag inside this session — see CustomUserDetails' javadoc.
+        // Queried by user id rather than via the lazy user.getStudentProfile() association
+        // so this works identically for the session and the stateless JWT chain.
+        boolean classRep = user.getRole() == com.unisubmit.domain.Role.STUDENT
+                && studentProfileRepository.findByUser_Id(user.getId())
+                        .map(StudentProfile::isClassRep).orElse(false);
+
+        return new CustomUserDetails(user, classRep);
     }
 }

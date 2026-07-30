@@ -26,11 +26,21 @@ public class UnisubmitApplication {
 		SpringApplication.run(UnisubmitApplication.class, args);
 	}
 
-	/** Creates a core account only if its username is not already taken. */
+	/**
+	 * Creates a core account only if its username is not already taken.
+	 * Students route through {@code createStudent} so seeded demo accounts follow the
+	 * same admission-number + phone identity rule as real ones — otherwise a seeded
+	 * student would be the only account in the system with no phone.
+	 */
 	private static void ensureUser(UserService userService, String username, String name,
 								   Role role, String studentId, String staffId) {
 		try {
-			userService.createUser(username, "password123", name, role, studentId, staffId);
+			if (role == Role.STUDENT) {
+				userService.createStudent(studentId, "0700000000", "password123", name,
+						null, 1, 1);
+			} else {
+				userService.createUser(username, "password123", name, role, studentId, staffId);
+			}
 		} catch (Exception alreadyExists) {
 			// Username/ID already present — leave the existing account untouched.
 		}

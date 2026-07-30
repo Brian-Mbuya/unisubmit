@@ -14,4 +14,15 @@ public interface StudentProfileRepository extends JpaRepository<StudentProfile, 
     Optional<StudentProfile> findByUser_Username(String username);
     List<StudentProfile> findByUser_DeletedFalse();
     List<StudentProfile> findByProgrammeId(Long programmeId);
+
+    /** Used at login to resolve the class-rep authority without touching the lazy association. */
+    Optional<StudentProfile> findByUser_Id(Long userId);
+
+    /**
+     * The class roster: everyone in the same programme/year/semester as the rep. This
+     * triple IS the definition of a "class" here — there is no ClassGroup entity, and
+     * adding one would duplicate what Curriculum already keys on.
+     */
+    List<StudentProfile> findByProgrammeIdAndCurrentYearAndCurrentSemesterAndUser_DeletedFalse(
+            Long programmeId, Integer currentYear, Integer currentSemester);
 }

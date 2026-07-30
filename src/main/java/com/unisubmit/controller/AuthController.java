@@ -73,49 +73,48 @@ public class AuthController {
 
     @PostMapping("/register")
     public String register(@RequestParam String name,
-                           @RequestParam String email,
+                           @RequestParam String phone,
                            @RequestParam String password,
                            @RequestParam String studentId,
                            @RequestParam(required = false) Long courseId,
                            @RequestParam(required = false) Long departmentId,
                            @RequestParam(required = false) Long facultyId,
                            Model model) {
-        // Basic input validation
+        // Students are identified by admission number + phone. No student email exists.
         String validationError = null;
         if (name == null || name.trim().length() < 2) {
             validationError = "Full name must be at least 2 characters.";
-        } else if (email == null || !email.trim().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
-            validationError = "Please enter a valid email address.";
+        } else if (studentId == null || studentId.trim().isEmpty()) {
+            validationError = "Admission number is required.";
+        } else if (!com.unisubmit.service.UserService.isValidPhone(phone)) {
+            validationError = "Enter a valid phone number (9–15 digits, e.g. 0712345678).";
         } else if (password == null || password.length() < 6) {
             validationError = "Password must be at least 6 characters.";
-        } else if (studentId == null || studentId.trim().isEmpty()) {
-            validationError = "Student ID is required.";
         }
 
         if (validationError != null) {
-            model.addAttribute("error", validationError);
-            model.addAttribute("formName", name);
-            model.addAttribute("formEmail", email);
-            model.addAttribute("formStudentId", studentId);
-            model.addAttribute("formCourseId", courseId);
-            model.addAttribute("formDepartmentId", departmentId);
-            model.addAttribute("formFacultyId", facultyId);
-            return "register";
+            return backToForm(model, validationError, name, phone, studentId, courseId, departmentId, facultyId);
         }
 
         try {
-            userService.createUser(email.trim(), password, name.trim(), Role.STUDENT, studentId, null, departmentId, courseId, 1, 1);
+            userService.createStudent(studentId, phone, password, name, courseId, 1, 1);
             return "redirect:/login?registered";
         } catch (RuntimeException ex) {
-            model.addAttribute("error", ex.getMessage());
-            model.addAttribute("formName", name);
-            model.addAttribute("formEmail", email);
-            model.addAttribute("formStudentId", studentId);
-            model.addAttribute("formCourseId", courseId);
-            model.addAttribute("formDepartmentId", departmentId);
-            model.addAttribute("formFacultyId", facultyId);
-            return "register";
+            return backToForm(model, ex.getMessage(), name, phone, studentId, courseId, departmentId, facultyId);
         }
+    }
+
+    /** Re-renders the registration form with the entered values preserved. */
+    private String backToForm(Model model, String error, String name, String phone, String studentId,
+                              Long courseId, Long departmentId, Long facultyId) {
+        model.addAttribute("error", error);
+        model.addAttribute("formName", name);
+        model.addAttribute("formPhone", phone);
+        model.addAttribute("formStudentId", studentId);
+        model.addAttribute("formCourseId", courseId);
+        model.addAttribute("formDepartmentId", departmentId);
+        model.addAttribute("formFacultyId", facultyId);
+        return "register";
     }
 
     /** Public pitch page — linked from the login screen, safe for logged-out visitors. */

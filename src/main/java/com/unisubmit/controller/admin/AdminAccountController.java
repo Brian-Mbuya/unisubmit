@@ -57,7 +57,8 @@ public class AdminAccountController {
 
     @PostMapping
     public String createAccount(@RequestParam String name,
-                                @RequestParam String email,
+                                @RequestParam(required = false) String email,
+                                @RequestParam(required = false) String phone,
                                 @RequestParam String password,
                                 @RequestParam Role role,
                                 @RequestParam(required = false) String studentId,
@@ -68,10 +69,31 @@ public class AdminAccountController {
                                 @RequestParam(required = false) Integer currentSemester,
                                 RedirectAttributes ra) {
         try {
-            userService.createUser(email, password, name, role, studentId, staffNumber, departmentId, courseId, currentYear, currentSemester);
+            if (role == Role.STUDENT) {
+                // Students never have an email — admission number is the username.
+                userService.createStudent(studentId, phone, password, name,
+                        courseId, currentYear, currentSemester);
+            } else {
+                userService.createUser(email, password, name, role, studentId, staffNumber,
+                        departmentId, courseId, currentYear, currentSemester);
+            }
             ra.addFlashAttribute("success", "Account created successfully.");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Error creating account: " + e.getMessage());
+        }
+        return "redirect:/admin/accounts";
+    }
+
+    /** Promote/demote a class representative. Admin-only — see UserService.setClassRep. */
+    @PostMapping("/{userId}/class-rep")
+    public String setClassRep(@PathVariable Long userId,
+                              @RequestParam boolean isRep,
+                              RedirectAttributes ra) {
+        try {
+            userService.setClassRep(userId, isRep);
+            ra.addFlashAttribute("success", isRep ? "Class rep assigned." : "Class rep removed.");
+        } catch (Exception e) {
+            ra.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/admin/accounts";
     }

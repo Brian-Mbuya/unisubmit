@@ -72,14 +72,15 @@ public class CsvImportService {
     }
 
     // ── Data carriers (Serializable so they survive in the HTTP session) ────────
-    public record StudentRow(int line, String name, String email, String studentId,
+    public record StudentRow(int line, String name, String phone, String studentId,
                              String programmeCode, Integer year, Long programmeId,
                              boolean valid, String error) implements Serializable {}
 
     public record StudentPreview(List<StudentRow> rows, int validCount, int invalidCount,
                                  String fatalError) implements Serializable {}
 
-    public record CreatedCredential(String name, String studentId, String email,
+    /** {@code contact} is the student's phone or the lecturer's email — one record, both flows. */
+    public record CreatedCredential(String name, String studentId, String contact,
                                     String password, String status) implements Serializable {}
 
     // ── Step 1: parse + validate, no writes ─────────────────────────────────────
@@ -95,7 +96,7 @@ public class CsvImportService {
 
     private StudentPreview parseStudentsCsv(MultipartFile file) {
         List<StudentRow> rows = new ArrayList<>();
-        Set<String> seenEmails = new HashSet<>();
+        Set<String> seenPhones = new HashSet<>();
         Set<String> seenIds = new HashSet<>();
 
         CSVFormat format = CSVFormat.DEFAULT.builder()
@@ -106,12 +107,12 @@ public class CsvImportService {
              CSVParser parser = format.parse(reader)) {
 
             var headers = parser.getHeaderMap().keySet();
-            for (String required : List.of("name", "email", "studentid")) {
+            for (String required : List.of("name", "phone", "studentid")) {
                 boolean present = headers.stream().anyMatch(h -> h.equalsIgnoreCase(required));
                 if (!present) {
                     return new StudentPreview(List.of(), 0, 0,
                             "Missing required column '" + required + "'. Expected header: "
-                                    + "name, email, studentId, programmeCode, year");
+                                    + "name, phone, studentId, programmeCode, year");
                 }
             }
 
@@ -121,8 +122,8 @@ public class CsvImportService {
                             "File has more than " + MAX_ROWS + " rows — split it and import in batches.");
                 }
                 int line = (int) rec.getRecordNumber() + 1; // +1 for the header row
-                validateAndAdd(rows, seenEmails, seenIds, line,
-                        get(rec, "name"), get(rec, "email"), get(rec, "studentId"),
+                validateAndAdd(rows, seenPhones, seenIds, line,
+                        get(rec, "name"), get(rec, "phone"), get(rec, "studentId"),
                         get(rec, "programmeCode"), get(rec, "year"));
             }
         } catch (IOException ex) {
@@ -135,11 +136,11 @@ public class CsvImportService {
     }
 
     // ── Shared per-row validation (CSV + XLSX feed the exact same rules) ────────
-    private void validateAndAdd(List<StudentRow> rows, Set<String> seenEmails, Set<String> seenIds,
-                                int line, String name, String email, String studentId,
+    private void validateAndAdd(List<StudentRow> rows, Set<String> seenPhones, Set<String> seenIds,
+                                int line, String name, String phone, String studentId,
                                 String programmeCode, String yearRaw) {
         name = name == null ? "" : name.trim();
-        email = email == null ? "" : email.trim().toLowerCase();
+        phone = UserService.normalisePhone(phone);
         studentId = studentId == null ? "" : studentId.trim();
         programmeCode = programmeCode == null ? "" : programmeCode.trim();
         yearRaw = yearRaw == null ? "" : yearRaw.trim();
@@ -149,13 +150,16 @@ public class CsvImportService {
         Long programmeId = null;
 
         if (name.isBlank()) error = "Name is required";
-        else if (email.isBlank() || !EMAIL.matcher(email).matches()) error = "Invalid or missing email";
-        else if (studentId.isBlank()) error = "Student ID is required";
-        else if (!seenEmails.add(email)) error = "Duplicate email in this file";
-        else if (!seenIds.add(studentId.toLowerCase())) error = "Duplicate Student ID in this file";
-        else if (userRepository.findByUsername(email).isPresent()) error = "Email already registered";
-        else if (studentProfileRepository.findByAdmissionNumberIgnoreCase(studentId).isPresent())
-            error = "Student ID already registered";
+        else if (studentId.isBlank()) error = "Admission number is required";
+        else if (!UserService.isValidPhone(phone)) error = "Invalid or missing phone number";
+        else if (!seenIds.add(studentId.toLowerCase())) error = "Duplicate admission number in this file";
+        // Phone duplicates are a warning-worthy signal (shared family handset happens),
+        // but a hard error here would block legitimate imports, so only the admission
+        // number — the actual identity key — is enforced as unique.
+        else if (userRepository.findByUsername(studentId).isPresent()
+                || studentProfileRepository.findByAdmissionNumberIgnoreCase(studentId).isPresent())
+            error = "Admission number already registered";
+        else seenPhones.add(phone);
 
         if (error == null && !programmeCode.isBlank()) {
             Course c = courseRepository.findByCodeIgnoreCase(programmeCode).orElse(null);
@@ -167,14 +171,14 @@ public class CsvImportService {
             catch (NumberFormatException ex) { error = "Year must be a number"; }
         }
 
-        rows.add(new StudentRow(line, name, email, studentId, programmeCode, year,
+        rows.add(new StudentRow(line, name, phone, studentId, programmeCode, year,
                 programmeId, error == null, error));
     }
 
     // ── Step 1b: parse + validate an .xlsx workbook (first sheet) ───────────────
     public StudentPreview parseStudentsWorkbook(MultipartFile file) {
         List<StudentRow> rows = new ArrayList<>();
-        Set<String> seenEmails = new HashSet<>();
+        Set<String> seenPhones = new HashSet<>();
         Set<String> seenIds = new HashSet<>();
 
         // Magic-byte gate BEFORE handing the file to POI (which otherwise buffers/parses
@@ -207,11 +211,11 @@ public class CsvImportService {
             Map<String, Integer> col = new HashMap<>();
             for (Cell cell : header) col.put(cellString(cell).toLowerCase(), cell.getColumnIndex());
 
-            for (String required : List.of("name", "email", "studentid")) {
+            for (String required : List.of("name", "phone", "studentid")) {
                 if (!col.containsKey(required)) {
                     return new StudentPreview(List.of(), 0, 0,
                             "Missing required column '" + required + "'. Expected header: "
-                                    + "name, email, studentId, programmeCode, year");
+                                    + "name, phone, studentId, programmeCode, year");
                 }
             }
 
@@ -224,10 +228,10 @@ public class CsvImportService {
                 Row row = sheet.getRow(r);
                 if (row == null) continue;
                 String name = colVal(row, col, "name");
-                String email = colVal(row, col, "email");
+                String phone = colVal(row, col, "phone");
                 String studentId = colVal(row, col, "studentid");
-                if (name.isBlank() && email.isBlank() && studentId.isBlank()) continue; // skip blank rows
-                validateAndAdd(rows, seenEmails, seenIds, r + 1, name, email, studentId,
+                if (name.isBlank() && phone.isBlank() && studentId.isBlank()) continue; // skip blank rows
+                validateAndAdd(rows, seenPhones, seenIds, r + 1, name, phone, studentId,
                         colVal(row, col, "programmecode"), colVal(row, col, "year"));
             }
         } catch (Exception ex) {
@@ -269,13 +273,13 @@ public class CsvImportService {
             if (!r.valid()) continue;
             String password = generatePassword();
             try {
-                // username = email (students sign in with email or Student ID)
-                userService.createUser(r.email(), password, r.name(), Role.STUDENT,
-                        r.studentId(), null, null, r.programmeId(), r.year(), null);
-                results.add(new CreatedCredential(r.name(), r.studentId(), r.email(), password, "created"));
+                // username = admission number; there is no student email.
+                userService.createStudent(r.studentId(), r.phone(), password, r.name(),
+                        r.programmeId(), r.year(), null);
+                results.add(new CreatedCredential(r.name(), r.studentId(), r.phone(), password, "created"));
             } catch (Exception ex) {
-                log.warn("CSV import: row {} ({}) failed: {}", r.line(), r.email(), ex.getMessage());
-                results.add(new CreatedCredential(r.name(), r.studentId(), r.email(), "—",
+                log.warn("CSV import: row {} ({}) failed: {}", r.line(), r.studentId(), ex.getMessage());
+                results.add(new CreatedCredential(r.name(), r.studentId(), r.phone(), "—",
                         "failed: " + ex.getMessage()));
             }
         }
@@ -470,7 +474,7 @@ public class CsvImportService {
         StringBuilder sb = new StringBuilder("name,staffId,email,password,status\n");
         for (CreatedCredential c : creds) {
             sb.append(csv(c.name())).append(',').append(csv(c.studentId())).append(',')
-              .append(csv(c.email())).append(',').append(csv(c.password())).append(',')
+              .append(csv(c.contact())).append(',').append(csv(c.password())).append(',')
               .append(csv(c.status())).append('\n');
         }
         return sb.toString();
@@ -482,16 +486,16 @@ public class CsvImportService {
 
     // ── CSV output helpers ──────────────────────────────────────────────────────
     public String studentTemplateCsv() {
-        return "name,email,studentId,programmeCode,year\n"
-                + "Jane Wanjiku,jane.wanjiku@university.edu,SCT-001,DEMO-BCS,3\n"
-                + "John Otieno,john.otieno@university.edu,SCT-002,DEMO-BCS,2\n";
+        return "name,phone,studentId,programmeCode,year\n"
+                + "Jane Wanjiku,0712345678,SCT-001,DEMO-BCS,3\n"
+                + "John Otieno,0723456789,SCT-002,DEMO-BCS,2\n";
     }
 
     public String credentialsCsv(List<CreatedCredential> creds) {
-        StringBuilder sb = new StringBuilder("name,studentId,email,password,status\n");
+        StringBuilder sb = new StringBuilder("name,admissionNumber,phone,password,status\n");
         for (CreatedCredential c : creds) {
             sb.append(csv(c.name())).append(',').append(csv(c.studentId())).append(',')
-              .append(csv(c.email())).append(',').append(csv(c.password())).append(',')
+              .append(csv(c.contact())).append(',').append(csv(c.password())).append(',')
               .append(csv(c.status())).append('\n');
         }
         return sb.toString();
