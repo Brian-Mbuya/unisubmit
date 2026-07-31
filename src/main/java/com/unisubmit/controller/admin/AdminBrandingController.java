@@ -27,15 +27,28 @@ public class AdminBrandingController {
 
     @GetMapping
     public String brandingPage(Model model) {
+        // Pre-fill the wizard with whatever this deployment already has, so a returning
+        // admin edits their school rather than starting from a blank form.
+        model.addAttribute("currentSchoolName", brandingService.getSchoolName());
+        model.addAttribute("currentLogo", brandingService.getLogoDataUri());
         return "admin/branding";
     }
 
+    /**
+     * Wizard save: school name + logo + palette in one submit. {@code schoolName} and
+     * {@code logoPng} are optional — omitting the logo keeps the stored one, so renaming
+     * does not require re-uploading the file.
+     */
     @PostMapping
-    public String saveBranding(@RequestParam("tokensJson") String tokensJson, RedirectAttributes redirectAttributes) {
+    public String saveBranding(@RequestParam("tokensJson") String tokensJson,
+                               @RequestParam(value = "schoolName", required = false) String schoolName,
+                               @RequestParam(value = "logoPng", required = false) String logoPng,
+                               RedirectAttributes redirectAttributes) {
         try {
             Map<String, String> tokens = objectMapper.readValue(tokensJson, new TypeReference<Map<String, String>>() {});
-            brandingService.saveThemeTokens(tokens);
-            redirectAttributes.addFlashAttribute("successMessage", "University branding theme updated successfully.");
+            brandingService.saveSchoolIdentity(schoolName, logoPng, tokens);
+            String label = (schoolName != null && !schoolName.isBlank()) ? schoolName.trim() : "This deployment";
+            redirectAttributes.addFlashAttribute("successMessage", label + " is now branded and live.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Failed to update branding: " + e.getMessage());
         }

@@ -83,7 +83,13 @@ public class BrandingSecurityTest {
         corruptedRow.put("--primary", "red;} body { color: red; }");
 
         String corruptedJson = objectMapper.writeValueAsString(corruptedRow);
-        repository.save(new BrandingSettings(BrandingSettings.SINGLETON_ID, corruptedJson, java.time.Instant.now()));
+        // Built with setters rather than the all-args constructor so adding a column to
+        // BrandingSettings doesn't break this test again.
+        BrandingSettings corrupted = new BrandingSettings();
+        corrupted.setId(BrandingSettings.SINGLETON_ID);
+        corrupted.setTokensJson(corruptedJson);
+        corrupted.setUpdatedAt(java.time.Instant.now());
+        repository.save(corrupted);
 
         String cssBlock = brandingService.getSanitizedCssBlock();
 

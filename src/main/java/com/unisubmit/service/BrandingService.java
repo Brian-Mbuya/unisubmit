@@ -27,6 +27,18 @@ public class BrandingService {
     private static final Pattern HEX_PATTERN = Pattern.compile("^#[0-9A-Fa-f]{6}$");
     private static final Pattern RGBA_PATTERN = Pattern.compile("^rgba\\(\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*(?:0|1|0?\\.\\d+)\\s*\\)$");
 
+    /** Only base64 PNG. No SVG (script vector), no arbitrary data URI scheme. */
+    private static final Pattern PNG_DATA_URI =
+            Pattern.compile("^data:image/png;base64,[A-Za-z0-9+/]+={0,2}$");
+
+    /** ~300 KB decoded. A logo far exceeding this is a photo, not a mark. */
+    private static final int MAX_LOGO_CHARS = 400_000;
+
+    private static final int MAX_SCHOOL_NAME_LENGTH = 120;
+
+    /** The 8-byte PNG signature every valid PNG starts with. */
+    private static final byte[] PNG_MAGIC = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+
     private final BrandingSettingsRepository repository;
     private final ObjectMapper objectMapper;
 
@@ -44,42 +56,153 @@ public class BrandingService {
     }
 
     /**
-     * Strictly validate and persist theme tokens.
+     * Strictly validate and persist theme tokens, leaving school name and logo alone.
      */
     @Transactional
     public void saveThemeTokens(Map<String, String> inputTokens) {
-        if (inputTokens == null || inputTokens.isEmpty()) {
-            throw new IllegalArgumentException("Theme tokens cannot be empty");
-        }
+        saveIdentity(null, null, sanitizeTokens(inputTokens), false);
+    }
 
-        Map<String, String> sanitized = new LinkedHashMap<>();
+    /**
+     * Persists a complete school identity in one shot — the onboarding wizard's save.
+     * Name and logo are optional; passing {@code updateIdentity=false} leaves whatever is
+     * already stored untouched, which is what {@link #saveThemeTokens} relies on so a
+     * palette-only edit never wipes the school's name.
+     */
+    @Transactional
+    public void saveSchoolIdentity(String schoolName, String logoPng, Map<String, String> inputTokens) {
+        saveIdentity(schoolName, logoPng, sanitizeTokens(inputTokens), true);
+    }
 
-        for (Map.Entry<String, String> entry : inputTokens.entrySet()) {
-            String key = entry.getKey();
-            String value = entry.getValue() != null ? entry.getValue().trim() : "";
-
-            if (!ALLOWED_TOKENS.contains(key)) {
-                throw new IllegalArgumentException("Unauthorized theme token key: " + key);
-            }
-
-            if (!HEX_PATTERN.matcher(value).matches() && !RGBA_PATTERN.matcher(value).matches()) {
-                throw new IllegalArgumentException("Invalid color value format for " + key + ": " + value);
-            }
-
-            sanitized.put(key, value);
-        }
+    private void saveIdentity(String schoolName, String logoPng,
+                              Map<String, String> sanitizedTokens, boolean updateIdentity) {
+        String cleanName = updateIdentity ? validateSchoolName(schoolName) : null;
+        String cleanLogo = updateIdentity ? validateLogo(logoPng) : null;
 
         try {
-            String jsonStr = objectMapper.writeValueAsString(sanitized);
+            String jsonStr = objectMapper.writeValueAsString(sanitizedTokens);
             BrandingSettings settings = repository.findById(BrandingSettings.SINGLETON_ID)
-                    .orElse(new BrandingSettings(BrandingSettings.SINGLETON_ID, jsonStr, Instant.now()));
+                    .orElseGet(() -> {
+                        BrandingSettings fresh = new BrandingSettings();
+                        fresh.setId(BrandingSettings.SINGLETON_ID);
+                        return fresh;
+                    });
             settings.setTokensJson(jsonStr);
+            if (updateIdentity) {
+                settings.setSchoolName(cleanName);
+                // A wizard save with no new file keeps the existing logo rather than
+                // clearing it — re-uploading the same PNG just to rename is busywork.
+                if (cleanLogo != null) {
+                    settings.setLogoPng(cleanLogo);
+                }
+            }
             settings.setUpdatedAt(Instant.now());
             repository.save(settings);
             invalidateCache();
         } catch (Exception e) {
             throw new RuntimeException("Failed to serialize theme tokens", e);
         }
+    }
+
+    private Map<String, String> sanitizeTokens(Map<String, String> inputTokens) {
+        if (inputTokens == null || inputTokens.isEmpty()) {
+            throw new IllegalArgumentException("Theme tokens cannot be empty");
+        }
+        Map<String, String> sanitized = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : inputTokens.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue() != null ? entry.getValue().trim() : "";
+            if (!ALLOWED_TOKENS.contains(key)) {
+                throw new IllegalArgumentException("Unauthorized theme token key: " + key);
+            }
+            if (!HEX_PATTERN.matcher(value).matches() && !RGBA_PATTERN.matcher(value).matches()) {
+                throw new IllegalArgumentException("Invalid color value format for " + key + ": " + value);
+            }
+            sanitized.put(key, value);
+        }
+        return sanitized;
+    }
+
+    /**
+     * @return the trimmed name, or null when blank. Control characters are rejected
+     *         rather than stripped so a name that renders differently than it was typed
+     *         is never silently stored. Output escaping is Thymeleaf's job; this is the
+     *         input-side half.
+     */
+    private String validateSchoolName(String schoolName) {
+        if (schoolName == null || schoolName.isBlank()) {
+            return null;
+        }
+        String trimmed = schoolName.trim();
+        if (trimmed.length() > MAX_SCHOOL_NAME_LENGTH) {
+            throw new IllegalArgumentException(
+                    "School name must be " + MAX_SCHOOL_NAME_LENGTH + " characters or fewer.");
+        }
+        for (char c : trimmed.toCharArray()) {
+            if (Character.isISOControl(c)) {
+                throw new IllegalArgumentException("School name contains invalid control characters.");
+            }
+        }
+        return trimmed;
+    }
+
+    /**
+     * Validates the logo ENVELOPE only — the bytes are never decoded into an image here.
+     * That is the whole security posture of this feature: no server-side image parser is
+     * ever pointed at admin-supplied input, so image-library CVEs are not reachable.
+     *
+     * @return the validated data URI, or null when none was supplied.
+     */
+    private String validateLogo(String logoPng) {
+        if (logoPng == null || logoPng.isBlank()) {
+            return null;
+        }
+        String trimmed = logoPng.trim();
+        if (trimmed.length() > MAX_LOGO_CHARS) {
+            throw new IllegalArgumentException(
+                    "Logo is too large — re-export it under ~300 KB.");
+        }
+        if (!PNG_DATA_URI.matcher(trimmed).matches()) {
+            throw new IllegalArgumentException(
+                    "Logo must be a base64 PNG data URI. SVG and other formats are converted "
+                            + "in the browser before upload.");
+        }
+        byte[] decoded;
+        try {
+            decoded = Base64.getDecoder().decode(trimmed.substring("data:image/png;base64,".length()));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Logo is not valid base64.");
+        }
+        if (decoded.length < PNG_MAGIC.length) {
+            throw new IllegalArgumentException("Logo is not a valid PNG.");
+        }
+        for (int i = 0; i < PNG_MAGIC.length; i++) {
+            if (decoded[i] != PNG_MAGIC[i]) {
+                // The declared MIME type disagrees with the actual bytes.
+                throw new IllegalArgumentException("Logo is not a valid PNG.");
+            }
+        }
+        return trimmed;
+    }
+
+    /** The institution name for the navbar, or null to fall back to "UniSubmit". */
+    @Transactional(readOnly = true)
+    public String getSchoolName() {
+        return repository.findById(BrandingSettings.SINGLETON_ID)
+                .map(BrandingSettings::getSchoolName)
+                .filter(n -> n != null && !n.isBlank())
+                .orElse(null);
+    }
+
+    /** Re-validated on read, for the same reason {@link #getSanitizedCssBlock} is. */
+    @Transactional(readOnly = true)
+    public String getLogoDataUri() {
+        return repository.findById(BrandingSettings.SINGLETON_ID)
+                .map(BrandingSettings::getLogoPng)
+                .filter(logo -> logo != null && !logo.isBlank()
+                        && logo.length() <= MAX_LOGO_CHARS
+                        && PNG_DATA_URI.matcher(logo).matches())
+                .orElse(null);
     }
 
     /**

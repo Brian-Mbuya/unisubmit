@@ -33,6 +33,18 @@ public class GlobalModelAttributes {
         return brandingService.getCanvasColor();
     }
 
+    /** Institution name for the navbar/title; null falls back to "UniSubmit". */
+    @ModelAttribute("schoolName")
+    public String schoolName() {
+        return brandingService.getSchoolName();
+    }
+
+    /** Institution logo as a validated PNG data URI, or null. */
+    @ModelAttribute("schoolLogo")
+    public String schoolLogo() {
+        return brandingService.getLogoDataUri();
+    }
+
     @ModelAttribute("pendingCollaborationCount")
     public long pendingCollaborationCount(@AuthenticationPrincipal CustomUserDetails userDetails) {
         if (userDetails == null || userDetails.getUser() == null || !userDetails.getUser().getRole().name().equals("STUDENT")) {

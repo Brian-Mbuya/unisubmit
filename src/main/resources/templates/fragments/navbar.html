@@ -3,10 +3,16 @@
 <body>
     <header class="topbar" th:fragment="navbar">
         <div class="topbar-left">
+            <!-- Once a school is branded, its own logo and name replace the UniSubmit
+                 mark. schoolLogo is a server-validated PNG data URI (see
+                 BrandingService.getLogoDataUri) — never raw admin-supplied markup. -->
             <div class="logo">
-                <a th:href="@{/}" aria-label="UniSubmit home">
-                    <svg th:replace="~{fragments/components :: brandMark('logo-mark')}"></svg>
-                    <span>UniSubmit</span>
+                <a th:href="@{/}" th:aria-label="${schoolName != null ? schoolName + ' home' : 'UniSubmit home'}">
+                    <img th:if="${schoolLogo != null}" th:src="${schoolLogo}" alt=""
+                         class="logo-mark" style="object-fit: contain;">
+                    <svg th:if="${schoolLogo == null}"
+                         th:replace="~{fragments/components :: brandMark('logo-mark')}"></svg>
+                    <span th:text="${schoolName != null ? schoolName : 'UniSubmit'}">UniSubmit</span>
                 </a>
             </div>
 

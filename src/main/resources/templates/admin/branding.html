@@ -43,12 +43,42 @@
                 </div>
             </div>
 
-            <!-- 2. Manual Color Overrides -->
+            <!-- 2. School identity + palette overrides -->
             <div class="card">
-                <div class="card-head"><h2>Palette Overrides</h2></div>
+                <div class="card-head"><h2>School Identity</h2></div>
                 <form id="brandingForm" th:action="@{/admin/branding}" method="post">
                     <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                     <input type="hidden" id="tokensJsonInput" name="tokensJson" value="" />
+                    <!-- Filled by the dropzone handler: the uploaded logo re-encoded to
+                         PNG via canvas. Anything script-bearing (e.g. SVG) is dropped by
+                         that round-trip before it ever reaches the server. -->
+                    <input type="hidden" id="logoPngInput" name="logoPng" value="" />
+
+                    <div class="form-group">
+                        <label class="form-label" for="schoolNameInput">School name</label>
+                        <input type="text" id="schoolNameInput" name="schoolName" class="form-control"
+                               maxlength="120" placeholder="e.g. Chuka University"
+                               th:value="${currentSchoolName}" />
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            Replaces "UniSubmit" in the navigation bar across the app.
+                        </small>
+                    </div>
+
+                    <div class="form-group" id="logoStatusRow" style="display:none;">
+                        <label class="form-label">Logo</label>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <img id="logoThumb" th:src="${currentLogo}" alt=""
+                                 style="width:40px; height:40px; object-fit:contain; border-radius:6px; background:var(--surface-2); border:1px solid var(--border);">
+                            <span id="logoStatusText" style="font-size:0.8rem; color:var(--text-muted);">Stored logo</span>
+                        </div>
+                    </div>
+                    <script th:if="${currentLogo != null}">
+                        document.getElementById('logoStatusRow').style.display = 'block';
+                    </script>
+
+
+                    <hr style="border:none; border-top:1px solid var(--border); margin: var(--sp-4) 0;">
+                    <p style="font-weight:600; font-size:0.85rem; margin-bottom: var(--sp-3);">Palette overrides</p>
 
                     <div class="form-group">
                         <label class="form-label">Primary Brand Hue</label>
@@ -149,8 +179,93 @@
 
             var form = document.getElementById('brandingForm');
             var tokensJsonInput = document.getElementById('tokensJsonInput');
+            var logoPngInput = document.getElementById('logoPngInput');
+            var logoThumb = document.getElementById('logoThumb');
+            var logoStatusRow = document.getElementById('logoStatusRow');
+            var logoStatusText = document.getElementById('logoStatusText');
+            var contrastBadge = document.getElementById('contrastBadge');
 
             var currentTokens = null;
+
+            /**
+             * Re-encodes any uploaded logo to a PNG data URI on a canvas, capped at
+             * 256px on the long edge. Two jobs at once: it strips anything that is not
+             * pixels (an SVG's <script> cannot survive a raster round-trip), and it keeps
+             * the stored string small enough to inline on every page without bloating
+             * each response. The server re-checks the envelope regardless.
+             */
+            function rasterizeToPng(imageSrc) {
+                return new Promise(function(resolve, reject) {
+                    var img = new Image();
+                    img.onload = function() {
+                        var max = 256;
+                        var scale = Math.min(1, max / Math.max(img.width, img.height));
+                        var w = Math.max(1, Math.round(img.width * scale));
+                        var h = Math.max(1, Math.round(img.height * scale));
+                        var canvas = document.createElement('canvas');
+                        canvas.width = w;
+                        canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        try {
+                            resolve(canvas.toDataURL('image/png'));
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    img.onerror = function() { reject(new Error('Could not decode image')); };
+                    img.src = imageSrc;
+                });
+            }
+
+            function storeLogo(imageSrc) {
+                rasterizeToPng(imageSrc).then(function(png) {
+                    logoPngInput.value = png;
+                    logoThumb.src = png;
+                    logoStatusRow.style.display = 'block';
+                    logoStatusText.textContent = 'Ready to save (' + Math.round(png.length / 1024) + ' KB)';
+                }).catch(function(err) {
+                    console.error('Logo rasterization failed', err);
+                    logoStatusText.textContent = 'Could not read that image — colors still applied.';
+                });
+            }
+
+            /**
+             * Relative luminance per WCAG 2.x, used to gate the save on a real 4.5:1
+             * body-text ratio rather than trusting the generated palette blindly. A
+             * school's actual brand colors genuinely can fail this.
+             */
+            function luminance(hex) {
+                var m = /^#([0-9A-Fa-f]{6})$/.exec(hex);
+                if (!m) return null;
+                var v = parseInt(m[1], 16);
+                var channels = [(v >> 16) & 255, (v >> 8) & 255, v & 255].map(function(c) {
+                    c = c / 255;
+                    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+                });
+                return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+            }
+
+            function contrastRatio(a, b) {
+                var la = luminance(a), lb = luminance(b);
+                if (la === null || lb === null) return null;
+                return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+            }
+
+            /** @return the body-text ratio, after refreshing the badge. */
+            function refreshContrast() {
+                if (!currentTokens) return null;
+                var ratio = contrastRatio(currentTokens['--text'], currentTokens['--canvas']);
+                if (ratio === null) return null;
+                var rounded = Math.round(ratio * 10) / 10;
+                if (ratio >= 4.5) {
+                    contrastBadge.className = 'badge badge-success';
+                    contrastBadge.textContent = 'WCAG AA ' + rounded + ':1';
+                } else {
+                    contrastBadge.className = 'badge badge-rejected';
+                    contrastBadge.textContent = 'Fails AA — ' + rounded + ':1';
+                }
+                return ratio;
+            }
 
             function updateTheme() {
                 if (typeof ThemeEngine === 'undefined') return;
@@ -166,6 +281,7 @@
                 ThemeEngine.UniSubmitThemeMapper.applyToDocument(currentTokens);
 
                 tokensJsonInput.value = JSON.stringify(currentTokens);
+                refreshContrast();
             }
 
             function syncInput(picker, input) {
@@ -254,6 +370,12 @@
                             statusDiv.textContent = 'Could not find color attributes in SVG.';
                         }
                     };
+                    // Keep the logo itself too — read separately as a data URI so the
+                    // canvas can rasterize it (the text read above is for color scraping).
+                    var svgUrlReader = new FileReader();
+                    svgUrlReader.onload = function(ev) { storeLogo(ev.target.result); };
+                    svgUrlReader.readAsDataURL(file);
+
                     reader.readAsText(file);
                     return;
                 }
@@ -262,6 +384,7 @@
                 var reader = new FileReader();
                 reader.onload = function(e) {
                     var imageSrc = e.target.result;
+                    storeLogo(imageSrc);
                     if (typeof ThemeEngine !== 'undefined' && ThemeEngine.ColorExtractor) {
                         var extractor = new ThemeEngine.ColorExtractor();
                         extractor.extractColors(imageSrc).then(function(result) {
@@ -290,6 +413,20 @@
                     updateTheme();
                 }
                 tokensJsonInput.value = JSON.stringify(currentTokens);
+
+                // Accessibility gate. Warn rather than hard-block: a school's real brand
+                // colors can legitimately fail, and the admin — not this script — owns
+                // that call. Blocking outright would just push them to hand-edit the DB.
+                var ratio = refreshContrast();
+                if (ratio !== null && ratio < 4.5) {
+                    var msg = 'This palette gives body text a contrast ratio of '
+                        + (Math.round(ratio * 10) / 10) + ':1, below the WCAG AA minimum '
+                        + 'of 4.5:1.\n\nStudents read deadlines and grades in this text. '
+                        + 'Save anyway?';
+                    if (!window.confirm(msg)) {
+                        e.preventDefault();
+                    }
+                }
             });
 
             updateTheme();
