@@ -40,6 +40,7 @@
                     <div id="extractionStatus" style="font-size: 0.8rem; color: var(--primary); margin-top: 8px; display: none;">
                         Extracting palette...
                     </div>
+                    <div id="extractedSwatches" style="margin-top: 6px;"></div>
                 </div>
             </div>
 
@@ -287,6 +288,125 @@
                 return ratio;
             }
 
+            // ════════════════════════════════════════════════════════════════
+            // Major-colour extraction, modelled on Material You's Score step.
+            //
+            // The bundled ColorExtractor clusters ALL pixels, so on a crest-style
+            // logo — white paper, black linework, small saturated marks — the paper
+            // and the outlines win on area and the real brand colours never surface;
+            // it falls through to hardcoded defaults that appear nowhere in the file.
+            // Material You avoids this with three rules, reproduced here:
+            //   1. hard cutoffs so greyscale can never be a brand colour,
+            //   2. score on hue-NEIGHBOURHOOD population, not exact-colour population,
+            //   3. reward chroma, and require the picks to be far apart in hue.
+            // Constants are Material's own (Score.java).
+            // ════════════════════════════════════════════════════════════════
+            var SCORE = {
+                TARGET_CHROMA: 48, WEIGHT_PROPORTION: 0.7,
+                WEIGHT_CHROMA_ABOVE: 0.3, WEIGHT_CHROMA_BELOW: 0.1,
+                CUTOFF_CHROMA: 5, CUTOFF_EXCITED: 0.01,
+                // Paper and ink. Without these a scanned crest yields white and black.
+                MAX_LIGHTNESS: 0.92, MIN_LIGHTNESS: 0.10
+            };
+
+            function extractMajorColors(imgSrc) {
+                return new Promise(function(resolve, reject) {
+                    var img = new Image();
+                    img.onload = function() {
+                        var max = 128;
+                        var sc = Math.min(1, max / Math.max(img.width, img.height));
+                        var w = Math.max(1, Math.round(img.width * sc));
+                        var h = Math.max(1, Math.round(img.height * sc));
+                        var cv = document.createElement('canvas');
+                        cv.width = w; cv.height = h;
+                        var ctx = cv.getContext('2d', { willReadFrequently: true });
+                        ctx.drawImage(img, 0, 0, w, h);
+                        var px = ctx.getImageData(0, 0, w, h).data;
+
+                        var huePop = new Array(360).fill(0);
+                        var samples = {};
+                        var counted = 0;
+
+                        for (var i = 0; i < px.length; i += 4) {
+                            if (px[i + 3] < 128) continue; // transparent
+                            var lch = ThemeEngine.ColorUtils.rgbToOklch(px[i], px[i + 1], px[i + 2]);
+                            var L = lch[0], C = lch[1] * 100, H = ((lch[2] % 360) + 360) % 360;
+                            if (L > SCORE.MAX_LIGHTNESS || L < SCORE.MIN_LIGHTNESS
+                                    || C < SCORE.CUTOFF_CHROMA) continue;
+                            var hi = Math.round(H) % 360;
+                            huePop[hi]++; counted++;
+                            if (!samples[hi]) {
+                                samples[hi] = {
+                                    hex: '#' + [px[i], px[i + 1], px[i + 2]].map(function(v) {
+                                        return ('0' + v.toString(16)).slice(-2);
+                                    }).join('').toUpperCase(),
+                                    L: L, C: C, H: H
+                                };
+                            }
+                        }
+                        if (!counted) return resolve([]);
+
+                        // Excited proportion: a hue's whole +/-15 degree neighbourhood, so
+                        // anti-aliased gradients of one brand colour count together
+                        // instead of splitting into dozens of losing buckets.
+                        var excited = new Array(360).fill(0);
+                        for (var hh = 0; hh < 360; hh++) {
+                            var s = 0;
+                            for (var d = -15; d <= 15; d++) s += huePop[(hh + d + 360) % 360];
+                            excited[hh] = s / counted;
+                        }
+
+                        var scored = [];
+                        Object.keys(samples).forEach(function(k) {
+                            var hi = parseInt(k, 10), smp = samples[k];
+                            if (excited[hi] <= SCORE.CUTOFF_EXCITED) return;
+                            var cw = smp.C < SCORE.TARGET_CHROMA
+                                ? SCORE.WEIGHT_CHROMA_BELOW : SCORE.WEIGHT_CHROMA_ABOVE;
+                            scored.push({
+                                hex: smp.hex, L: smp.L, C: smp.C, H: smp.H,
+                                coverage: excited[hi],
+                                score: excited[hi] * 100 * SCORE.WEIGHT_PROPORTION
+                                     + (smp.C - SCORE.TARGET_CHROMA) * cw
+                            });
+                        });
+                        scored.sort(function(a, b) { return b.score - a.score; });
+
+                        // Prefer maximally distinct hues, relaxing until two survive —
+                        // otherwise a single hue's shades take every slot.
+                        for (var sep = 90; sep >= 15; sep -= 15) {
+                            var chosen = [];
+                            for (var j = 0; j < scored.length && chosen.length < 4; j++) {
+                                var cand = scored[j];
+                                var farEnough = chosen.every(function(o) {
+                                    var diff = Math.abs(o.H - cand.H);
+                                    return Math.min(diff, 360 - diff) >= sep;
+                                });
+                                if (farEnough) chosen.push(cand);
+                            }
+                            if (chosen.length >= 2) return resolve(chosen);
+                        }
+                        resolve(scored.slice(0, 4));
+                    };
+                    img.onerror = function() { reject(new Error('Could not decode that image')); };
+                    img.src = imgSrc;
+                });
+            }
+
+            /** Renders what was extracted, with coverage, so the admin can sanity-check it. */
+            function showExtracted(colors) {
+                var box = document.getElementById('extractedSwatches');
+                if (!box) return;
+                if (!colors.length) { box.innerHTML = ''; return; }
+                box.innerHTML = '<div style="font-size:0.75rem;color:var(--text-muted);margin:8px 0 4px;">'
+                    + 'Major colours found</div>'
+                    + colors.map(function(c) {
+                        return '<span title="' + c.hex + ' · ' + (c.coverage * 100).toFixed(1)
+                            + '% of coloured pixels" style="display:inline-block;width:26px;height:26px;'
+                            + 'border-radius:5px;margin-right:5px;border:1px solid var(--border-strong);'
+                            + 'background:' + c.hex + '"></span>';
+                    }).join('');
+            }
+
             /** Blends fg over bg at `ratio` — used to derive solid tint backgrounds. */
             function mixHex(fg, bg, ratio) {
                 var a = /^#([0-9A-Fa-f]{6})$/.exec(fg), b = /^#([0-9A-Fa-f]{6})$/.exec(bg);
@@ -450,6 +570,46 @@
                 }
             });
 
+            /**
+             * Stores the logo and drives the palette from its major colours.
+             * Neutral is derived rather than extracted: surfaces need a dark, nearly
+             * desaturated base, and any colour actually present in a logo is far too
+             * saturated to sit behind body text.
+             */
+            function applyExtraction(imageSrc) {
+                storeLogo(imageSrc);
+                extractMajorColors(imageSrc).then(function(colors) {
+                    if (!colors.length) {
+                        statusDiv.textContent = 'No strong brand colours found — set them manually below.';
+                        return;
+                    }
+                    showExtracted(colors);
+
+                    var primary = colors[0];
+                    var secondary = colors[1] || colors[0];
+                    primaryInput.value = primary.hex;
+                    primaryPicker.value = primary.hex;
+                    secondaryInput.value = secondary.hex;
+                    secondaryPicker.value = secondary.hex;
+
+                    // Dark surface carrying a trace of the brand hue, so backgrounds
+                    // belong to the palette instead of being a generic grey.
+                    var neutral = ThemeEngine.ColorUtils.safeOklchToHex
+                        ? ThemeEngine.ColorUtils.safeOklchToHex(0.22, 0.012, primary.H)
+                        : '#1a1d21';
+                    neutralInput.value = neutral;
+                    neutralPicker.value = neutral;
+
+                    updateTheme();
+                    statusDiv.style.color = 'var(--primary)';
+                    statusDiv.textContent = 'Extracted ' + colors.length + ' major colour(s) — '
+                        + primary.hex + ' leads at ' + (primary.coverage * 100).toFixed(0) + '% coverage.';
+                }).catch(function(err) {
+                    console.error('Extraction failed', err);
+                    showEngineError('Could not read colours from that image.');
+                });
+            }
+
             function handleFile(file) {
                 // Size cap guard: 10MB
                 if (file.size > 10 * 1024 * 1024) {
@@ -460,74 +620,14 @@
                 statusDiv.style.display = 'block';
                 statusDiv.textContent = 'Extracting brand colors...';
 
-                // Direct SVG Parsing (Recommendation 1.1)
-                if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
-                    var reader = new FileReader();
-                    reader.onload = function(e) {
-                        var content = e.target.result;
-                        var parser = new DOMParser();
-                        var doc = parser.parseFromString(content, 'image/svg+xml');
-                        var elements = doc.querySelectorAll('*');
-                        var colorCounts = {};
-
-                        elements.forEach(function(el) {
-                            ['fill', 'stroke', 'stop-color'].forEach(function(attr) {
-                                var val = el.getAttribute(attr);
-                                if (val && /^#[0-9A-Fa-f]{6}$/i.test(val.trim())) {
-                                    var hex = val.trim().toUpperCase();
-                                    colorCounts[hex] = (colorCounts[hex] || 0) + 1;
-                                }
-                            });
-                        });
-
-                        var sorted = Object.keys(colorCounts).sort(function(a, b) { return colorCounts[b] - colorCounts[a]; });
-                        if (sorted.length > 0) {
-                            primaryInput.value = sorted[0];
-                            primaryPicker.value = sorted[0];
-                            if (sorted.length > 1) {
-                                secondaryInput.value = sorted[1];
-                                secondaryPicker.value = sorted[1];
-                            }
-                            updateTheme();
-                            statusDiv.textContent = 'Extracted SVG brand colors!';
-                        } else {
-                            statusDiv.textContent = 'Could not find color attributes in SVG.';
-                        }
-                    };
-                    // Keep the logo itself too — read separately as a data URI so the
-                    // canvas can rasterize it (the text read above is for color scraping).
-                    var svgUrlReader = new FileReader();
-                    svgUrlReader.onload = function(ev) { storeLogo(ev.target.result); };
-                    svgUrlReader.readAsDataURL(file);
-
-                    reader.readAsText(file);
-                    return;
-                }
-
+                // SVG is rasterised and scored like any other image rather than
+                // having its fill/stroke attributes counted: attribute counting treats a
+                // 1px stroke and a full-bleed background as equally important, which is
+                // exactly backwards for deciding a brand colour.
                 // Image Extraction via Theme Engine ColorExtractor (Recommendation 1.2, 1.3, 1.5)
                 var reader = new FileReader();
                 reader.onload = function(e) {
-                    var imageSrc = e.target.result;
-                    storeLogo(imageSrc);
-                    if (typeof ThemeEngine !== 'undefined' && ThemeEngine.ColorExtractor) {
-                        var extractor = new ThemeEngine.ColorExtractor();
-                        extractor.extractColors(imageSrc).then(function(result) {
-                            primaryInput.value = result.primary.hex;
-                            primaryPicker.value = result.primary.hex;
-
-                            secondaryInput.value = result.secondary.hex;
-                            secondaryPicker.value = result.secondary.hex;
-
-                            neutralInput.value = result.neutral.hex;
-                            neutralPicker.value = result.neutral.hex;
-
-                            updateTheme();
-                            statusDiv.textContent = 'Extracted palette via Oklab K-Means++!';
-                        }).catch(function(err) {
-                            console.error(err);
-                            statusDiv.textContent = 'Failed to extract colors from image.';
-                        });
-                    }
+                    applyExtraction(e.target.result);
                 };
                 reader.readAsDataURL(file);
             }

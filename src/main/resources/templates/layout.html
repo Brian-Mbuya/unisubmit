@@ -4,16 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UniSubmit</title>
+    <title th:text="${schoolName != null ? schoolName : 'UniSubmit'}">UniSubmit</title>
     <meta name="_csrf" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:content="${_csrf.headerName}">
     <link rel="stylesheet" th:href="@{/css/base.css}">
     <style th:if="${themeCssBlock != null and !themeCssBlock.isEmpty()}" th:utext="${themeCssBlock}"></style>
-    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <!-- Tab icon follows the school too: a branded deployment should not show
+         the UniSubmit mark anywhere, including the browser tab and home screen. -->
+    <link th:if="${schoolLogo != null}" rel="icon" type="image/png" th:href="${schoolLogo}">
+    <link th:if="${schoolLogo == null}" rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
     <!-- Installable app (PWA): manifest + theme + iOS icon. SW registered in app.js. -->
     <link rel="manifest" th:href="@{/manifest.webmanifest}">
     <meta name="theme-color" th:content="${themeCanvasColor != null ? themeCanvasColor : '#121417'}">
-    <link rel="apple-touch-icon" th:href="@{/icons/apple-touch-icon.png}">
+    <link rel="apple-touch-icon" th:href="${schoolLogo != null} ? ${schoolLogo} : @{/icons/apple-touch-icon.png}">
     <script th:src="@{/js/app.js}" defer></script>
     <!-- Near-instant taps: Chrome prefetches these routes on hover/first touch.
          Allowlist ONLY safe GETs — never logout, notifications (marks read),
