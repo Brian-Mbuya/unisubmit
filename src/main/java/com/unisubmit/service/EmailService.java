@@ -36,6 +36,23 @@ public class EmailService {
         this.mailSender = mailSender;
         this.from = from;
         this.configured = mailUsername != null && !mailUsername.isBlank();
+        if (!configured) {
+            log.warn("MAIL_USERNAME is not set — outbound email is DISABLED. Self-service "
+                    + "password reset will fall back to notifying admins instead of emailing "
+                    + "a code. Set MAIL_USERNAME/MAIL_PASSWORD to enable it.");
+        }
+    }
+
+    /**
+     * Whether outbound mail can actually be sent.
+     * <p>
+     * Callers must branch on this rather than assuming delivery: without it
+     * {@code /forgot-password} redirected to "we sent you a code" while this class had only
+     * written the code to the log — an auth flow reporting success on a send that never
+     * happened, for the two roles that can genuinely be locked out.
+     */
+    public boolean isConfigured() {
+        return configured;
     }
 
     /** Fire-and-forget: the caller (a form POST) must not block on an SMTP round trip. */

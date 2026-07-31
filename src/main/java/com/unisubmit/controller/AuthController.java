@@ -22,12 +22,16 @@ public class AuthController {
     private final com.unisubmit.service.NotificationService notificationService;
     private final PasswordResetService passwordResetService;
 
+    private final com.unisubmit.service.EmailService emailService;
+
     public AuthController(UserService userService,
                           com.unisubmit.service.NotificationService notificationService,
-                          PasswordResetService passwordResetService) {
+                          PasswordResetService passwordResetService,
+                          com.unisubmit.service.EmailService emailService) {
         this.userService = userService;
         this.notificationService = notificationService;
         this.passwordResetService = passwordResetService;
+        this.emailService = emailService;
     }
 
     @GetMapping("/login")
