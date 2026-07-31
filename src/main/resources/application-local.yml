@@ -44,6 +44,10 @@ app:
     upload-dir: uploads-local
 
 unisubmit:
+  seed:
+    # Local dev keeps the admin/lecturer/student demo logins (all password123) so you
+    # can sign straight in. Gated off everywhere else — see application.yml.
+    demo-accounts: true
   recommendation:
     # Recompute persisted similarity scores at startup so scoring changes
     # apply to existing local data immediately.

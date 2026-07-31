@@ -107,6 +107,16 @@ app:
       access-ttl: ${API_JWT_ACCESS_TTL:PT12H}
 
 unisubmit:
+  seed:
+    # The admin/lecturer/student trio that share a well-known password. OFF everywhere
+    # except the local profile (application-local.yml). Enabling this in production
+    # recreates the old hole: a live admin login with a password that is in the source.
+    demo-accounts: ${SEED_DEMO_ACCOUNTS:false}
+  admin:
+    # Password for the single admin created on a FRESH database when the demo trio is
+    # off. Leave unset and one is generated at first boot and logged once at WARN.
+    # Ignored once an 'admin' account exists — it never overwrites a live password.
+    initial-password: ${ADMIN_INITIAL_PASSWORD:}
   demo:
     # OFF by default in production (no fake "Amara Okoye / DEMO-CS" data on a real
     # pilot). Flip it on for a pitch/demo without a code change by setting the
