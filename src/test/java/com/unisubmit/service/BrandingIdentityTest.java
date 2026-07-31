@@ -5,10 +5,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import com.unisubmit.domain.ThemeStylePreset;
+
 import java.util.Base64;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -109,6 +113,60 @@ class BrandingIdentityTest {
 
         assertEquals("New Name", brandingService.getSchoolName());
         assertEquals(VALID_PNG, brandingService.getLogoDataUri());
+    }
+
+    // ── Deep theming: the style preset half of the identity ────────────────────
+
+    @Test
+    void cssBlockCarriesTypographyGeometryAndElevationNotJustColour() {
+        brandingService.saveSchoolIdentity("Modern University", null, "MODERN", VALID_TOKENS);
+        String css = brandingService.getSanitizedCssBlock();
+
+        // Colour alone is what made two branded deployments still look like the same
+        // product; these are the properties that actually change the perceived design.
+        assertTrue(css.contains("--font-display"), "missing typography");
+        assertTrue(css.contains("--font-sans"), "missing body typeface");
+        assertTrue(css.contains("--radius"), "missing corner geometry");
+        assertTrue(css.contains("--shadow-card"), "missing elevation");
+    }
+
+    @Test
+    void twoStylesProduceMateriallyDifferentCss() {
+        brandingService.saveSchoolIdentity("A", null, "MINIMAL", VALID_TOKENS);
+        String minimal = brandingService.getSanitizedCssBlock();
+
+        brandingService.saveSchoolIdentity("B", null, "ROUNDED", VALID_TOKENS);
+        String rounded = brandingService.getSanitizedCssBlock();
+
+        assertNotEquals(minimal, rounded);
+        assertTrue(minimal.contains("--radius-lg: 2px"), "MINIMAL should be near-square");
+        assertTrue(rounded.contains("--radius-lg: 26px"), "ROUNDED should be heavily rounded");
+    }
+
+    @Test
+    void unknownStyleFallsBackToTheDefaultInsteadOfEmittingIt() {
+        brandingService.saveSchoolIdentity("Sneaky", null,
+                "MODERN; } body { display: none } .x {", VALID_TOKENS);
+        String css = brandingService.getSanitizedCssBlock();
+
+        // The style is stored as an enum name and resolved server-side, so an injected
+        // value can never reach the stylesheet.
+        assertFalse(css.contains("display: none"));
+        assertEquals(ThemeStylePreset.defaultPreset(), brandingService.getThemeStyle());
+    }
+
+    @Test
+    void semanticAndTintColoursAreThemeable() {
+        // These were previously outside ALLOWED_TOKENS, so every status badge stayed the
+        // stock teal and leaked the platform's origin on a rebranded deployment.
+        brandingService.saveSchoolIdentity("Tinted University", null, "ACADEMIC",
+                Map.of("--success", "#118844", "--tint-green-bg", "#0A1F14",
+                        "--accent", "#AA3366"));
+        String css = brandingService.getSanitizedCssBlock();
+
+        assertTrue(css.contains("--success: #118844;"));
+        assertTrue(css.contains("--tint-green-bg: #0A1F14;"));
+        assertTrue(css.contains("--accent: #AA3366;"));
     }
 
     @Test

@@ -77,6 +77,25 @@
                     </script>
 
 
+                    <div class="form-group">
+                        <label class="form-label" for="themeStyleSelect">Visual style</label>
+                        <select id="themeStyleSelect" name="themeStyle" class="form-control">
+                            <!-- data-css carries the preset's declarations so the preview
+                                 can apply them live. Values come from the ThemeStylePreset
+                                 enum and Thymeleaf escapes them into the attribute; the
+                                 client never invents CSS of its own. -->
+                            <option th:each="p : ${stylePresets}"
+                                    th:value="${p.name()}"
+                                    th:text="${p.label}"
+                                    th:data-css="${p.toCssDeclarations()}"
+                                    th:data-hint="${p.description}"
+                                    th:selected="${currentStyle != null and currentStyle.name() == p.name()}">Style</option>
+                        </select>
+                        <small class="text-muted" style="font-size: 0.75rem;" id="styleHint">
+                            Sets the typeface, corner geometry and shadow depth.
+                        </small>
+                    </div>
+
                     <hr style="border:none; border-top:1px solid var(--border); margin: var(--sp-4) 0;">
                     <p style="font-weight:600; font-size:0.85rem; margin-bottom: var(--sp-3);">Palette overrides</p>
 
@@ -268,6 +287,57 @@
                 return ratio;
             }
 
+            /** Blends fg over bg at `ratio` — used to derive solid tint backgrounds. */
+            function mixHex(fg, bg, ratio) {
+                var a = /^#([0-9A-Fa-f]{6})$/.exec(fg), b = /^#([0-9A-Fa-f]{6})$/.exec(bg);
+                if (!a || !b) return null;
+                var av = parseInt(a[1], 16), bv = parseInt(b[1], 16);
+                var out = [16, 8, 0].map(function(shift) {
+                    var fc = (av >> shift) & 255, bc = (bv >> shift) & 255;
+                    return Math.round(fc * ratio + bc * (1 - ratio));
+                });
+                return '#' + out.map(function(c) {
+                    return ('0' + c.toString(16)).slice(-2).toUpperCase();
+                }).join('');
+            }
+
+            /**
+             * The vendored mapper only emits the 21 core brand/surface/text tokens, so
+             * status badges, callouts and accents kept the stock palette and gave the
+             * platform's origin away on a rebranded deployment. This fills in the rest
+             * from the same generated Theme, matching the server's expanded allow-list.
+             */
+            function deepenTokens(theme, tokens) {
+                var c = theme.colors || {};
+                var canvas = tokens['--canvas'];
+
+                if (c.accent) tokens['--accent'] = c.accent;
+                if (c.accentScale && c.accentScale[600]) tokens['--accent-strong'] = c.accentScale[600];
+
+                if (c.success) tokens['--success'] = c.success;
+                if (c.warning) tokens['--warning'] = c.warning;
+                if (c.danger) tokens['--danger'] = c.danger;
+                if (c.danger) tokens['--danger-strong'] = mixHex(c.danger, '#000000', 0.82) || c.danger;
+
+                // Tints are solid, not translucent: they sit on varying surfaces, and a
+                // blended hex stays legible where an alpha overlay would shift.
+                var tintPairs = [
+                    ['--tint-blue-bg', c.info],
+                    ['--tint-green-bg', c.success],
+                    ['--tint-amber-bg', c.warning],
+                    ['--tint-red-bg', c.danger],
+                    ['--tint-purple-bg', c.accent],
+                    ['--tint-gray-bg', tokens['--surface-2']]
+                ];
+                tintPairs.forEach(function(pair) {
+                    if (pair[1] && canvas) {
+                        var mixed = mixHex(pair[1], canvas, 0.16);
+                        if (mixed) tokens[pair[0]] = mixed;
+                    }
+                });
+                return tokens;
+            }
+
             /** Surfaces engine failures in the UI instead of failing silently. */
             function showEngineError(message) {
                 statusDiv.style.display = 'block';
@@ -298,7 +368,7 @@
                         true
                     );
 
-                    currentTokens = ThemeEngine.UniSubmitThemeMapper.mapTheme(theme);
+                    currentTokens = deepenTokens(theme, ThemeEngine.UniSubmitThemeMapper.mapTheme(theme));
                     ThemeEngine.UniSubmitThemeMapper.applyToDocument(currentTokens);
 
                     tokensJsonInput.value = JSON.stringify(currentTokens);
@@ -323,6 +393,34 @@
             syncInput(primaryPicker, primaryInput);
             syncInput(secondaryPicker, secondaryInput);
             syncInput(neutralPicker, neutralInput);
+
+            // ── Visual style: typeface, geometry, elevation ─────────────────
+            // Colour alone leaves both schools looking like the same app recoloured;
+            // swapping the typeface and corner geometry is what actually makes two
+            // deployments read as different products.
+            var styleSelect = document.getElementById('themeStyleSelect');
+            var styleHint = document.getElementById('styleHint');
+
+            function applyStylePreset() {
+                var opt = styleSelect.options[styleSelect.selectedIndex];
+                if (!opt) return;
+                var css = opt.getAttribute('data-css') || '';
+                css.split(';').forEach(function(decl) {
+                    var i = decl.indexOf(':');
+                    if (i === -1) return;
+                    var prop = decl.slice(0, i).trim();
+                    var val = decl.slice(i + 1).trim();
+                    if (prop.indexOf('--') === 0 && val) {
+                        document.documentElement.style.setProperty(prop, val);
+                    }
+                });
+                if (styleHint) {
+                    styleHint.textContent = opt.getAttribute('data-hint') || '';
+                }
+            }
+
+            styleSelect.addEventListener('change', applyStylePreset);
+            applyStylePreset();
 
             // ── Logo Upload & Extraction Handler ───────────────────────
             dropzone.addEventListener('click', function() { logoInput.click(); });

@@ -3,6 +3,7 @@ package com.unisubmit.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unisubmit.domain.BrandingSettings;
+import com.unisubmit.domain.ThemeStylePreset;
 import com.unisubmit.repository.BrandingSettingsRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,14 +15,31 @@ import java.util.regex.Pattern;
 @Service
 public class BrandingService {
 
+    /**
+     * Every colour custom property in base.css that a school may override.
+     * <p>
+     * The original set stopped at the 21 core brand/surface/text tokens, which left
+     * accents, semantic states and the tinted badge backgrounds hard-coded to the stock
+     * teal — so a rebranded deployment still leaked its origin through every status
+     * badge and callout. Those are included now; the non-colour properties (typeface,
+     * radii, shadows) come from {@link ThemeStylePreset} instead of the client.
+     */
     private static final Set<String> ALLOWED_TOKENS = Set.of(
             "--primary", "--primary-strong",
             "--brand", "--brand-strong",
             "--gold", "--gold-bright", "--gold-dim",
+            "--accent", "--accent-strong",
             "--canvas", "--bg",
             "--surface", "--surface-solid", "--surface-muted", "--surface-2", "--bg-elevated",
             "--text", "--text-muted", "--text-subtle", "--text-on-brand",
-            "--border", "--border-muted", "--border-strong"
+            "--border", "--border-muted", "--border-strong",
+            // Semantic states — harmonised to the brand hue so success/danger/warning
+            // read as part of the palette rather than stock defaults.
+            "--success", "--danger", "--danger-strong", "--warning",
+            // Tinted badge/callout backgrounds.
+            "--tint-blue-bg", "--tint-green-bg", "--tint-amber-bg",
+            "--tint-red-bg", "--tint-purple-bg", "--tint-gray-bg",
+            "--edge-light"
     );
 
     private static final Pattern HEX_PATTERN = Pattern.compile("^#[0-9A-Fa-f]{6}$");
@@ -60,7 +78,7 @@ public class BrandingService {
      */
     @Transactional
     public void saveThemeTokens(Map<String, String> inputTokens) {
-        saveIdentity(null, null, sanitizeTokens(inputTokens), false);
+        saveIdentity(null, null, null, sanitizeTokens(inputTokens), false);
     }
 
     /**
@@ -71,13 +89,23 @@ public class BrandingService {
      */
     @Transactional
     public void saveSchoolIdentity(String schoolName, String logoPng, Map<String, String> inputTokens) {
-        saveIdentity(schoolName, logoPng, sanitizeTokens(inputTokens), true);
+        saveSchoolIdentity(schoolName, logoPng, null, inputTokens);
     }
 
-    private void saveIdentity(String schoolName, String logoPng,
+    @Transactional
+    public void saveSchoolIdentity(String schoolName, String logoPng, String themeStyle,
+                                   Map<String, String> inputTokens) {
+        saveIdentity(schoolName, logoPng, themeStyle, sanitizeTokens(inputTokens), true);
+    }
+
+    private void saveIdentity(String schoolName, String logoPng, String themeStyle,
                               Map<String, String> sanitizedTokens, boolean updateIdentity) {
         String cleanName = updateIdentity ? validateSchoolName(schoolName) : null;
         String cleanLogo = updateIdentity ? validateLogo(logoPng) : null;
+        // Unknown names fall back to the default rather than throwing: the preset list is
+        // ours to change, and a stale form value should not block a save.
+        String cleanStyle = updateIdentity
+                ? ThemeStylePreset.fromNameOrDefault(themeStyle).name() : null;
 
         try {
             String jsonStr = objectMapper.writeValueAsString(sanitizedTokens);
@@ -90,6 +118,7 @@ public class BrandingService {
             settings.setTokensJson(jsonStr);
             if (updateIdentity) {
                 settings.setSchoolName(cleanName);
+                settings.setThemeStyle(cleanStyle);
                 // A wizard save with no new file keeps the existing logo rather than
                 // clearing it — re-uploading the same PNG just to rename is busywork.
                 if (cleanLogo != null) {
@@ -185,6 +214,14 @@ public class BrandingService {
         return trimmed;
     }
 
+    /** The stored style preset, for pre-selecting it in the admin form. */
+    @Transactional(readOnly = true)
+    public ThemeStylePreset getThemeStyle() {
+        return repository.findById(BrandingSettings.SINGLETON_ID)
+                .map(s -> ThemeStylePreset.fromNameOrDefault(s.getThemeStyle()))
+                .orElseGet(ThemeStylePreset::defaultPreset);
+    }
+
     /** The institution name for the navbar, or null to fall back to "UniSubmit". */
     @Transactional(readOnly = true)
     public String getSchoolName() {
@@ -239,6 +276,13 @@ public class BrandingService {
                     css.append("  ").append(key).append(": ").append(val).append(";\n");
                 }
             }
+
+            // Typeface, corner geometry and elevation. Sourced from the enum, never from
+            // the stored row, so these can never carry injected CSS however the row was
+            // written.
+            css.append(ThemeStylePreset
+                    .fromNameOrDefault(settingsOpt.get().getThemeStyle())
+                    .toCssDeclarations());
 
             css.append("}");
             String result = css.toString();

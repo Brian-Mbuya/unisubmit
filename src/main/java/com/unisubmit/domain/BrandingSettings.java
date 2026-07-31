@@ -45,6 +45,15 @@ public class BrandingSettings {
     @Column(name = "logo_png", columnDefinition = "TEXT")
     private String logoPng;
 
+    /**
+     * Name of a {@link ThemeStylePreset} — the typeface/geometry/elevation half of the
+     * identity. Stored as the enum name rather than the resolved CSS so that tweaking a
+     * preset's values later re-themes every deployment using it, instead of leaving
+     * stale copies frozen in the database.
+     */
+    @Column(name = "theme_style", length = 32)
+    private String themeStyle;
+
     @Column(nullable = false)
     private Instant updatedAt;
 }

@@ -31,6 +31,8 @@ public class AdminBrandingController {
         // admin edits their school rather than starting from a blank form.
         model.addAttribute("currentSchoolName", brandingService.getSchoolName());
         model.addAttribute("currentLogo", brandingService.getLogoDataUri());
+        model.addAttribute("currentStyle", brandingService.getThemeStyle());
+        model.addAttribute("stylePresets", com.unisubmit.domain.ThemeStylePreset.values());
         return "admin/branding";
     }
 
@@ -43,6 +45,7 @@ public class AdminBrandingController {
     public String saveBranding(@RequestParam("tokensJson") String tokensJson,
                                @RequestParam(value = "schoolName", required = false) String schoolName,
                                @RequestParam(value = "logoPng", required = false) String logoPng,
+                               @RequestParam(value = "themeStyle", required = false) String themeStyle,
                                RedirectAttributes redirectAttributes) {
         try {
             if (tokensJson == null || tokensJson.isBlank()) {
@@ -53,7 +56,7 @@ public class AdminBrandingController {
                         "No theme was generated in the browser — reload the page and try again.");
             }
             Map<String, String> tokens = objectMapper.readValue(tokensJson, new TypeReference<Map<String, String>>() {});
-            brandingService.saveSchoolIdentity(schoolName, logoPng, tokens);
+            brandingService.saveSchoolIdentity(schoolName, logoPng, themeStyle, tokens);
             String label = (schoolName != null && !schoolName.isBlank()) ? schoolName.trim() : "This deployment";
             redirectAttributes.addFlashAttribute("successMessage", label + " is now branded and live.");
         } catch (Exception e) {
