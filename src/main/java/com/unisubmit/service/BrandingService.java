@@ -3,6 +3,7 @@ package com.unisubmit.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.unisubmit.domain.BrandingSettings;
+import com.unisubmit.domain.ThemeFontPreset;
 import com.unisubmit.domain.ThemeStylePreset;
 import com.unisubmit.repository.BrandingSettingsRepository;
 import org.springframework.stereotype.Service;
@@ -107,7 +108,7 @@ public class BrandingService {
      */
     @Transactional
     public void saveThemeTokens(Map<String, String> inputTokens) {
-        saveIdentity(null, null, null, null, sanitizeTokens(inputTokens), false);
+        saveIdentity(null, null, null, null, null, null, sanitizeTokens(inputTokens), false);
     }
 
     /**
@@ -130,7 +131,15 @@ public class BrandingService {
     @Transactional
     public void saveSchoolIdentity(String schoolName, String logoPng, String themeStyle,
                                    Map<String, String> baseColors, Map<String, String> inputTokens) {
-        saveIdentity(schoolName, logoPng, themeStyle, baseColors,
+        saveSchoolIdentity(schoolName, logoPng, themeStyle, null, null, baseColors, inputTokens);
+    }
+
+    /** The full wizard save — every identity axis in one transaction. */
+    @Transactional
+    public void saveSchoolIdentity(String schoolName, String logoPng, String themeStyle,
+                                   String fontStyle, Boolean darkMode,
+                                   Map<String, String> baseColors, Map<String, String> inputTokens) {
+        saveIdentity(schoolName, logoPng, themeStyle, fontStyle, darkMode, baseColors,
                 sanitizeTokens(inputTokens), true);
     }
 
@@ -186,6 +195,7 @@ public class BrandingService {
     }
 
     private void saveIdentity(String schoolName, String logoPng, String themeStyle,
+                              String fontStyle, Boolean darkMode,
                               Map<String, String> baseColors,
                               Map<String, String> sanitizedTokens, boolean updateIdentity) {
         String cleanName = updateIdentity ? validateSchoolName(schoolName) : null;
@@ -194,6 +204,8 @@ public class BrandingService {
         // ours to change, and a stale form value should not block a save.
         String cleanStyle = updateIdentity
                 ? ThemeStylePreset.fromNameOrDefault(themeStyle).name() : null;
+        String cleanFont = updateIdentity
+                ? ThemeFontPreset.fromNameOrDefault(fontStyle).name() : null;
 
         try {
             String jsonStr = objectMapper.writeValueAsString(sanitizedTokens);
@@ -207,6 +219,8 @@ public class BrandingService {
             if (updateIdentity) {
                 settings.setSchoolName(cleanName);
                 settings.setThemeStyle(cleanStyle);
+                settings.setFontStyle(cleanFont);
+                settings.setDarkMode(darkMode == null ? Boolean.TRUE : darkMode);
                 // Absent means "unchanged", mirroring the logo rule.
                 String cleanBase = serializeBaseColors(baseColors);
                 if (cleanBase != null) {
@@ -315,6 +329,21 @@ public class BrandingService {
                 .orElseGet(ThemeStylePreset::defaultPreset);
     }
 
+    @Transactional(readOnly = true)
+    public ThemeFontPreset getFontStyle() {
+        return repository.findById(BrandingSettings.SINGLETON_ID)
+                .map(s -> ThemeFontPreset.fromNameOrDefault(s.getFontStyle()))
+                .orElseGet(ThemeFontPreset::defaultPreset);
+    }
+
+    /** True unless a light-mode palette was explicitly saved. */
+    @Transactional(readOnly = true)
+    public boolean isDarkMode() {
+        return repository.findById(BrandingSettings.SINGLETON_ID)
+                .map(s -> s.getDarkMode() == null || s.getDarkMode())
+                .orElse(true);
+    }
+
     /** The institution name for the navbar, or null to fall back to "UniSubmit". */
     @Transactional(readOnly = true)
     public String getSchoolName() {
@@ -375,6 +404,9 @@ public class BrandingService {
             // written.
             css.append(ThemeStylePreset
                     .fromNameOrDefault(settingsOpt.get().getThemeStyle())
+                    .toCssDeclarations());
+            css.append(ThemeFontPreset
+                    .fromNameOrDefault(settingsOpt.get().getFontStyle())
                     .toCssDeclarations());
 
             css.append("}");

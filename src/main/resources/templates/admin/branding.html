@@ -41,6 +41,7 @@
                         Extracting palette...
                     </div>
                     <div id="extractedSwatches" style="margin-top: 6px;"></div>
+                    <div id="themeSuggestions" style="margin-top: 10px;"></div>
                 </div>
             </div>
 
@@ -93,8 +94,34 @@
                                     th:selected="${currentStyle != null and currentStyle.name() == p.name()}">Style</option>
                         </select>
                         <small class="text-muted" style="font-size: 0.75rem;" id="styleHint">
-                            Sets the typeface, corner geometry and shadow depth.
+                            Sets corner geometry and shadow depth.
                         </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="fontStyleSelect">Typeface</label>
+                        <select id="fontStyleSelect" name="fontStyle" class="form-control">
+                            <option th:each="f : ${fontPresets}"
+                                    th:value="${f.name()}"
+                                    th:text="${f.label}"
+                                    th:data-css="${f.toCssDeclarations()}"
+                                    th:data-hint="${f.description}"
+                                    th:selected="${currentFont != null and currentFont.name() == f.name()}">Font</option>
+                        </select>
+                        <small class="text-muted" style="font-size: 0.75rem;" id="fontHint">
+                            Headings and body type.
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Mode</label>
+                        <!-- Hidden field carries the value; the checkbox alone would post
+                             nothing when unchecked and the server would read null. -->
+                        <input type="hidden" id="darkModeInput" name="darkMode" th:value="${currentDarkMode}">
+                        <label style="display:flex; gap:8px; align-items:center; cursor:pointer;">
+                            <input type="checkbox" id="darkModeToggle" th:checked="${currentDarkMode}">
+                            <span id="darkModeLabel" style="font-size:0.85rem;">Dark mode</span>
+                        </label>
                     </div>
 
                     <hr style="border:none; border-top:1px solid var(--border); margin: var(--sp-4) 0;">
@@ -205,6 +232,7 @@
             var logoStatusRow = document.getElementById('logoStatusRow');
             var logoStatusText = document.getElementById('logoStatusText');
             var contrastBadge = document.getElementById('contrastBadge');
+            var darkModeToggle = document.getElementById('darkModeToggle');
 
             var currentTokens = null;
 
@@ -371,11 +399,15 @@
                         });
                         scored.sort(function(a, b) { return b.score - a.score; });
 
-                        // Prefer maximally distinct hues, relaxing until two survive —
-                        // otherwise a single hue's shades take every slot.
-                        for (var sep = 90; sep >= 15; sep -= 15) {
+                        // Material You stops at 4 because a phone needs ONE source colour.
+                        // A crest carries more identity than that — Chuka's has orange,
+                        // blue, green, red and yellow — so keep relaxing the separation
+                        // until a fuller set survives, and let the admin pick among them
+                        // rather than imposing the top-scoring one.
+                        var best = [];
+                        for (var sep = 90; sep >= 12; sep -= 12) {
                             var chosen = [];
-                            for (var j = 0; j < scored.length && chosen.length < 4; j++) {
+                            for (var j = 0; j < scored.length && chosen.length < 6; j++) {
                                 var cand = scored[j];
                                 var farEnough = chosen.every(function(o) {
                                     var diff = Math.abs(o.H - cand.H);
@@ -383,9 +415,10 @@
                                 });
                                 if (farEnough) chosen.push(cand);
                             }
-                            if (chosen.length >= 2) return resolve(chosen);
+                            if (chosen.length > best.length) best = chosen;
+                            if (best.length >= 5) break;
                         }
-                        resolve(scored.slice(0, 4));
+                        resolve(best.length ? best : scored.slice(0, 6));
                     };
                     img.onerror = function() { reject(new Error('Could not decode that image')); };
                     img.src = imgSrc;
@@ -405,6 +438,66 @@
                             + 'border-radius:5px;margin-right:5px;border:1px solid var(--border-strong);'
                             + 'background:' + c.hex + '"></span>';
                     }).join('');
+            }
+
+            /**
+             * Candidate themes built from the extracted colours. Which colour "is" the
+             * brand is a judgement the maths cannot make — a crest's largest area is
+             * often its background, and its most saturated mark is often a small detail —
+             * so the ranked pairings are offered rather than one being imposed.
+             */
+            function showThemeSuggestions(colors) {
+                var box = document.getElementById('themeSuggestions');
+                if (!box) return;
+                if (colors.length < 2) { box.innerHTML = ''; return; }
+
+                var combos = [];
+                for (var i = 0; i < colors.length && combos.length < 6; i++) {
+                    for (var j = 0; j < colors.length && combos.length < 6; j++) {
+                        if (i !== j) combos.push({ primary: colors[i], secondary: colors[j] });
+                    }
+                }
+
+                box.innerHTML = '<div style="font-size:0.75rem;color:var(--text-muted);'
+                    + 'margin-bottom:5px;">Suggested themes — click to apply</div>';
+                var row = document.createElement('div');
+                row.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;';
+                combos.forEach(function(combo) {
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.title = combo.primary.hex + ' with ' + combo.secondary.hex;
+                    btn.style.cssText = 'display:flex;width:52px;height:26px;border-radius:5px;'
+                        + 'overflow:hidden;border:1px solid var(--border-strong);cursor:pointer;padding:0;';
+                    btn.innerHTML = '<span style="flex:2;background:' + combo.primary.hex + '"></span>'
+                        + '<span style="flex:1;background:' + combo.secondary.hex + '"></span>';
+                    btn.addEventListener('click', function() {
+                        applyPalette(combo.primary, combo.secondary);
+                    });
+                    row.appendChild(btn);
+                });
+                box.appendChild(row);
+            }
+
+            /**
+             * Sets the three generator inputs from a chosen pair and re-themes.
+             * Neutral is derived rather than extracted: surfaces need a near-desaturated
+             * base, and any colour actually present in a logo is far too saturated to sit
+             * behind body text. Its lightness follows the light/dark choice.
+             */
+            function applyPalette(primary, secondary) {
+                primaryInput.value = primary.hex;
+                primaryPicker.value = primary.hex;
+                secondaryInput.value = secondary.hex;
+                secondaryPicker.value = secondary.hex;
+
+                var hue = typeof primary.H === 'number' ? primary.H : 0;
+                var neutral = ThemeEngine.ColorUtils.safeOklchToHex
+                    ? ThemeEngine.ColorUtils.safeOklchToHex(
+                          darkModeToggle.checked ? 0.22 : 0.97, 0.012, hue)
+                    : (darkModeToggle.checked ? '#1a1d21' : '#f7f7f5');
+                neutralInput.value = neutral;
+                neutralPicker.value = neutral;
+                updateTheme();
             }
 
             /** Blends fg over bg at `ratio` — used to derive solid tint backgrounds. */
@@ -485,7 +578,7 @@
                         'Modern',
                         pColor, sColor, nColor,
                         'Complementary',
-                        true
+                        darkModeToggle.checked
                     );
 
                     currentTokens = deepenTokens(theme, ThemeEngine.UniSubmitThemeMapper.mapTheme(theme));
@@ -542,6 +635,43 @@
             styleSelect.addEventListener('change', applyStylePreset);
             applyStylePreset();
 
+            // ── Typeface, independent of shape ──────────────────────────────
+            var fontSelect = document.getElementById('fontStyleSelect');
+            var fontHint = document.getElementById('fontHint');
+
+            function applyFontPreset() {
+                var opt = fontSelect.options[fontSelect.selectedIndex];
+                if (!opt) return;
+                (opt.getAttribute('data-css') || '').split(';').forEach(function(decl) {
+                    var i = decl.indexOf(':');
+                    if (i === -1) return;
+                    var prop = decl.slice(0, i).trim(), val = decl.slice(i + 1).trim();
+                    if (prop.indexOf('--') === 0 && val) {
+                        document.documentElement.style.setProperty(prop, val);
+                    }
+                });
+                if (fontHint) fontHint.textContent = opt.getAttribute('data-hint') || '';
+            }
+            fontSelect.addEventListener('change', applyFontPreset);
+            applyFontPreset();
+
+            // ── Light / dark ────────────────────────────────────────────────
+            // This regenerates the palette rather than flipping a class: the generator
+            // chooses different surface and text tones per mode, so the whole token set
+            // differs, not just a background colour.
+            var darkModeInput = document.getElementById('darkModeInput');
+            var darkModeLabel = document.getElementById('darkModeLabel');
+
+            darkModeToggle.addEventListener('change', function() {
+                darkModeInput.value = darkModeToggle.checked;
+                darkModeLabel.textContent = darkModeToggle.checked ? 'Dark mode' : 'Light mode';
+                var parsed = ThemeEngine.ColorUtils.parseColor(primaryInput.value);
+                applyPalette(
+                    { hex: primaryInput.value, H: parsed ? parsed.hsl[0] : 0 },
+                    { hex: secondaryInput.value }
+                );
+            });
+
             // ── Logo Upload & Extraction Handler ───────────────────────
             dropzone.addEventListener('click', function() { logoInput.click(); });
 
@@ -584,23 +714,9 @@
                         return;
                     }
                     showExtracted(colors);
-
+                    showThemeSuggestions(colors);
+                    applyPalette(colors[0], colors[1] || colors[0]);
                     var primary = colors[0];
-                    var secondary = colors[1] || colors[0];
-                    primaryInput.value = primary.hex;
-                    primaryPicker.value = primary.hex;
-                    secondaryInput.value = secondary.hex;
-                    secondaryPicker.value = secondary.hex;
-
-                    // Dark surface carrying a trace of the brand hue, so backgrounds
-                    // belong to the palette instead of being a generic grey.
-                    var neutral = ThemeEngine.ColorUtils.safeOklchToHex
-                        ? ThemeEngine.ColorUtils.safeOklchToHex(0.22, 0.012, primary.H)
-                        : '#1a1d21';
-                    neutralInput.value = neutral;
-                    neutralPicker.value = neutral;
-
-                    updateTheme();
                     statusDiv.style.color = 'var(--primary)';
                     statusDiv.textContent = 'Extracted ' + colors.length + ' major colour(s) — '
                         + primary.hex + ' leads at ' + (primary.coverage * 100).toFixed(0) + '% coverage.';

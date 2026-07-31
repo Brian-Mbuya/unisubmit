@@ -39,6 +39,9 @@ public class AdminBrandingController {
         model.addAttribute("baseSecondary", base.getOrDefault("secondary", "#cda660"));
         model.addAttribute("baseNeutral", base.getOrDefault("neutral", "#1a1d21"));
         model.addAttribute("stylePresets", com.unisubmit.domain.ThemeStylePreset.values());
+        model.addAttribute("currentFont", brandingService.getFontStyle());
+        model.addAttribute("fontPresets", com.unisubmit.domain.ThemeFontPreset.values());
+        model.addAttribute("currentDarkMode", brandingService.isDarkMode());
         return "admin/branding";
     }
 
@@ -52,6 +55,8 @@ public class AdminBrandingController {
                                @RequestParam(value = "schoolName", required = false) String schoolName,
                                @RequestParam(value = "logoPng", required = false) String logoPng,
                                @RequestParam(value = "themeStyle", required = false) String themeStyle,
+                               @RequestParam(value = "fontStyle", required = false) String fontStyle,
+                               @RequestParam(value = "darkMode", required = false) Boolean darkMode,
                                @RequestParam(value = "basePrimary", required = false) String basePrimary,
                                @RequestParam(value = "baseSecondary", required = false) String baseSecondary,
                                @RequestParam(value = "baseNeutral", required = false) String baseNeutral,
@@ -69,7 +74,8 @@ public class AdminBrandingController {
             if (basePrimary != null) baseColors.put("primary", basePrimary);
             if (baseSecondary != null) baseColors.put("secondary", baseSecondary);
             if (baseNeutral != null) baseColors.put("neutral", baseNeutral);
-            brandingService.saveSchoolIdentity(schoolName, logoPng, themeStyle, baseColors, tokens);
+            brandingService.saveSchoolIdentity(schoolName, logoPng, themeStyle, fontStyle,
+                    darkMode, baseColors, tokens);
             String label = (schoolName != null && !schoolName.isBlank()) ? schoolName.trim() : "This deployment";
             redirectAttributes.addFlashAttribute("successMessage", label + " is now branded and live.");
         } catch (Exception e) {

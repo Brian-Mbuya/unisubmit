@@ -10,8 +10,7 @@
                 <a th:href="@{/}" th:aria-label="${schoolName != null ? schoolName + ' home' : 'UniSubmit home'}">
                     <img th:if="${schoolLogo != null}" th:src="${schoolLogo}" alt=""
                          class="logo-mark" style="object-fit: contain;">
-                    <svg th:if="${schoolLogo == null}"
-                         th:replace="~{fragments/components :: brandMark('logo-mark')}"></svg>
+                    <th:block th:if="${schoolLogo == null}"><svg th:replace="~{fragments/components :: brandMark('logo-mark')}"></svg></th:block>
                     <span th:text="${schoolName != null ? schoolName : 'UniSubmit'}">UniSubmit</span>
                 </a>
             </div>

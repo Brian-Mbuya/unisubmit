@@ -66,6 +66,18 @@ public class BrandingSettings {
     @Column(name = "base_colors", length = 128)
     private String baseColorsJson;
 
+    /** Name of a {@link ThemeFontPreset}. Stored by name for the same reason as the style. */
+    @Column(name = "font_style", length = 32)
+    private String fontStyle;
+
+    /**
+     * Whether the saved palette is the dark or light variant. The tokens already encode
+     * it, so rendering does not need this — it is kept so the admin form reopens in the
+     * mode the palette was generated for, instead of silently regenerating the other one.
+     */
+    @Column(name = "dark_mode")
+    private Boolean darkMode;
+
     @Column(nullable = false)
     private Instant updatedAt;
 }

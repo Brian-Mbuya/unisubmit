@@ -4,7 +4,7 @@
     <div class="about-page readable aurora" style="margin: 0 auto;">
 
         <img th:if="${schoolLogo != null}" th:src="${schoolLogo}" alt="" class="auth-mark" style="object-fit: contain;">
-            <svg th:if="${schoolLogo == null}" th:replace="~{fragments/components :: brandMark('auth-mark')}"></svg>
+            <th:block th:if="${schoolLogo == null}"><svg th:replace="~{fragments/components :: brandMark('auth-mark')}"></svg></th:block>
 
         <h1 style="margin-top: 1rem;">Your university's project memory.</h1>
         <p class="text-muted" style="margin-top: 0.5rem; font-size: 0.95rem;">
