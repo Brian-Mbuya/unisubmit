@@ -54,6 +54,18 @@ public class BrandingSettings {
     @Column(name = "theme_style", length = 32)
     private String themeStyle;
 
+    /**
+     * The three source colours the palette was generated from, as
+     * {@code {"primary":"#..","secondary":"#..","neutral":"#.."}}.
+     * <p>
+     * Kept separately from {@code tokensJson} because the generated token map cannot be
+     * reversed back into its inputs, and without them the admin form has nothing to
+     * prefill its colour pickers with — they would fall back to the stock defaults and a
+     * rename-only save would silently overwrite the school's palette.
+     */
+    @Column(name = "base_colors", length = 128)
+    private String baseColorsJson;
+
     @Column(nullable = false)
     private Instant updatedAt;
 }

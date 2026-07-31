@@ -102,24 +102,24 @@
                     <div class="form-group">
                         <label class="form-label">Primary Brand Hue</label>
                         <div style="display:flex; gap: 8px; align-items: center;">
-                            <input type="color" id="primaryColorPicker" value="#35a08c" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
-                            <input type="text" id="primaryHexInput" value="#35a08c" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
+                            <input type="color" id="primaryColorPicker" th:value="${basePrimary}" value="#35a08c" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
+                            <input type="text" id="primaryHexInput" name="basePrimary" th:value="${basePrimary}" value="#35a08c" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Secondary / Brass Hue</label>
                         <div style="display:flex; gap: 8px; align-items: center;">
-                            <input type="color" id="secondaryColorPicker" value="#cda660" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
-                            <input type="text" id="secondaryHexInput" value="#cda660" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
+                            <input type="color" id="secondaryColorPicker" th:value="${baseSecondary}" value="#cda660" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
+                            <input type="text" id="secondaryHexInput" name="baseSecondary" th:value="${baseSecondary}" value="#cda660" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
                         </div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Neutral Surface Base</label>
                         <div style="display:flex; gap: 8px; align-items: center;">
-                            <input type="color" id="neutralColorPicker" value="#1a1d21" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
-                            <input type="text" id="neutralHexInput" value="#1a1d21" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
+                            <input type="color" id="neutralColorPicker" th:value="${baseNeutral}" value="#1a1d21" class="form-control" style="width: 50px; height: 38px; padding: 2px;" />
+                            <input type="text" id="neutralHexInput" name="baseNeutral" th:value="${baseNeutral}" value="#1a1d21" class="form-control" style="flex:1;" pattern="^#[0-9A-Fa-f]{6}$" required />
                         </div>
                     </div>
 

@@ -7,6 +7,8 @@ import com.unisubmit.domain.ThemeStylePreset;
 import com.unisubmit.repository.BrandingSettingsRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.*;
@@ -54,6 +56,9 @@ public class BrandingService {
 
     private static final int MAX_SCHOOL_NAME_LENGTH = 120;
 
+    /** The three generator inputs stored alongside the derived palette. */
+    private static final Set<String> BASE_COLOR_KEYS = Set.of("primary", "secondary", "neutral");
+
     /** The 8-byte PNG signature every valid PNG starts with. */
     private static final byte[] PNG_MAGIC = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
 
@@ -68,7 +73,31 @@ public class BrandingService {
         this.objectMapper = new ObjectMapper();
     }
 
+    /**
+     * Clears the cache AFTER the surrounding transaction commits.
+     * <p>
+     * Clearing it inline lost the write: under READ COMMITTED a concurrent page render
+     * (every request reads this via {@code GlobalModelAttributes}) could land between the
+     * clear and the commit, re-read the still-old row, and repopulate the cache with the
+     * previous theme. Nothing clears it again until the next branding write, so the stale
+     * palette would be served indefinitely while the navbar — which is uncached — already
+     * showed the new name and logo. Mirrors the deferral AIInsightService already uses.
+     */
     private void invalidateCache() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            clearCacheNow();
+                        }
+                    });
+        } else {
+            clearCacheNow();
+        }
+    }
+
+    private void clearCacheNow() {
         this.cachedCssBlock = null;
         this.cachedCanvasColor = null;
     }
@@ -78,7 +107,7 @@ public class BrandingService {
      */
     @Transactional
     public void saveThemeTokens(Map<String, String> inputTokens) {
-        saveIdentity(null, null, null, sanitizeTokens(inputTokens), false);
+        saveIdentity(null, null, null, null, sanitizeTokens(inputTokens), false);
     }
 
     /**
@@ -95,10 +124,69 @@ public class BrandingService {
     @Transactional
     public void saveSchoolIdentity(String schoolName, String logoPng, String themeStyle,
                                    Map<String, String> inputTokens) {
-        saveIdentity(schoolName, logoPng, themeStyle, sanitizeTokens(inputTokens), true);
+        saveSchoolIdentity(schoolName, logoPng, themeStyle, null, inputTokens);
+    }
+
+    @Transactional
+    public void saveSchoolIdentity(String schoolName, String logoPng, String themeStyle,
+                                   Map<String, String> baseColors, Map<String, String> inputTokens) {
+        saveIdentity(schoolName, logoPng, themeStyle, baseColors,
+                sanitizeTokens(inputTokens), true);
+    }
+
+    /**
+     * The three colours the palette was generated from, for prefilling the admin form.
+     * Empty map when a deployment has never saved them.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, String> getBaseColors() {
+        return repository.findById(BrandingSettings.SINGLETON_ID)
+                .map(BrandingSettings::getBaseColorsJson)
+                .filter(json -> json != null && !json.isBlank())
+                .map(json -> {
+                    try {
+                        Map<String, String> parsed =
+                                objectMapper.readValue(json, new TypeReference<Map<String, String>>() {});
+                        // Re-validated on read, same defence-in-depth as the token block:
+                        // these are echoed straight back into form value attributes.
+                        Map<String, String> safe = new LinkedHashMap<>();
+                        parsed.forEach((k, v) -> {
+                            if (BASE_COLOR_KEYS.contains(k) && v != null
+                                    && HEX_PATTERN.matcher(v.trim()).matches()) {
+                                safe.put(k, v.trim());
+                            }
+                        });
+                        return safe;
+                    } catch (Exception e) {
+                        return Map.<String, String>of();
+                    }
+                })
+                .orElseGet(Map::of);
+    }
+
+    private String serializeBaseColors(Map<String, String> baseColors) {
+        if (baseColors == null || baseColors.isEmpty()) {
+            return null;
+        }
+        Map<String, String> safe = new LinkedHashMap<>();
+        for (String key : BASE_COLOR_KEYS) {
+            String val = baseColors.get(key);
+            if (val != null && HEX_PATTERN.matcher(val.trim()).matches()) {
+                safe.put(key, val.trim());
+            }
+        }
+        if (safe.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(safe);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void saveIdentity(String schoolName, String logoPng, String themeStyle,
+                              Map<String, String> baseColors,
                               Map<String, String> sanitizedTokens, boolean updateIdentity) {
         String cleanName = updateIdentity ? validateSchoolName(schoolName) : null;
         String cleanLogo = updateIdentity ? validateLogo(logoPng) : null;
@@ -119,6 +207,11 @@ public class BrandingService {
             if (updateIdentity) {
                 settings.setSchoolName(cleanName);
                 settings.setThemeStyle(cleanStyle);
+                // Absent means "unchanged", mirroring the logo rule.
+                String cleanBase = serializeBaseColors(baseColors);
+                if (cleanBase != null) {
+                    settings.setBaseColorsJson(cleanBase);
+                }
                 // A wizard save with no new file keeps the existing logo rather than
                 // clearing it — re-uploading the same PNG just to rename is busywork.
                 if (cleanLogo != null) {

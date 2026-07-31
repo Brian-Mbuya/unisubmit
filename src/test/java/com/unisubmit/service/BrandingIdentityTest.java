@@ -178,4 +178,45 @@ class BrandingIdentityTest {
         assertNull(brandingService.getLogoDataUri());
         assertTrue(brandingService.getSanitizedCssBlock().isEmpty());
     }
+
+    // ── Regressions caught by the adversarial review ───────────────────────────
+
+    @Test
+    void baseColoursSurviveARenameSoThePaletteIsNotSilentlyReverted() {
+        Map<String, String> maroon = Map.of("primary", "#7B1E28",
+                "secondary", "#C9A227", "neutral", "#1A1A1A");
+        brandingService.saveSchoolIdentity("Maroon University", VALID_PNG, "ACADEMIC",
+                maroon, VALID_TOKENS);
+
+        // The admin form prefills from these. Before they were stored, the pickers fell
+        // back to the stock defaults and a rename-only save posted a stock palette,
+        // reverting the school's colours while reporting success.
+        assertEquals("#7B1E28", brandingService.getBaseColors().get("primary"));
+        assertEquals("#C9A227", brandingService.getBaseColors().get("secondary"));
+        assertEquals("#1A1A1A", brandingService.getBaseColors().get("neutral"));
+    }
+
+    @Test
+    void baseColoursAreValidatedAndBadValuesDropped() {
+        brandingService.saveSchoolIdentity("Injected", null, "ACADEMIC",
+                Map.of("primary", "#7B1E28", "secondary", "red;} body{display:none}",
+                        "neutral", "not-a-colour"),
+                VALID_TOKENS);
+
+        Map<String, String> base = brandingService.getBaseColors();
+        assertEquals("#7B1E28", base.get("primary"));
+        assertFalse(base.containsKey("secondary"));
+        assertFalse(base.containsKey("neutral"));
+    }
+
+    @Test
+    void savedThemeIsVisibleImmediatelyAfterCommit() {
+        brandingService.saveSchoolIdentity("Cache University", null, "MINIMAL",
+                Map.of("primary", "#123456"), VALID_TOKENS);
+
+        // Cache invalidation is deferred to afterCommit; a read straight after the call
+        // must still observe the new theme rather than a repopulated stale one.
+        String css = brandingService.getSanitizedCssBlock();
+        assertTrue(css.contains("--radius-lg: 2px"), "expected MINIMAL geometry, got: " + css);
+    }
 }

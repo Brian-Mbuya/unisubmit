@@ -32,6 +32,12 @@ public class AdminBrandingController {
         model.addAttribute("currentSchoolName", brandingService.getSchoolName());
         model.addAttribute("currentLogo", brandingService.getLogoDataUri());
         model.addAttribute("currentStyle", brandingService.getThemeStyle());
+        // Without these the colour pickers fall back to the stock defaults, and a
+        // rename-only save would post a stock palette and silently revert the school.
+        Map<String, String> base = brandingService.getBaseColors();
+        model.addAttribute("basePrimary", base.getOrDefault("primary", "#35a08c"));
+        model.addAttribute("baseSecondary", base.getOrDefault("secondary", "#cda660"));
+        model.addAttribute("baseNeutral", base.getOrDefault("neutral", "#1a1d21"));
         model.addAttribute("stylePresets", com.unisubmit.domain.ThemeStylePreset.values());
         return "admin/branding";
     }
@@ -46,6 +52,9 @@ public class AdminBrandingController {
                                @RequestParam(value = "schoolName", required = false) String schoolName,
                                @RequestParam(value = "logoPng", required = false) String logoPng,
                                @RequestParam(value = "themeStyle", required = false) String themeStyle,
+                               @RequestParam(value = "basePrimary", required = false) String basePrimary,
+                               @RequestParam(value = "baseSecondary", required = false) String baseSecondary,
+                               @RequestParam(value = "baseNeutral", required = false) String baseNeutral,
                                RedirectAttributes redirectAttributes) {
         try {
             if (tokensJson == null || tokensJson.isBlank()) {
@@ -56,7 +65,11 @@ public class AdminBrandingController {
                         "No theme was generated in the browser — reload the page and try again.");
             }
             Map<String, String> tokens = objectMapper.readValue(tokensJson, new TypeReference<Map<String, String>>() {});
-            brandingService.saveSchoolIdentity(schoolName, logoPng, themeStyle, tokens);
+            Map<String, String> baseColors = new java.util.LinkedHashMap<>();
+            if (basePrimary != null) baseColors.put("primary", basePrimary);
+            if (baseSecondary != null) baseColors.put("secondary", baseSecondary);
+            if (baseNeutral != null) baseColors.put("neutral", baseNeutral);
+            brandingService.saveSchoolIdentity(schoolName, logoPng, themeStyle, baseColors, tokens);
             String label = (schoolName != null && !schoolName.isBlank()) ? schoolName.trim() : "This deployment";
             redirectAttributes.addFlashAttribute("successMessage", label + " is now branded and live.");
         } catch (Exception e) {
