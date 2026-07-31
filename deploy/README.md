@@ -51,10 +51,21 @@ concurrent index, a type change), run the SQL directly against Supabase.
 
 ## First-login & security
 
-The app auto-creates `admin` / `lecturer` / `student` (all `password123`) on first boot.
-**Change the admin password immediately** (login → account settings) and delete or re-password
-the demo `lecturer` / `student` accounts. The DB password lives only in `/etc/unisubmit.env`
-(chmod 600) — never in git or GitHub.
+**Set `ADMIN_INITIAL_PASSWORD` before the first boot.** On a fresh database the app creates a
+single `admin` account using that value. If it is unset, a random 20-character password is
+generated and printed **once** at WARN in the boot log — miss it and there is no recovery
+path, because the account's username is `admin` rather than an email, so the emailed-code
+reset at `/forgot-password` cannot reach it.
+
+```bash
+ADMIN_INITIAL_PASSWORD='choose-something-long'   # in /etc/unisubmit.env, chmod 600
+```
+
+The `admin` / `lecturer` / `student` demo trio (all `password123`) exists **only** under the
+`local` profile. `unisubmit.seed.demo-accounts` is off everywhere else and must stay off — it
+is a known-credential login, not a convenience.
+
+The DB password lives only in `/etc/unisubmit.env` (chmod 600) — never in git or GitHub.
 
 ## Troubleshooting
 
