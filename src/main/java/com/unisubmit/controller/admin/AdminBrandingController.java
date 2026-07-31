@@ -45,6 +45,13 @@ public class AdminBrandingController {
                                @RequestParam(value = "logoPng", required = false) String logoPng,
                                RedirectAttributes redirectAttributes) {
         try {
+            if (tokensJson == null || tokensJson.isBlank()) {
+                // The browser posts this empty when theme generation failed. Jackson's
+                // own "end-of-input" message is meaningless to an admin, so name the
+                // actual problem.
+                throw new IllegalArgumentException(
+                        "No theme was generated in the browser — reload the page and try again.");
+            }
             Map<String, String> tokens = objectMapper.readValue(tokensJson, new TypeReference<Map<String, String>>() {});
             brandingService.saveSchoolIdentity(schoolName, logoPng, tokens);
             String label = (schoolName != null && !schoolName.isBlank()) ? schoolName.trim() : "This deployment";

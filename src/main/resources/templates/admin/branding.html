@@ -180,6 +180,7 @@
             var form = document.getElementById('brandingForm');
             var tokensJsonInput = document.getElementById('tokensJsonInput');
             var logoPngInput = document.getElementById('logoPngInput');
+            var schoolNameInput = document.getElementById('schoolNameInput');
             var logoThumb = document.getElementById('logoThumb');
             var logoStatusRow = document.getElementById('logoStatusRow');
             var logoStatusText = document.getElementById('logoStatusText');
@@ -267,21 +268,46 @@
                 return ratio;
             }
 
+            /** Surfaces engine failures in the UI instead of failing silently. */
+            function showEngineError(message) {
+                statusDiv.style.display = 'block';
+                statusDiv.style.color = 'var(--danger, #e5484d)';
+                statusDiv.textContent = message;
+            }
+
             function updateTheme() {
-                if (typeof ThemeEngine === 'undefined') return;
+                if (typeof ThemeEngine === 'undefined') {
+                    showEngineError('Theme engine did not load — reload the page and try again.');
+                    return;
+                }
+                try {
+                    var pColor = ThemeEngine.ColorUtils.parseColor(primaryInput.value);
+                    var sColor = ThemeEngine.ColorUtils.parseColor(secondaryInput.value);
+                    var nColor = ThemeEngine.ColorUtils.parseColor(neutralInput.value);
 
-                var pColor = ThemeEngine.ColorUtils.parseColor(primaryInput.value);
-                var sColor = ThemeEngine.ColorUtils.parseColor(secondaryInput.value);
-                var nColor = ThemeEngine.ColorUtils.parseColor(neutralInput.value);
+                    // The bundle exposes generate(orgName, style, primary, secondary,
+                    // neutral, harmony, isDarkMode) — NOT generateTheme(p, s, n, ...).
+                    // Calling the old name threw, left currentTokens null, and posted an
+                    // empty tokensJson that surfaced as an opaque Jackson end-of-input
+                    // error on save.
+                    var theme = ThemeEngine.ThemeGenerator.generate(
+                        schoolNameInput.value.trim() || 'UniSubmit',
+                        'Modern',
+                        pColor, sColor, nColor,
+                        'Complementary',
+                        true
+                    );
 
-                var theme = ThemeEngine.ThemeGenerator.generateTheme(pColor, sColor, nColor, 'Complementary', true);
-                currentTokens = ThemeEngine.UniSubmitThemeMapper.mapTheme(theme);
+                    currentTokens = ThemeEngine.UniSubmitThemeMapper.mapTheme(theme);
+                    ThemeEngine.UniSubmitThemeMapper.applyToDocument(currentTokens);
 
-                // Apply live preview properties directly
-                ThemeEngine.UniSubmitThemeMapper.applyToDocument(currentTokens);
-
-                tokensJsonInput.value = JSON.stringify(currentTokens);
-                refreshContrast();
+                    tokensJsonInput.value = JSON.stringify(currentTokens);
+                    refreshContrast();
+                } catch (err) {
+                    console.error('Theme generation failed', err);
+                    currentTokens = null;
+                    showEngineError('Could not generate theme: ' + err.message);
+                }
             }
 
             function syncInput(picker, input) {
@@ -412,6 +438,16 @@
                 if (!currentTokens) {
                     updateTheme();
                 }
+
+                // Never post an empty payload. Without this the server receives "" and
+                // answers with a raw Jackson end-of-input error, which tells the admin
+                // nothing about what actually went wrong.
+                if (!currentTokens || Object.keys(currentTokens).length === 0) {
+                    e.preventDefault();
+                    showEngineError('No theme generated yet — adjust a color or upload a logo first.');
+                    return;
+                }
+
                 tokensJsonInput.value = JSON.stringify(currentTokens);
 
                 // Accessibility gate. Warn rather than hard-block: a school's real brand
