@@ -1,291 +1,226 @@
 # UniSubmit · ROADMAP V4 — adoptable by a real school
 
 > V3 (`ROADMAP.md`) is **complete** — phases 0–6 all landed. This supersedes it.
-> V4's theme is different: V3 was about *building features*. V4 is about making the thing a
-> real school can actually adopt, and a judge can actually understand in four minutes.
+> V3 was about *building features*. V4 is about making the thing a real school can adopt and a
+> judge can understand in four minutes.
+>
+> Evidence: **63 findings** from 6 audit/research lenses, full text in
+> [`notes/RESEARCH-NOTES.md`](notes/RESEARCH-NOTES.md). This file is the plan; that file is the proof.
+
+---
+
+## ⚠️ §00 · DO THIS TODAY — eligibility
+
+**MLH's standard rules say a team "cannot submit a project that includes prior work."** Reusing
+an *idea* is fine; reusing **code** is not. UniSubmit is 181 Java files, ~17.4k LOC, with months
+of history in `ROADMAP-ARCHIVE.md`.
+
+**Action (15 minutes):** read your specific event's rules page and classify it —
+(a) MLH standard unmodified, (b) forked/edited, (c) capstone/FYP showcase with no build-window rule.
+
+If (a) or (b): **do not submit UniSubmit as the project.** Scope the entry to what is genuinely
+built inside the window — the onboarding layer (Phase 1) is a defensible standalone entry.
+
+Why this is first: organisers run cheating checks on **finalists**, so the failure lands exactly
+when you are winning, and it is silent until then. It also decides the demo's scope.
+*(Sources: [MLH rules](https://github.com/MLH/mlh-policies/blob/main/standard-hackathon-rules.md), [MLH judging guide](https://guide.mlh.com/general-information/judging-and-submissions/rules-for-your-hackathon))*
 
 ---
 
 ## §0 · Honest assessment
 
-**What is genuinely strong.** The engineering depth is real and unusual for a student project:
-two independent security chains (session + stateless JWT), a class-rep authority modelled as an
-additive grant rather than a fourth role, pgvector semantic search with graceful degradation
-when no API key is present, versioned submissions, and a branding engine that ports Material
-You's actual colour-scoring algorithm. 127 tests pass. 181 Java files, ~17.4k LOC.
+**Genuinely strong.** Two independent security chains (session + stateless JWT); class-rep as an
+additive authority rather than a fourth role; pgvector semantic search degrading gracefully with
+no API key; versioned submissions; a branding engine that ports Material You's real scoring
+algorithm. 127 tests. ~17.4k LOC.
 
-**What is genuinely weak.** All of that is invisible for the first hour of use, because a fresh
-deployment is an empty room with no signage:
+**Genuinely weak.** Three themes, all confirmed by independent lenses:
 
-- A brand-new admin lands on a dashboard of zeros with **no next step**. There is no setup
-  wizard, checklist, or first-run state anywhere in the codebase.
-- Becoming usable requires **nine sequential bulk imports** in an order that is stated once, in
-  prose, on a page whose own card order contradicts it.
-- 17 of 39 templates have no empty-state handling — a new school sees blank tables.
-- There is no in-app way to load sample data, so an evaluator cannot see the app populated
-  without doing the nine imports first.
+1. **The empty room.** No setup wizard exists anywhere. Nine sequential imports in an order the
+   import page's own layout contradicts. 17 of 39 templates have no empty state.
+2. **Promises the product does not keep.** The admin can promote a class rep — and that student
+   then sees *nothing*, because every rep action is JWT-only for a Flutter client that does not
+   exist. Password reset tells staff "a code was sent" when mail is unconfigured and it only
+   logged it. Marking is one free-text blob but the UI implies structure.
+3. **Coursework primitives are missing.** Deadlines are announcements, not objects: no
+   due-vs-cutoff split, no late penalty, no extensions. No rubric. No submission receipt.
 
-**The gap in one sentence:** the app is built for a school that has already finished onboarding,
-and there is no onboarding.
-
-**Provenance note.** The findings in Phase 1 come from a completed automated audit of the real
-code (10 findings, each carrying `file:line` evidence). The competitive/UX research pass and
-the tonal-system scoping agent **did not complete** — they hit a session limit. Phase 4 below
-is therefore my own analysis against the code plus the Material 3 specification I did read
-directly, not a fresh competitive survey. Treat Phase 5 as unvalidated until that research runs.
+**In one sentence:** the engineering is real, but the product over-promises at exactly the points
+an evaluator touches first.
 
 ---
 
 ## §0b · Standing guardrails
 
-1. **Single-tenant.** One school per deployment. Multi-tenancy is explicitly out (see §6).
-2. **No SPA rewrite.** Server-rendered Thymeleaf, minimal JS. Every task below respects that.
-3. **512 MB budget.** `-Xmx384m` on Railway. No per-user caches, no in-memory image pipelines.
-4. **Never re-enable `unisubmit.seed.demo-accounts` outside `local`.** It is a known-credential
-   admin login.
+1. **Single-tenant.** One school per deployment. Multi-tenancy is out (see §6).
+2. **No SPA rewrite.** Server-rendered Thymeleaf, minimal JS.
+3. **512 MB budget** (`-Xmx384m`). No per-user caches.
+4. **Never enable `unisubmit.seed.demo-accounts` outside `local`** — known-credential admin login.
 5. **Each task is self-contained** — files named, acceptance criteria stated — because future
    sessions execute these with limited context.
 
 ---
 
-## Phase 0 · GROUND — truthful docs (½ day)
-
-*Why first: these are wrong statements in the repo. Everything else builds on top of them.*
+## Phase 0 · GROUND — stop lying to the operator (½ day)
 
 | # | Task | Files | Effort |
 |---|---|---|---|
-| 0.1 | ✅ **DONE** — `deploy/README.md` claimed the app auto-creates `admin`/`lecturer`/`student` with `password123`. False since the security fix; corrected to document `ADMIN_INITIAL_PASSWORD` and the one-time generated password. | `deploy/README.md` | XS |
-| 0.2 | Add `ADMIN_INITIAL_PASSWORD` to `deploy/unisubmit.env.example` and `deploy/RAILWAY.md`. It currently appears only in `.env.example`, which an operator deploying to Railway never opens. | `deploy/*` | XS |
-| 0.3 | Update `CODEBASE-MAP.md` for the V4 branding surface: `ThemeStylePreset`, `ThemeFontPreset`, `BrandingManifestController`, and the fact that `mapTheme` output is extended client-side by `deepenTokens`. | `CODEBASE-MAP.md` | XS |
-
-**Acceptance:** an operator following `deploy/RAILWAY.md` top-to-bottom can log in on first try.
-
----
-
-## Phase 1 · FIRST RUN — the empty room problem (2–3 days)
-
-*Why before anything else: this is the single highest-leverage phase. Every judge and every
-pilot school hits it in the first five minutes, and today it is the worst part of the product.*
-
-### 1.1 · Admin lockout on first boot — **CRITICAL** · M
-**Files:** `UnisubmitApplication.java:67-103`, `EmailService.java`, `AuthController.java`
-
-The bootstrap admin's username is `admin`, not an email — so the emailed-code reset at
-`/forgot-password` **cannot reach it**. If the operator misses the one-time WARN line, the
-deployment is unrecoverable without DB access.
-
-**Do:** accept an operator-supplied email as the bootstrap admin's username (or store an email
-on the account) so the existing reset flow works. Fail fast at boot with a clear message when a
-fresh DB has neither `ADMIN_INITIAL_PASSWORD` nor an existing admin, instead of generating a
-password nobody reads. Also write the generated password to a file under the upload dir.
-
-**Acceptance:** with no env vars set, boot halts with an actionable message. With
-`ADMIN_INITIAL_PASSWORD` set, login works and `/forgot-password` can recover the account.
-
-### 1.2 · First-run setup checklist — **CRITICAL** · S
-**Files:** `AdminDashboardController.java:45-70`, `admin/dashboard.html`
-
-**Do:** a checklist card on the admin dashboard driven **entirely by counters already on the
-model** — no new queries. Nine rows: Branding → Faculties → Departments → Lecturers →
-Programmes → Units → Curricula → Students → Enrolments. Each row: done-tick or a direct link to
-the step. Hide the card once all nine are non-zero.
-
-**Acceptance:** a fresh admin sees an ordered list of what to do next and can complete setup
-without reading docs. **Do not touch** the existing counter queries.
-
-### 1.3 · Make import order self-evident — **HIGH** · S
-**Files:** `admin/import.html`, `AcademicImportService.Kind`
-
-The order is stated once in prose while the cards render in a *different* order.
-
-**Do:** number all nine uploads 1–9 in one continuous list; reorder the DOM so card order equals
-required order (Students belongs between Curriculum and Teaching assignments; Lecturers between
-Departments and Programmes); label each with its prerequisite.
-
-**Acceptance:** DOM order == required order; each card names what must exist first.
-
-### 1.4 · Import page keeps its place — **HIGH** · M
-**Files:** `AdminImportController.java`, `admin/import.html`
-
-Today a preview **replaces the whole page**, so after each of nine steps the admin loses all
-context and progress.
-
-**Do:** keep all nine cards rendered at all times with a per-kind status tick from counts the
-dashboard already has; render the preview inline under its own card instead of replacing the
-page.
-
-**Acceptance:** completing step 3 leaves steps 1–9 visible with 1–3 ticked.
-
-### 1.5 · Per-row import safety is a lie — **HIGH** · S
-**Files:** `AcademicImportService.java:307`
-
-`apply()` is `@Transactional` over the whole batch, while `admin/import.html:211` promises
-"rows that already exist are skipped, not duplicated" and the result object reports per-row
-`created/skipped/failed`. One bad row rolls back the entire import, contradicting both.
-
-**Do:** remove `@Transactional` from `apply` and wrap each applier in `REQUIRES_NEW` (or a
-`TransactionTemplate`) — the pattern `AIInsightProcessingService` already uses.
-
-**Acceptance:** a 100-row file with one bad row imports 99 and reports 1 failed.
-
-### 1.6 · Wrong-order imports name their fix — **MEDIUM** · S
-**Files:** `AcademicImportService.java`, `admin/import.html`
-
-**Do:** when every invalid row shares one parent-kind error, replace the row table with a single
-banner — *"None of these rows can be imported yet — import Departments first"* — plus a direct
-link. Collapse repeated identical errors into a count.
-
-### 1.7 · In-app sample data — **MEDIUM** · M
-**Files:** new admin action, `CollaborationDemoSeeder`, `RichTestDataSeeder`
-
-Today demo content requires three env flags and a redeploy, and rides on the `password123`
-trio — so it cannot be used to demo a production instance.
-
-**Do:** admin-only **Load sample data** / **Remove sample data**, seeding synthetic accounts with
-*generated* passwords, decoupled from `SEED_DEMO_ACCOUNTS`.
-
-**Acceptance:** an evaluator sees a populated app in one click; removal restores an empty state.
-
-### 1.8 · Empty states everywhere — **HIGH** · M
-**Files:** the 17 templates with no empty-state branch
-
-**Do:** every list/table gets a real empty state: one sentence on what belongs here, and a
-button to the action that creates the first one.
-
-**Acceptance:** no blank table anywhere on a fresh install.
+| 0.1 | ✅ **DONE** — `deploy/README.md` claimed the app auto-creates `admin`/`lecturer`/`student` with `password123`. False since the demo trio was gated; following it caused a lockout. | `deploy/README.md` | XS |
+| 0.2 | Add `ADMIN_INITIAL_PASSWORD` to `deploy/unisubmit.env.example` + `RAILWAY.md`. It exists only in `.env.example`, which a Railway operator never opens. | `deploy/*` | XS |
+| 0.3 | **Rewrite `README.md` — it describes a different product.** It is the judging artifact and the first thing a pilot school reads. | `README.md` | S |
+| 0.4 | Update `CODEBASE-MAP.md` for the V4 branding surface (`ThemeStylePreset`, `ThemeFontPreset`, `BrandingManifestController`, client-side `deepenTokens`). | `CODEBASE-MAP.md` | XS |
 
 ---
 
-## Phase 2 · CORRECTNESS — things quietly wrong (1 day)
+## Phase 1 · FIRST RUN — the empty room (2–3 days)
 
-### 2.1 · Bulk-imported students get a null semester — MEDIUM · S
-**Files:** `CsvImportService.java`, student template
+*Highest leverage in the document. Every judge and every pilot hits this in five minutes.*
 
-Semester is never imported, and a blank `programmeCode` silently creates a mis-attached cohort.
-**Do:** add `semester` to the template and pass it through; warn in preview when programme is
-blank ("N students have no programme — their work will not attach to a curriculum").
-
-### 2.2 · Self-registration is live but impossible — MEDIUM · S
-**Files:** `AuthController.java`, `SecurityConfig.java`
-
-`/register` is public from minute zero but cannot succeed until the academic tree exists — with
-no message either way. **Do:** gate it behind an admin toggle, default off until at least one
-programme exists; validate the admission number against imported `StudentProfile` rows so
-registration *claims a roster row* rather than inventing an account.
-
-### 2.3 · Branding cannot be saved if the JS engine fails — LOW · S
-**Files:** `AdminBrandingController.java`
-
-**Do:** when `tokensJson` is absent, derive a minimal token block server-side from the three
-base colours already posted, and flash *"Saved with a basic palette."* Branding is step zero;
-it must not be the step that hard-fails.
+| # | Task | Sev/Effort | Notes |
+|---|---|---|---|
+| 1.1 | **Bootstrap admin is unrecoverable.** Username is `admin`, not an email, so `/forgot-password` cannot reach it. Miss the one-time WARN and the deployment is dead. → take an operator email as the username; fail fast at boot when a fresh DB has no `ADMIN_INITIAL_PASSWORD`; also write the generated password to a file. | CRIT / M | `UnisubmitApplication.java:67-103` |
+| 1.2 | **Setup checklist on the admin dashboard**, driven entirely by counters already on the model — no new queries. Nine rows, each a tick or a link. Hide when complete. Persistent card, **not** a modal wizard. | CRIT / S | `AdminDashboardController.java:45-70` |
+| 1.3 | **Make import order self-evident** — number 1–9, reorder the DOM so card order == required order, label each with its prerequisite. | HIGH / S | `admin/import.html` |
+| 1.4 | **Import page keeps its place** — all nine cards always rendered with per-kind ticks; preview inline under its own card instead of replacing the page. | HIGH / M | `AdminImportController` |
+| 1.5 | **Per-row import safety is a lie.** `apply()` is `@Transactional` over the whole batch while the UI promises per-row skip. One bad row rolls back everything. → `REQUIRES_NEW` per applier, the pattern `AIInsightProcessingService` already uses. | HIGH / S | `AcademicImportService.java:307` |
+| 1.6 | **Wrong-order imports name their fix** — when all rows share one parent-kind error, show one banner + link, not a table of identical errors. | MED / S | |
+| 1.7 | **In-app sample data** — admin-only Load/Remove, synthetic accounts with generated passwords, decoupled from `SEED_DEMO_ACCOUNTS`. | MED / M | Needed for 1.11 |
+| 1.8 | **Empty-state taxonomy** — one Thymeleaf fragment, four variants, **mandatory CTA slot**; applied to all 17 bare templates. | HIGH / M | |
+| 1.9 | **Cold start is ~120s** on a free container — a judge opening your link waits two minutes for an empty room. Warm it or pre-seed. | HIGH / M | |
 
 ---
 
-## Phase 3 · USABILITY (2 days)
+## Phase 2 · KEPT PROMISES — features that exist but cannot be reached (2 days)
 
-Measured on the current tree: **72** inputs with neither a `label` nor `aria-label`; **12**
-`window.confirm()` calls; **16** tables (mobile risk).
+*These read as **broken**, not unbuilt. That distinction is the whole phase.*
 
-- **3.1 · Labels and aria** (S) — every input gets a programmatic label. Accessibility is also a
-  procurement checkbox for public universities.
-- **3.2 · Replace `window.confirm`** (S) — a styled confirm for destructive actions; prefer
-  **undo** over confirm where the action is reversible.
-- **3.3 · Responsive tables** (M) — the card-stack pattern already used by `.table-stack`,
-  applied to all 16.
-- **3.4 · Progress for long operations** (M) — file upload, AI analysis and bulk import all
-  block with no feedback. Determinate progress where possible, honest spinners otherwise.
+| # | Task | Sev/Effort |
+|---|---|---|
+| 2.1 | **Class-rep has no web UI.** Admin promotes a rep; that student signs in and sees nothing, because all five rep actions are JWT-only. → add `/student/class/**` reusing `ClassRepService` verbatim + a nav entry gated on `hasAuthority('CLASS_REP')`. Or hide the promote button. **Shipping a permission with no consumer is worse than shipping neither.** | CRIT / L |
+| 2.2 | **Password reset claims success when mail is off.** `EmailService` gates on `spring.mail.username`; unset by default, it logs the code and returns — but the UI still says "a code was sent". → expose `isConfigured()`; when off, fall through to the admin-notify branch students use. Add a startup WARN. | HIGH / S |
+| 2.3 | **`APPROVED` is terminal with no exit for any role**; a submission can never be withdrawn, deleted or re-filed. | HIGH / M |
+| 2.4 | **AI insights stuck in `PENDING`/`PROCESSING` have no recovery and no reaper.** | HIGH / M |
+| 2.5 | **"Request changes" writes `REJECTED`**, and the same state is named four different ways across two templates. | HIGH / S |
+| 2.6 | **Blind review is defeated by the queue** the lecturer passes through to reach it. | HIGH / S |
+| 2.7 | **A failed submission redirect discards the whole form including the uploaded file** — brutal on a phone connection. | HIGH / S |
+
+---
+
+## Phase 3 · USABILITY & ACCESSIBILITY (2 days)
+
+Measured: **67 of 105** `<label>` elements have no `for`; **12** modals with zero dialog
+semantics or focus management; **12** `window.confirm` calls; **16** tables.
+
+| # | Task | Sev/Effort |
+|---|---|---|
+| 3.1 | Labels get `for`. Visual-only labels are invisible to screen readers — and accessibility is a procurement checkbox for public universities. | HIGH / M |
+| 3.2 | Modals: `role="dialog"`, `aria-modal`, focus trap, Esc, focus restore. One shared helper — the open/close code is currently copy-pasted. | HIGH / S |
+| 3.3 | Buttons delete their focus outline and replace it with a ~1.9:1 glow — **fails WCAG 2.2 SC 1.4.11**. | HIGH / XS |
+| 3.4 | Group member picker: custom combobox, no ARIA, no arrow keys, Enter silently adds the wrong person. | HIGH / M |
+| 3.5 | Destructive actions guarded inconsistently — removing a person has no confirmation at all. Prefer **undo** over confirm where reversible. | HIGH / S |
+| 3.6 | Tag rename/merge runs through `window.prompt()` asking the admin to read numeric IDs aloud. | HIGH / M |
+| 3.7 | Autosave + local draft recovery on long-form textareas. | HIGH / S |
+| 3.8 | Determinate progress for bulk import and AI analysis; stop reloading the whole page. | HIGH / M |
+| 3.9 | Status badges must not rely on colour alone. | MED / S |
+| 3.10 | Responsive tables — extend the existing `.table-stack` pattern to all 16. | MED / M |
 
 ---
 
 ## Phase 4 · TONAL DESIGN SYSTEM (3–4 days)
 
-*This is the scoped answer to "make the theming genuinely deep."*
+**Problem.** ~50 **flat** custom properties, each an arbitrary hex; contrast checked *after the
+fact* with a WCAG warning. Nothing structurally prevents an unreadable school.
 
-**Problem.** `base.css` defines ~50 **flat** custom properties, each an arbitrary hex. Contrast
-is checked *after the fact* with a WCAG warning. Two branded schools can both be readable or
-both be broken and nothing structurally prevents the latter.
-
-**Material 3's approach** (read directly from the spec and `material-color-utilities`): from one
-source colour, generate **tonal palettes** — primary, secondary, tertiary, neutral,
-neutral-variant, error — each with fixed **tones** `0,10,20,30,40,50,60,70,80,90,95,99,100`,
-where the number *is* perceptual lightness (L\*). Semantic **role** tokens then reference tones
-(`primary` = tone 40 light / tone 80 dark; `on-primary` = tone 100 / tone 20). Because tone
-distance maps to contrast ratio, a pairing like tone-10-on-tone-90 is **contrast-safe by
-construction** rather than by inspection.
-
-### Migration steps
+**Material 3's model** (read from the spec + `material-color-utilities`): from one source colour
+generate **tonal palettes** — primary, secondary, tertiary, neutral, neutral-variant, error —
+each with tones `0,10,…,100` where the number *is* perceptual L\*. Semantic **roles** then
+reference tones (`primary` = tone 40 light / 80 dark). Because tone distance maps to contrast
+ratio, tone-10-on-tone-90 is **contrast-safe by construction**.
 
 | # | Step | Effort |
 |---|---|---|
-| 4.1 | Define UniSubmit's role token set — ~26 roles, not Material's full 50. Minimum: `primary`, `on-primary`, `primary-container`, `on-primary-container`, the same four for `secondary` and `tertiary`, `surface`, `on-surface`, `surface-variant`, `on-surface-variant`, `surface-container{,-low,-high}`, `outline`, `outline-variant`, `error`, `on-error`, `error-container`, `on-error-container`. | S |
-| 4.2 | Write the tone generator. **Recommendation: server-side Java**, not the vendored JS. Reason: the CSS block is already assembled server-side in `BrandingService.getSanitizedCssBlock()`, the tokens must be validated there regardless, and generating in Java removes the client's ability to submit arbitrary colour values at all — the admin would submit only a *source colour*, collapsing today's 30-token allow-list to one validated hex. Large security simplification. | L |
-| 4.3 | Build the old→new alias table. Every current property is redefined in terms of a role: `--brand: var(--md-primary)`, `--canvas: var(--md-surface)`, `--text: var(--md-on-surface)`, and so on. **This is what makes the migration incremental** — no template changes on day one. | M |
-| 4.4 | Collapse light/dark into one token set with two tone assignments, replacing the current "regenerate the whole palette per mode" approach. | M |
-| 4.5 | Migrate templates off the aliases in batches, deleting each alias as its last usage goes. | L |
-| 4.6 | Delete the WCAG *warning* — contrast becomes structural. Keep a test asserting every role pairing meets 4.5:1 at both tone assignments. | S |
+| 4.1 | Define ~26 role tokens (not Material's full 50): `primary`/`on-primary`/`primary-container`/`on-primary-container` ×3 families, `surface`, `on-surface`, `surface-variant`, `on-surface-variant`, `surface-container{,-low,-high}`, `outline`, `outline-variant`, `error` set. | S |
+| 4.2 | **Generate server-side in Java, not the vendored JS.** The CSS block is already assembled in `BrandingService`, and the tokens must be validated there regardless — so generating in Java means the admin submits **one validated source colour** instead of a 30-token map. Large security simplification, not just tidiness. | L |
+| 4.3 | Alias table: `--brand: var(--md-primary)`, `--canvas: var(--md-surface)`, … **This is what makes it incremental** — zero template changes on day one. | M |
+| 4.4 | Collapse light/dark into one token set with two tone assignments, replacing "regenerate the palette per mode". | M |
+| 4.5 | Migrate templates off aliases in batches, deleting each alias at its last usage. | L |
+| 4.6 | Delete the WCAG *warning*; contrast is now structural. Keep a test asserting every role pairing meets 4.5:1 in both assignments. | S |
 
-**Risk.** 4.3 is the load-bearing step; if the alias table is wrong the whole UI shifts at once.
-Do it behind a feature flag and diff screenshots of five representative pages before/after.
-
----
-
-## Phase 5 · DIFFERENTIATION (unvalidated — research first)
-
-⚠️ **The competitive-research pass did not run.** Do not build from this list until it has.
-These are my own hypotheses from reading the code, not findings:
-
-- **Rubric-based grading** — structured criteria instead of free-text feedback. Highest-value
-  gap versus Gradescope/Canvas, and it makes the existing AI feedback far more useful because
-  it would have a schema to fill.
-- **Similarity surfaced as a report** — pgvector already computes it for *collaboration*; the
-  same signal reframed as an originality check is nearly free and is the single feature schools
-  most expect.
-- **Deadline/extension policy** — per-assignment late windows and per-student extensions.
-- **Command palette** (`Ctrl-K`) — cheap in server-rendered apps and dramatically improves the
-  demo.
-- **Activity feed** — "what changed since I last looked", builds trust for lecturers.
-
-**Do this first:** re-run the research workflow (`unisubmit-hackathon-roadmap`, lenses
-`competitive-edtech`, `cross-industry-ux`, `hackathon-judging`) when the session limit resets.
+**Risk:** 4.3 is load-bearing — do it behind a flag and diff screenshots of five pages.
 
 ---
 
-## §6 · NOT DOING (and why)
+## Phase 5 · COURSEWORK PRIMITIVES (validated — was the research gap)
 
-| Item | Why not |
+*Now backed by research across Gradescope, Turnitin, Canvas, Moodle, Google Classroom,
+GitHub Classroom.*
+
+| # | Task | Sev/Effort |
+|---|---|---|
+| 5.1 | **Deadlines are announcements, not objects.** No due-vs-cutoff split, no penalty maths, no per-student extension. This is the foundational missing primitive — most other grading features assume it. | CRIT / L |
+| 5.2 | **Rubrics.** Marking is one free-text blob + a 0–100 integer, so marks are neither consistent nor explainable. A rubric also gives the existing AI feedback a *schema to fill* — it makes a feature you already built substantially better. | HIGH / L |
+| 5.3 | **Comment bank** — lecturers retype the same twenty sentences across 200 students. Cheapest real time-saver here. | HIGH / S |
+| 5.4 | **Marking state + held release + bulk publish** — grades currently go live the instant they are saved. | HIGH / M |
+| 5.5 | **Originality view.** pgvector similarity already exists for *collaborator discovery*; reframed it is the feature schools most expect. ⚠️ Semantic vectors alone **will accuse the innocent** — pair with lexical overlap and present as "for review", never as a verdict. | HIGH / L |
+| 5.6 | **Submission receipt** — students have no portable proof they submitted (and no email to send one to). | HIGH / S |
+| 5.7 | **Batch download / offline marking round-trip / non-submitter list.** | HIGH / M |
+| 5.8 | **Student dashboard as a prioritised "what's due, what changed, what to do next" feed**, not a wall of status badges. | HIGH / M |
+| 5.9 | Anchored feedback — comments that point at a sentence rather than floating beside the document. | MED / L |
+| 5.10 | Structured regrade requests — appeals currently happen off-platform with no audit trail. | MED / M |
+
+---
+
+## Phase 6 · POLISH — the cheap wins that read as expensive
+
+| # | Task | Effort |
+|---|---|---|
+| 6.1 | **Command palette (Ctrl/Cmd-K)** over a 39-screen IA. Cheap server-rendered; enormous demo value. | M |
+| 6.2 | **Promote the existing `AuditLog` into a school-wide activity feed** — the trust surface you already paid for. | M |
+| 6.3 | Notification rollup + per-type mute before the feed becomes wallpaper. | M |
+| 6.4 | Inline row editing on admin CRUD — kill the list-then-separate-form round trip. | M |
+| 6.5 | Keyboard triage for the lecturer review queue (J/K/E + `?` help). | M |
+
+---
+
+## §6 · NOT DOING
+
+| Item | Why |
 |---|---|
-| **Multi-tenancy** | Explicitly deferred by the owner. It is not a feature but an architecture change: an `Organization` entity, request-time tenant resolution, a tenant FK on `User` and every academic entity, and a tenant-keyed cache replacing the two `volatile` fields in `BrandingService`. Weeks, not days — and one deployment per school works today. |
-| **Flutter app** | The `/api/v1` server side exists and is tested; the client does not. Building it now competes with fixing onboarding, which affects every user. |
-| **SPA rewrite** | Nothing in the findings requires it. |
-| **Real-time collaboration** | No finding justifies the WebSocket infrastructure. |
-| **Custom font hosting** | Every preset uses OS-resident stacks deliberately; webfonts add page weight and a licence question for zero identity gain. |
+| **Multi-tenancy** | Deferred by the owner. Not a feature but an architecture change: `Organization` entity, request-time tenant resolution, tenant FK across every academic entity, tenant-keyed cache replacing two `volatile` fields. Weeks. One deployment per school works today. |
+| **Flutter client** | Server API exists and is tested; the client does not. Phase 2.1 makes class-rep work on the web instead — same value, a fraction of the cost. |
+| **SPA rewrite / real-time** | Nothing in 63 findings requires either. |
+| **Custom webfonts** | Presets use OS-resident stacks deliberately — page weight and licensing for zero identity gain. |
+| **Proctoring, video, enterprise SSO** | Out of scope for one developer. |
 
 ---
 
 ## §7 · Hackathon demo
 
-**Narrative — lead with the problem, not the tech.**
+**First, settle §00.** If prior work is barred, the entry is Phase 1 alone, demoed as its own thing.
 
-1. **The empty room (30s).** Fresh install. "This is what every school starts with." — *requires
-   Phase 1 to be done; today this beat is the weakest moment, after it, it is the strongest.*
-2. **Onboarding (60s).** Upload a real university crest → colours extracted with coverage shown
-   → pick a theme, typeface, shape, light/dark → save. The app is now visibly *that school's*:
-   navbar, login page, browser tab, installed PWA icon. **Show the browser tab.** That detail
-   lands harder than the palette.
-3. **Same code, different school (20s).** Second deployment, different crest, side by side.
-   Unrecognisable as the same product. This is the memorable image — have both pre-built.
-4. **The actual work (90s).** Student submits → lecturer reviews → AI insight → collaborator
-   discovery via semantic search.
-5. **Depth for the technical judge (30s).** Two security chains; Material You's scoring
-   algorithm ported and *measured* (`#3B82F6` before → `#E8792B` after, on the same crest);
-   127 tests.
+**Judges stack-rank; being *broadly* good scores zero.** Pick one memorable image and build
+around it.
 
-**Have ready:** two branded deployments; a real crest; sample data one click away (Phase 1.7); a
-2-minute fallback video in case the network fails; `README` with a 60-second local-run path.
+1. **The empty room (20s).** Fresh install. "This is what every school starts with."
+   *Requires Phase 1 — today this is the weakest beat; after it, the strongest.*
+2. **Onboarding (60s).** Upload a real crest → colours extracted **with coverage shown** → pick
+   theme, typeface, shape, light/dark → save. Navbar, login, **browser tab**, installed PWA icon
+   all become that school's. Show the tab — that detail lands harder than the palette.
+3. **Same code, two schools (20s).** Two deployments side by side, unrecognisable as one product.
+   **This is the memorable image.** Pre-build both.
+4. **Real work (90s).** Submit → review → AI insight → collaborator discovery.
+5. **Depth, at the table not on stage (30s).** Two security chains; Material You's scorer ported
+   *and measured*: `#3B82F6` (a colour absent from the image) → `#E8792B` (the actual brand), on
+   the same crest. 127 tests.
 
-**Judges reward evidence over claims.** The strongest single artifact is the extraction
-before/after measurement — it shows you found a real defect, quantified it, and fixed it.
+**Have ready:** two branded deployments; a real crest; one-click sample data (1.7); a 2-minute
+fallback video; a README with a 60-second local-run path; a warm container (1.9).
+
+**Cut from the demo:** Phase 4 and the dead-code sweep score zero with judges. Do them for the
+codebase, never for the pitch.
+
+**Strongest single artifact:** the extraction before/after measurement — evidence you found a
+real defect, quantified it, and fixed it. That is what separates first place from "it works".
 
 ---
 
@@ -293,4 +228,5 @@ before/after measurement — it shows you found a real defect, quantified it, an
 
 | Date | Session | What |
 |---|---|---|
-| 2026-07-31 | Opus 5 | V4 authored. Phase 0.1 landed. Audit: 10 findings w/ evidence. Research lenses failed on session limit — Phase 5 unvalidated. |
+| 2026-07-31 | Opus 5 | V4 authored. Phase 0.1 landed. First run: 1 of 8 lenses survived a session limit. |
+| 2026-07-31 | Opus 5 | Re-ran all lenses in small batches with per-batch persistence. **63 findings**, all 6 lenses complete. Phase 5 validated; §00 eligibility and Phase 2 (orphan features) are new and were not visible before the research. |
